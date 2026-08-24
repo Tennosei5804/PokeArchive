@@ -6,6 +6,7 @@
 
 import { createHash, randomBytes } from 'node:crypto';
 import { lire, une, ecrire } from './base.js';
+import { estInterdit } from './pseudos-interdits.js';
 
 const SESSION_JOURS = 90;
 const PSEUDO_MIN = 3;
@@ -46,6 +47,19 @@ function nettoyerPseudo(brut) {
   return longueur(propre) >= PSEUDO_MIN && PSEUDO_OK.test(propre) ? propre : '';
 }
 
+/**
+ * Le pseudo repris de Discord, à la première connexion.
+ *
+ * Il n'est pas choisi ici, il est hérité — et quelqu'un dont le nom Discord
+ * est grossier ne doit pas pour autant se voir refuser l'entrée. On le remplace
+ * silencieusement par le nom neutre, que pseudoLibre() numérotera. Il pourra
+ * en choisir un autre ensuite, et celui-là passera par le filtre.
+ */
+function pseudoHerite(brut) {
+  const propre = nettoyerPseudo(brut);
+  return propre && !estInterdit(propre) ? propre : '';
+}
+
 /** Deux joueurs peuvent porter le même nom sur Discord ; ici, non. */
 async function pseudoLibre(souhaite) {
   const racine = souhaite || 'Dresseur';
@@ -72,7 +86,7 @@ export async function depuisDiscord(profil) {
   const nouveau = !d;
 
   if (nouveau) {
-    const pseudo = (await pseudoLibre(nettoyerPseudo(profil.pseudo))).normalize('NFC');
+    const pseudo = (await pseudoLibre(pseudoHerite(profil.pseudo))).normalize('NFC');
     const r = await ecrire(
       `INSERT INTO pa_dresseurs (discord_id, pseudo, pseudo_cle, avatar, cree_le)
        VALUES (?, ?, ?, ?, ?)`,
@@ -131,6 +145,13 @@ export async function changerPseudo(dresseurId, souhaite) {
     throw new ErreurCompte(
       `Entre ${PSEUDO_MIN} et ${PSEUDO_MAX} caractères : lettres, chiffres, espace, `
       + `tiret et souligné, en commençant et finissant par une lettre ou un chiffre.`);
+  }
+  // Le refus ne nomme pas le mot qui l'a déclenché : le dire reviendrait à
+  // apprendre quoi contourner. Un pseudo s'affiche dans le classement et à
+  // côté du Pokédex de gens qui n'ont rien demandé — et personne ne surveille
+  // la liste après coup.
+  if (estInterdit(propre)) {
+    throw new ErreurCompte('Ce pseudo ne convient pas. Choisis-en un autre.');
   }
   const pris = await une('SELECT id FROM pa_dresseurs WHERE pseudo_cle = ? AND id <> ?',
     [normaliser(propre), dresseurId]);

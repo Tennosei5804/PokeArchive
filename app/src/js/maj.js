@@ -78,15 +78,30 @@ async function verifierMaj(discret){
 }
 
 /**
- * Le bouton n'apparaît que lorsqu'il y a quelque chose à installer. Un bouton
- * « vérifier » posté en permanence dans l'en-tête ne sert qu'à inquiéter : la
- * vérification se fait toute seule.
+ * Le bouton passe de sa flèche discrète à la pilule dorée.
+ *
+ * Il est là en permanence — au repos, il ressemble à ses voisins et sert à
+ * vérifier soi-même. Il n'était d'abord affiché qu'en cas de mise à jour, ce
+ * qui privait de deux choses : demander soi-même, et savoir que l'application
+ * le fait déjà.
  */
 function montrerBoutonMaj(version){
   const bouton = document.getElementById('majBtn');
   if(!bouton) return;
-  bouton.hidden = false;
+  bouton.classList.add('trouvee');
+  bouton.textContent = '⬇ Mise à jour';
   bouton.title = 'La version ' + version + ' est disponible';
+}
+
+// Ce que le bouton dit quand il n'y a rien : une flèche, et le reste en
+// infobulle. Sert aussi à revenir en arrière après un échec.
+function reposerBoutonMaj(){
+  const bouton = document.getElementById('majBtn');
+  if(!bouton) return;
+  bouton.classList.remove('trouvee', 'cherche');
+  bouton.disabled = false;
+  bouton.textContent = '⟳';
+  bouton.title = 'Vérifier les mises à jour';
 }
 
 /** Le nom du fichier de notes est libre : on affiche ce qui vient, ou rien. */
@@ -150,6 +165,8 @@ async function proposerMaj(){
     if(process && typeof process.relaunch === 'function') await process.relaunch();
   }catch(e){
     majEnCours = false;
+    // La version reste disponible : on rend le bouton à son état doré plutôt
+    // qu'à sa flèche, sinon il faudrait revérifier pour retrouver ce qu'on sait.
     if(bouton){ bouton.disabled = false; bouton.textContent = '⬇ Mise à jour'; }
     prevenirErreur('L\'installation a échoué',
       'Le téléchargement ou l\'installation s\'est interrompu. L\'application '
@@ -158,11 +175,33 @@ async function proposerMaj(){
   }
 }
 
+/**
+ * Le clic. Deux gestes derrière un seul bouton, selon ce qu'on sait déjà.
+ *
+ * Si une version nous attend, on la propose — inutile de redemander à GitHub
+ * ce qu'il vient de répondre. Sinon on va voir, et cette fois on parle : c'est
+ * une vérification demandée, elle doit dire ce qu'elle a trouvé, même quand
+ * c'est « rien ». Une vérification muette laisse croire au bouton mort.
+ */
+async function auClicMaj(){
+  if(majEnCours) return;
+  if(majTrouvee) return proposerMaj();
+
+  const bouton = document.getElementById('majBtn');
+  if(bouton){ bouton.classList.add('cherche'); bouton.disabled = true; }
+  try{
+    await verifierMaj(false);
+  }finally{
+    if(bouton && !majTrouvee) reposerBoutonMaj();
+    else if(bouton){ bouton.classList.remove('cherche'); bouton.disabled = false; }
+  }
+}
+
 // Le bouton de l'en-tête, et la vérification au lancement. Quatre secondes de
 // délai : l'application a mieux à faire au démarrage que d'attendre le réseau,
 // et une mise à jour n'est jamais pressée.
 document.addEventListener('DOMContentLoaded', function(){
   const bouton = document.getElementById('majBtn');
-  if(bouton) bouton.addEventListener('click', proposerMaj);
+  if(bouton) bouton.addEventListener('click', auClicMaj);
   if(pontMaj()) setTimeout(function(){ verifierMaj(true); }, MAJ_ATTENTE_AU_LANCEMENT);
 });

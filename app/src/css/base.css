@@ -105,33 +105,56 @@
   .theme-btn:hover{ background:rgba(0,0,0,.32); }
   .theme-btn:focus-visible{ outline:2.5px solid #fff; outline-offset:2px; }
 
-  /* Mise à jour disponible. Le bouton n'existe pas tant qu'il n'y a rien à
-     installer — il porte « hidden » dans le HTML et maj.js le lève. Un bouton
-     « vérifier » posté en permanence dans l'en-tête ne servirait qu'à inquiéter :
-     la vérification se fait seule au lancement.
+  /* Le bouton des mises à jour, en deux états.
 
-     L'or plutôt que le blanc des deux voisins : c'est la seule chose de cette
-     barre qui demande une décision, et elle doit se voir sans clignoter. */
+     AU REPOS il ressemble à ses deux voisins — rond, blanc sur le rouge du
+     boîtier — et ne porte qu'une flèche circulaire. Il ne s'agit pas de
+     l'effacer mais de ne pas inquiéter : rien à installer, rien à crier.
+
+     QUAND UNE VERSION EXISTE il s'allonge en pilule dorée. L'or plutôt que le
+     blanc parce que c'est alors la seule chose de cette barre qui demande une
+     décision — et elle doit se voir sans clignoter.
+
+     Il était auparavant absent tant qu'il n'y avait rien : on ne pouvait donc
+     pas vérifier soi-même, et rien ne disait que l'application le faisait. */
   .maj-btn{
     margin-left:10px;
-    height:34px;
+    width:34px; height:34px;
+    padding:0;
+    border-radius:50%;
+    border:1px solid rgba(255,255,255,.28);
+    background:rgba(0,0,0,.18);
+    color:#fff;
+    font-family:var(--font-body);
+    font-size:16px; font-weight:400;
+    line-height:1;
+    cursor:pointer;
+    flex-shrink:0;
+    white-space:nowrap;
+    transition:background 120ms, opacity 120ms, width 160ms;
+  }
+  .maj-btn:hover{ background:rgba(0,0,0,.32); }
+  .maj-btn:focus-visible{ outline:2.5px solid #fff; outline-offset:2px; }
+
+  /* L'état qui compte. La largeur repasse en auto : le libellé est un mot,
+     plus une icône, et un cercle de 34 px le couperait. */
+  .maj-btn.trouvee{
+    width:auto;
     padding:0 14px;
     border-radius:999px;
-    border:1px solid var(--gold);
+    border-color:var(--gold);
     background:var(--gold);
     color:#2a1f05;
     font-family:var(--font-data);
     font-size:11px; font-weight:700;
     letter-spacing:.06em;
-    line-height:1;
-    cursor:pointer;
-    flex-shrink:0;
-    white-space:nowrap;
-    transition:background 120ms, opacity 120ms;
   }
-  .maj-btn:hover{ background:var(--gold-deep); border-color:var(--gold-deep); }
-  .maj-btn:focus-visible{ outline:2.5px solid #fff; outline-offset:2px; }
-  .maj-btn[hidden]{ display:none; }
+  .maj-btn.trouvee:hover{ background:var(--gold-deep); border-color:var(--gold-deep); }
+  /* Pendant la vérification : la flèche tourne. Une seconde d'attente sans
+     signe donne l'impression d'un bouton mort. */
+  .maj-btn.cherche{ animation:maj-tourne 1.1s linear infinite; }
+  @keyframes maj-tourne{ to{ transform:rotate(360deg); } }
+  @media (prefers-reduced-motion:reduce){ .maj-btn.cherche{ animation:none; opacity:.6; } }
   /* Pendant le téléchargement : le libellé devient un pourcentage, et le bouton
      cesse de répondre. Rendre la main ici relancerait un second transfert. */
   .maj-btn:disabled{ cursor:default; opacity:.72; }
