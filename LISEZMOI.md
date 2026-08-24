@@ -996,13 +996,16 @@ programme — et il serait installé sans un mot.
 | clé publique | dans `tauri.conf.json`, `plugins.updater.pubkey`. Elle se versionne, c'est son rôle |
 | clé privée | `~/.tauri/pokearchive.key`, **hors du dépôt**, plus une copie dans les secrets GitHub |
 
-Le dépôt a besoin de deux secrets, dans *Settings → Secrets and variables →
-Actions* :
+Le dépôt a besoin d'**un seul secret**, dans *Settings → Secrets and
+variables → Actions* :
 
 | Nom du secret | Valeur |
 |---|---|
 | `TAURI_SIGNING_PRIVATE_KEY` | le contenu entier de `~/.tauri/pokearchive.key` |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | vide — la clé a été générée sans mot de passe |
+
+Le workflow lit aussi `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, mais **il ne faut
+pas le créer** : un secret absent se résout en chaîne vide, et la clé a été
+générée sans mot de passe. C'est exactement ce qu'attend le signataire.
 
 > **Perdre la clé privée coûte cher.** Sans elle, aucune version future ne peut
 > être signée, donc plus aucune mise à jour n'atteint les gens déjà installés :
