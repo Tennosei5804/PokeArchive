@@ -1054,6 +1054,77 @@ cd PokeArchive && git pull && cd api && npm install --omit=dev
 Puis *redémarrer* le site depuis le panneau. Le service ne se recharge pas
 tout seul : sans redémarrage, il continue de servir l'ancien code.
 
+## Ce qui protège l'API en ligne
+
+Tant que le service vivait sur `127.0.0.1`, le seul client possible était sur
+la même machine. Publié, il est atteignable par n'importe qui — et deux
+défenses manquaient.
+
+### La limitation de débit
+
+`src/debit.js`, sans dépendance comme le reste du service : une fenêtre
+glissante par adresse, en mémoire du processus.
+
+| Routes | Budget | Pourquoi |
+|---|---|---|
+| `/auth/*` | 30 / 10 min | un départ de connexion appelle Discord et écrit en base ; on en ouvre un par session, pas trente par minute |
+| `/api/*` | 600 / 5 min | suit l'application, qui lit son dex à l'ouverture et l'écrit à chaque coche. Large pour ne jamais gêner quelqu'un de réel |
+
+Au-delà : `429`, un `Retry-After`, et un message en français.
+
+> **`app.set('trust proxy', 1)` conditionne tout.** Chez l'hébergeur, une
+> requête passe par son proxy avant d'arriver au service : sans cette ligne,
+> `req.ip` rend l'adresse du proxy — la même pour tout le monde — et la
+> limitation bloquerait **tous les visiteurs à la fois** plutôt que le seul qui
+> abuse. Et surtout pas `true`, qui ferait confiance à ce que le client écrit
+> lui-même dans `X-Forwarded-For` : il suffirait d'annoncer une adresse
+> différente à chaque requête pour passer à travers. On n'en croit qu'un.
+
+Le risque n'est pas seulement le service : l'hébergement gratuit interdit
+explicitement de trop consommer de CPU. Ce n'est pas le service qui tomberait
+en premier, c'est le compte qui serait suspendu.
+
+### Les sauvegardes
+
+Les collections des dresseurs vivent sur un serveur, et un serveur n'est pas un
+endroit sûr.
+
+```
+node outils/sauvegarder.js                  → ../sauvegardes/, quatorze gardées
+node outils/restaurer.js <fichier>          → dit ce qu'il ferait
+node outils/restaurer.js <fichier> --vraiment → le fait
+```
+
+Quatre tables sont sauvegardées ; `pa_sessions` **délibérément pas** — ce sont
+des jetons de connexion, ils expirent seuls, et les restaurer reconnecterait
+des gens à leur insu.
+
+La restauration **remplace** et tient dans une transaction : à moitié faite,
+elle serait pire que rien, puisqu'on ne saurait plus dans quel état on est.
+Sans `--vraiment`, elle ne fait que dire ce qu'elle ferait — la commande se
+tape souvent dans l'urgence, quand on réfléchit mal.
+
+Le format est du JSON et non du SQL : il se relit sans MySQL, se compare d'une
+sauvegarde à l'autre, et se restaure par le script d'à côté. Une sauvegarde
+qu'on ne sait pas relire n'en est pas une.
+
+**À planifier chez l'hébergeur.** Le SSH interdit les processus qui durent ;
+les tâches planifiées sont faites pour ça. Chez alwaysdata, *Avancé → Tâches
+planifiées*, une fois par jour :
+
+```
+node /home/<compte>/PokeArchive/api/outils/sauvegarder.js
+```
+
+Les variables d'environnement de la tâche doivent porter les `DB_*` — une tâche
+n'hérite pas de celles du site. Sans elles le script échoue avec un code de
+sortie non nul, ce qui est voulu : une sauvegarde qui échoue en silence laisse
+croire qu'on est protégé alors qu'on ne l'est plus.
+
+> Les sauvegardes contiennent les Pokédex, les pseudos et les identifiants
+> Discord de tout le monde. `sauvegardes/` est dans le `.gitignore` — elles
+> restent sur le serveur.
+
 ## Publier une version
 
 Le dépôt est <https://github.com/Tennosei5804/PokeArchive>. Livrer une version

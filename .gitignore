@@ -32,6 +32,10 @@ app/src-tauri/target/
 # encore raté un troisième.
 .pages/
 
+# Les sauvegardes de la base : elles contiennent les Pokédex, les pseudos et
+# les identifiants Discord de tout le monde. Elles restent sur le serveur.
+sauvegardes/
+
 # Les dépendances Node du service : package-lock.json suffit à les retrouver.
 node_modules/
 

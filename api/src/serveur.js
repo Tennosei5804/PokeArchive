@@ -15,6 +15,7 @@ import { config, verifierConfig } from './config.js';
 import { creerSchema, description } from './base.js';
 import * as comptes from './comptes.js';
 import * as discord from './discord.js';
+import { limiter } from './debit.js';
 
 const journal = (m) => console.log(`${new Date().toLocaleTimeString('fr-FR')}  ${m}`);
 
@@ -32,8 +33,28 @@ const portApp = (v) => {
 
 const app = express();
 app.disable('x-powered-by');
+
+// UN saut de proxy, pas « true ». Chez l'hébergeur, une requête passe par
+// son proxy avant d'arriver ici : sans cette ligne, req.ip rend l'adresse du
+// proxy, la même pour tout le monde, et la limitation ci-dessous bloquerait
+// tous les visiteurs à la fois plutôt que le seul qui abuse.
+//
+// « true » ferait confiance à toute la chaîne X-Forwarded-For, y compris à ce
+// que le client y écrit lui-même : n'importe qui contournerait la limite en
+// annonçant une adresse différente à chaque requête. On n'en croit qu'un.
+app.set('trust proxy', 1);
+
 app.use(helmet());
 app.use(express.json({ limit: '2mb' }));
+
+// Deux budgets, parce que les deux familles de routes ne coûtent pas pareil.
+// Un départ de connexion appelle Discord et écrit en base ; il est rare dans
+// un usage normal — on en ouvre une par session, pas trente par minute.
+app.use('/auth', limiter({ nom: 'auth', max: 30, fenetre: 10 * 60_000 }));
+// Le reste suit l'application : elle lit son dex à l'ouverture, l'écrit à
+// chaque coche, consulte des dresseurs. Large, donc, pour ne jamais gêner
+// quelqu'un de réel — et bien assez bas pour arrêter un martelage.
+app.use('/api', limiter({ nom: 'api', max: 600, fenetre: 5 * 60_000 }));
 
 // --- Connexion Discord ------------------------------------------------------
 //
