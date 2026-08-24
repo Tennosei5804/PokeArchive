@@ -1057,8 +1057,14 @@ const journalListe = document.getElementById('journalListe');
 const journalQuoi = document.getElementById('journalQuoi');
 const journalTotal = document.getElementById('journalTotal');
 const journalPlus = document.getElementById('journalPlus');
+const journalPortee = document.getElementById('journalPortee');
 
 let journalCurseur = null;   // identifiant de la dernière ligne affichée
+
+// Le journal montre l'aventure ouverte, ou toutes. La page Profil parle de
+// « tes captures » sans preciser lesquelles : jusqu'ici c'etait celles de
+// l'aventure courante, et rien ne le disait.
+let journalToutes = false;
 
 function direErreurPage(texte){
   profilPageErreur.textContent = texte || '';
@@ -1375,7 +1381,24 @@ function ligneJournal(l, quandTexte, quandTitre){
   if(quandTitre) quand.title = quandTitre;
 
   ligne.appendChild(marque); ligne.appendChild(nom);
-  ligne.appendChild(ou); ligne.appendChild(quand);
+  ligne.appendChild(ou);
+
+  // En mode transversal, l'aventure d'où vient la capture — entre le jeu et
+  // l'heure. Sans elle, deux parties se mélangent sans qu'on puisse les
+  // distinguer, et « Bulbizarre, Rouge / Bleu » apparaîtrait deux fois sans
+  // raison visible. Elle ne figure pas dans l'autre mode : la répéter à chaque
+  // ligne quand toutes viennent de la même aventure serait du bruit.
+  if(journalToutes && l.aventure){
+    const av = document.createElement('span');
+    av.className = 'journal-aventure';
+    av.textContent = l.aventure;
+    ligne.appendChild(av);
+    // La ligne est une grille à quatre colonnes fixes : un cinquième enfant
+    // sans cette classe passerait à la ligne suivante.
+    ligne.classList.add('avec-aventure');
+  }
+
+  ligne.appendChild(quand);
   return ligne;
 }
 
@@ -1417,7 +1440,7 @@ function oublierEnVol(){
 }
 
 async function chargerJournal(suite){
-  if(!profilCourant){
+  if(!profilCourant && !journalToutes){
     journalListe.innerHTML = '<div class="state-msg">Aucune aventure ouverte.</div>';
     journalPlus.style.display = 'none';
     return;
@@ -1426,11 +1449,18 @@ async function chargerJournal(suite){
     journalCurseur = null;
     journalListe.innerHTML = '<div class="state-msg">Chargement…</div>';
   }
-  journalQuoi.textContent = profilCourant.nom;
+  journalQuoi.textContent = journalToutes
+    ? 'Toutes mes aventures'
+    : (profilCourant ? profilCourant.nom : '—');
 
   let r;
   try{
-    r = await lireHistorique(profilCourant.id, journalCurseur);
+    // Deux services, parce que deux questions : « qu'ai-je attrapé dans cette
+    // partie » et « qu'ai-je attrapé, tout court ». Le second ne connaît pas
+    // de total — le compter à chaque page coûterait un balayage de la table.
+    r = journalToutes
+      ? await invoke('journal', { avant: journalCurseur })
+      : await lireHistorique(profilCourant.id, journalCurseur);
   }catch(e){
     if(String(e) === 'SESSION_INVALIDE'){ await perdreSession(); return; }
     journalListe.innerHTML = '<div class="state-msg">Journal indisponible.</div>';
@@ -1439,7 +1469,11 @@ async function chargerJournal(suite){
   }
 
   if(!suite) journalListe.innerHTML = '';
-  journalTotal.textContent = r.total ? r.total + ' capture' + (r.total > 1 ? 's' : '') + ' enregistrées' : '';
+  // Le service transversal ne rend pas de total : le compter a chaque page
+  // couterait un balayage de la table pour un chiffre decoratif.
+  journalTotal.textContent = r.total
+    ? r.total + ' capture' + (r.total > 1 ? 's' : '') + ' enregistrées'
+    : '';
 
   if(!r.lignes.length && !suite){
     journalListe.innerHTML = '<div class="state-msg">Rien encore. Le journal se remplit '
@@ -1485,9 +1519,27 @@ async function chargerProfil(dejaAJour){
   dessinerAventures();
   journalListe.dataset.dernierJour = '';
   chargerJournal(false);
+  // Les trois blocs du bas — donnees, connexions, administration — vivent
+  // dans donnees-perso.js, charge apres celui-ci.
+  if(typeof chargerDonneesPerso === 'function') chargerDonneesPerso();
 }
 
 journalPlus.addEventListener('click', function(){ chargerJournal(true); });
+
+// La bascule du journal. Le libellé annonce ce vers quoi on va, pas où l'on
+// est : un bouton qui dit « Toutes mes aventures » pendant qu'on les regarde
+// déjà laisse croire qu'il ne s'est rien passé.
+if(journalPortee){
+  journalPortee.addEventListener('click', function(){
+    journalToutes = !journalToutes;
+    journalPortee.setAttribute('aria-pressed', journalToutes ? 'true' : 'false');
+    journalPortee.textContent = journalToutes
+      ? 'Seulement cette aventure'
+      : 'Toutes mes aventures';
+    journalListe.dataset.dernierJour = '';
+    chargerJournal(false);
+  });
+}
 
 document.getElementById('profilPageCreer').addEventListener('click', async function(){
   const nom = profilPageNom.value.trim();

@@ -898,3 +898,107 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 @media (max-width:560px){
   .cadeaux-cartes{ grid-template-columns:1fr; }
 }
+
+/* ---- Les blocs personnels de la page Profil ---- */
+/* Données, connexions, administration. Même caisse que les autres cartes de
+   l'application : le fond des cartes, le filet, l'arrondi des blocs. */
+.profil-bloc{
+  background:var(--card);
+  border:1px solid var(--card-border);
+  border-radius:11px;
+  padding:16px 18px;
+  margin-bottom:14px;
+  display:flex; flex-direction:column; gap:12px; align-items:flex-start;
+}
+.profil-bloc-note{
+  margin:0; max-width:64ch;
+  font-size:13.5px; line-height:1.5; color:var(--ink-soft);
+}
+.profil-bloc-etat{
+  font-family:var(--font-data); font-size:11.5px; color:var(--ink-faint);
+}
+
+/* La bascule du journal. Discrète : elle vit dans un en-tête, pas dans une
+   barre d'actions, et ne doit pas peser plus que le nom de l'aventure. */
+.journal-portee{
+  margin-left:10px;
+  padding:3px 10px;
+  border-radius:999px;
+  border:1px solid var(--card-border);
+  background:transparent;
+  color:var(--ink-soft);
+  font-family:var(--font-data);
+  font-size:10px; font-weight:700;
+  letter-spacing:.08em; text-transform:uppercase;
+  cursor:pointer;
+  transition:border-color 120ms, color 120ms;
+}
+.journal-portee:hover{ border-color:var(--ink-faint); color:var(--ink); }
+.journal-portee[aria-pressed="true"]{ border-color:var(--gold); color:var(--gold-deep); }
+.journal-portee:focus-visible{ outline:2.5px solid var(--gold); outline-offset:2px; }
+
+/* L'aventure d'où vient une capture, en mode transversal. En retrait du nom du
+   jeu : c'est un contexte, pas le lieu de la capture. */
+.journal-aventure{
+  font-family:var(--font-data); font-size:10.5px;
+  color:var(--ink-faint);
+  padding:1px 7px;
+  border:1px solid var(--card-border);
+  border-radius:999px;
+  white-space:nowrap;
+}
+/* La ligne compte quatre colonnes fixes. L'aventure en ajoute une cinquieme :
+   sans cette regle, elle passerait a la ligne suivante et casserait la liste. */
+.journal-ligne.avec-aventure{ grid-template-columns:22px 1fr auto auto 52px; }
+@media (max-width:600px){
+  /* Sur etroit, le jeu disparait deja ; l'aventure le suit, sinon la ligne
+     n'a plus de place pour le nom du Pokemon, qui est l'essentiel. */
+  .journal-ligne.avec-aventure{ grid-template-columns:20px 1fr auto; }
+  .journal-aventure{ display:none; }
+}
+
+/* ---- Les connexions ouvertes ---- */
+.sessions{ display:flex; flex-direction:column; gap:8px; width:100%; }
+.session{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:9px 12px;
+  border:1px solid var(--card-border);
+  border-radius:10px;
+  font-size:13.5px;
+}
+/* Celle d'où l'on parle : elle se distingue, sinon on ferme la sienne en
+   croyant fermer celle d'un autre. */
+.session.courante{ border-color:var(--caught); background:var(--caught-soft); }
+.session-quand{ color:var(--ink); }
+.session-jusque{ color:var(--ink-faint); font-family:var(--font-data); font-size:11.5px; }
+.session-ici{
+  margin-left:auto;
+  font-family:var(--font-data); font-size:10px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--caught);
+}
+.session-fermer{
+  margin-left:auto;
+  padding:4px 11px;
+  border-radius:999px;
+  border:1px solid var(--card-border);
+  background:transparent;
+  color:var(--ink-soft);
+  font-family:var(--font-body); font-size:12.5px; font-weight:600;
+  cursor:pointer;
+  transition:border-color 120ms, color 120ms;
+}
+.session-fermer:hover{ border-color:var(--danger); color:var(--danger); }
+.session-fermer:focus-visible{ outline:2.5px solid var(--danger); outline-offset:2px; }
+
+/* ---- Administration ---- */
+.admin-champs{ display:flex; gap:9px; flex-wrap:wrap; align-items:center; }
+.admin-champs input{
+  padding:8px 12px;
+  min-width:180px;
+  border-radius:10px;
+  border:1px solid var(--card-border);
+  background:var(--screen);
+  color:var(--ink);
+  font-family:var(--font-body); font-size:13.5px;
+}
+.admin-champs input:focus{ outline:2px solid var(--gold); outline-offset:1px; }

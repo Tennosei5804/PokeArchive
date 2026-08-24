@@ -332,10 +332,43 @@
         <div class="home-section-title">Journal des captures</div>
         <div class="journal-entete">
           <span class="journal-quoi" id="journalQuoi">—</span>
+          <button class="journal-portee" id="journalPortee" type="button"
+                  aria-pressed="false"
+                  title="Basculer entre l'aventure ouverte et toutes">Toutes mes aventures</button>
           <span class="journal-total" id="journalTotal"></span>
         </div>
         <div class="journal" id="journalListe"></div>
         <button class="load-more" id="journalPlus" type="button" style="display:none;">Afficher plus</button>
+
+        <div class="home-section-title">Mes données</div>
+        <div class="profil-bloc">
+          <p class="profil-bloc-note">Tes aventures, tes Pokédex et ton journal, dans un
+            fichier que tu gardes. Le service tourne sur un hébergement gratuit :
+            il ne doit pas retenir ta collection en otage.</p>
+          <button class="toggle-btn" id="exportBtn" type="button">⬇ Télécharger mes données</button>
+          <span class="profil-bloc-etat" id="exportEtat"></span>
+        </div>
+
+        <div class="home-section-title">Connexions ouvertes</div>
+        <div class="profil-bloc">
+          <p class="profil-bloc-note">Chaque connexion dure quatre-vingt-dix jours. Si tu
+            t'es connecté sur la machine de quelqu'un d'autre, ferme-la d'ici.</p>
+          <div class="sessions" id="sessionsListe"></div>
+          <button class="toggle-btn" id="sessionsAutres" type="button"
+                  style="display:none;">Fermer toutes les autres</button>
+        </div>
+
+        <div class="home-section-title" id="adminTitre" hidden>Administration</div>
+        <div class="profil-bloc" id="adminBloc" hidden>
+          <p class="profil-bloc-note">Renommer un dresseur dont le pseudo ne peut pas
+            rester. Le nouveau nom passe par les mêmes règles que les autres.</p>
+          <div class="admin-champs">
+            <input type="text" id="adminPseudo" maxlength="20" placeholder="Pseudo actuel">
+            <input type="text" id="adminNouveau" maxlength="20" placeholder="Nouveau pseudo">
+            <button class="toggle-btn danger" id="adminRenommer" type="button">Renommer</button>
+          </div>
+          <span class="profil-bloc-etat" id="adminEtat"></span>
+        </div>
       </section>
 
       <section class="page" id="page-dresseurs">
@@ -935,6 +968,7 @@
 <!-- Redéfinit la couche de sauvegarde quand l'app tourne dans Tauri.
      Hors Tauri (serveur.py, ou fichier ouvert directement), il ne fait rien. -->
 <script src="js/compte.js"></script>
+<script src="js/donnees-perso.js"></script>
 <script src="js/presence.js"></script>
 <script src="js/app.js"></script>
 </body>

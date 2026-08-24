@@ -332,10 +332,43 @@
         <div class="home-section-title">Journal des captures</div>
         <div class="journal-entete">
           <span class="journal-quoi" id="journalQuoi">—</span>
+          <button class="journal-portee" id="journalPortee" type="button"
+                  aria-pressed="false"
+                  title="Basculer entre l'aventure ouverte et toutes">Toutes mes aventures</button>
           <span class="journal-total" id="journalTotal"></span>
         </div>
         <div class="journal" id="journalListe"></div>
         <button class="load-more" id="journalPlus" type="button" style="display:none;">Afficher plus</button>
+
+        <div class="home-section-title">Mes données</div>
+        <div class="profil-bloc">
+          <p class="profil-bloc-note">Tes aventures, tes Pokédex et ton journal, dans un
+            fichier que tu gardes. Le service tourne sur un hébergement gratuit :
+            il ne doit pas retenir ta collection en otage.</p>
+          <button class="toggle-btn" id="exportBtn" type="button">⬇ Télécharger mes données</button>
+          <span class="profil-bloc-etat" id="exportEtat"></span>
+        </div>
+
+        <div class="home-section-title">Connexions ouvertes</div>
+        <div class="profil-bloc">
+          <p class="profil-bloc-note">Chaque connexion dure quatre-vingt-dix jours. Si tu
+            t'es connecté sur la machine de quelqu'un d'autre, ferme-la d'ici.</p>
+          <div class="sessions" id="sessionsListe"></div>
+          <button class="toggle-btn" id="sessionsAutres" type="button"
+                  style="display:none;">Fermer toutes les autres</button>
+        </div>
+
+        <div class="home-section-title" id="adminTitre" hidden>Administration</div>
+        <div class="profil-bloc" id="adminBloc" hidden>
+          <p class="profil-bloc-note">Renommer un dresseur dont le pseudo ne peut pas
+            rester. Le nouveau nom passe par les mêmes règles que les autres.</p>
+          <div class="admin-champs">
+            <input type="text" id="adminPseudo" maxlength="20" placeholder="Pseudo actuel">
+            <input type="text" id="adminNouveau" maxlength="20" placeholder="Nouveau pseudo">
+            <button class="toggle-btn danger" id="adminRenommer" type="button">Renommer</button>
+          </div>
+          <span class="profil-bloc-etat" id="adminEtat"></span>
+        </div>
       </section>
 
       <section class="page" id="page-dresseurs">
@@ -898,44 +931,45 @@
   </div>
 </div>
 
-<script src="../src/js/donnees.js?v=1787608140"></script>
+<script src="../src/js/donnees.js?v=1787609168"></script>
 <!-- Généré par outils/generer-donnees.html. Doit précéder cache.js, qui y
      puise quand le stockage local est vide. -->
-<script src="../src/js/donnees-embarquees.js?v=1787608140"></script>
+<script src="../src/js/donnees-embarquees.js?v=1787609168"></script>
 <!-- Les notices du Pokédex, une par espèce et par jeu, relevées sur Poképédia
      par outils/relever-descriptions.py, ne sont PAS déclarées ici : fiche.js va
      les chercher à la première fiche ouverte, comme les attaques et les lieux.
      Une notice par jeu, c'est vingt-deux fois le texte d'une notice par espèce
      — de quoi allonger chaque démarrage pour une carte qu'on ne lit pas
      toujours. -->
-<script src="../src/js/cache.js?v=1787608140"></script>
-<script src="../src/js/noyau.js?v=1787608140"></script>
-<script src="../src/js/confirmer.js?v=1787608140"></script>
-<script src="../src/js/maj.js?v=1787608140"></script>
-<script src="../src/js/serveur.js?v=1787608140"></script>
-<script src="../src/js/formes.js?v=1787608140"></script>
-<script src="../src/js/accueil.js?v=1787608140"></script>
-<script src="../src/js/dex.js?v=1787608140"></script>
+<script src="../src/js/cache.js?v=1787609168"></script>
+<script src="../src/js/noyau.js?v=1787609168"></script>
+<script src="../src/js/confirmer.js?v=1787609168"></script>
+<script src="../src/js/maj.js?v=1787609168"></script>
+<script src="../src/js/serveur.js?v=1787609168"></script>
+<script src="../src/js/formes.js?v=1787609168"></script>
+<script src="../src/js/accueil.js?v=1787609168"></script>
+<script src="../src/js/dex.js?v=1787609168"></script>
 <!-- Les distributions françaises, à la main. Doit précéder cadeaux.js et
      fiche.js, qui y puisent tous les deux. -->
-<script src="../src/js/evenements.js?v=1787608140"></script>
-<script src="../src/js/cadeaux.js?v=1787608140"></script>
-<script src="../src/js/fiche.js?v=1787608140"></script>
-<script src="../src/js/grille.js?v=1787608140"></script>
-<script src="../src/js/chasse.js?v=1787608140"></script>
+<script src="../src/js/evenements.js?v=1787609168"></script>
+<script src="../src/js/cadeaux.js?v=1787609168"></script>
+<script src="../src/js/fiche.js?v=1787609168"></script>
+<script src="../src/js/grille.js?v=1787609168"></script>
+<script src="../src/js/chasse.js?v=1787609168"></script>
 <!-- Les règles de combat, puis l'écran qui s'appuie dessus. Tous deux après
      fiche.js (TYPE_RELATIONS, puceType, decoderBloc) et avant menus.js, qui
      stylise leurs menus déroulants. -->
-<script src="../src/js/combat.js?v=1787608140"></script>
-<script src="../src/js/strategie.js?v=1787608140"></script>
+<script src="../src/js/combat.js?v=1787609168"></script>
+<script src="../src/js/strategie.js?v=1787609168"></script>
 <!-- Après strategie.js : il lui emprunte creerSelecteur. -->
-<script src="../src/js/reproduction.js?v=1787608140"></script>
-<script src="../src/js/partage.js?v=1787608140"></script>
-<script src="../src/js/menus.js?v=1787608140"></script>
+<script src="../src/js/reproduction.js?v=1787609168"></script>
+<script src="../src/js/partage.js?v=1787609168"></script>
+<script src="../src/js/menus.js?v=1787609168"></script>
 <!-- Redéfinit la couche de sauvegarde quand l'app tourne dans Tauri.
      Hors Tauri (serveur.py, ou fichier ouvert directement), il ne fait rien. -->
 
-<script src="../src/js/presence.js?v=1787608140"></script>
+<script src="../src/js/donnees-perso.js?v=1787609168"></script>
+<script src="../src/js/presence.js?v=1787609168"></script>
 
 <script src="generer.js"></script>
 </body>
