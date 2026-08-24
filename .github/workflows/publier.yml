@@ -1,0 +1,67 @@
+# Compile l'installeur et publie la version.
+#
+# Se déclenche sur un tag « v0.2.0 » — jamais sur une simple pousse. Livrer est
+# une décision, pas une conséquence de chaque commit :
+#
+#     git tag v0.2.0 && git push origin v0.2.0
+#
+# Ce qui sort : l'installeur .exe, et le latest.json que l'application interroge
+# au lancement. Ce dernier porte la signature du paquet ; sans la clé privée
+# rangée dans les secrets du dépôt, il n'est pas produit et les mises à jour ne
+# partent pas — l'action échoue plutôt que de publier un paquet que personne ne
+# pourra vérifier.
+
+name: Publier une version
+
+on:
+  push:
+    tags: ["v*"]
+  # Permet aussi de relancer à la main depuis l'onglet Actions, quand une
+  # publication a échoué pour une raison qui n'a rien à voir avec le code.
+  workflow_dispatch:
+
+# Le jeton doit pouvoir créer la Release et y déposer les fichiers. Rien de plus.
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # Sans ce cache, chaque publication recompile l'arbre entier : une bonne
+      # dizaine de minutes pour retrouver exactement ce qu'on avait déjà.
+      - name: Réutiliser la compilation précédente
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: app/src-tauri
+
+      # L'application n'a aucune chaîne JavaScript : les réserves sont
+      # versionnées, le frontend est servi tel quel depuis app/src. Il n'y a donc
+      # ni npm install ni étape de build avant celle-ci.
+      - name: Compiler, signer et publier
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: app
+          tagName: v__VERSION__
+          releaseName: PokéArchive v__VERSION__
+          releaseBody: |
+            Installeur Windows ci-dessous — `PokéArchive_x.y.z_x64-setup.exe`.
+
+            Les versions déjà installées se mettront à jour toutes seules au
+            prochain lancement : l'application propose, vous décidez.
+          # La Release naît en brouillon : le temps de relire les notes et de
+          # vérifier que l'installeur se lance avant de la rendre visible.
+          # Les mises à jour automatiques ne partent qu'une fois publiée.
+          releaseDraft: true
+          prerelease: false
+          includeUpdaterJson: true

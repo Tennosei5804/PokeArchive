@@ -23,9 +23,21 @@
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://pokeapi.co https://raw.githubusercontent.com; img-src 'self' data: https://cdn.discordapp.com https://raw.githubusercontent.com https://play.pokemonshowdown.com https://s3.pokeos.com"
     }
   },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/Tennosei5804/PokeArchive/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI0QzdDQkU1OUExNDI1RDMKUldUVEpSU2E1Y3ZIdEVONFJwN3dFSDczNkpSQ0Eya3hVSVZBdGh1R2U0RUZkOGdpTlNFYWNweUoK",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  },
   "bundle": {
     "active": true,
     "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
     "publisher": "Tennosei_",
     "copyright": "© Tennosei_",
     "category": "Utility",

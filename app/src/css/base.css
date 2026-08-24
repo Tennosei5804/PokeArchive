@@ -105,6 +105,37 @@
   .theme-btn:hover{ background:rgba(0,0,0,.32); }
   .theme-btn:focus-visible{ outline:2.5px solid #fff; outline-offset:2px; }
 
+  /* Mise à jour disponible. Le bouton n'existe pas tant qu'il n'y a rien à
+     installer — il porte « hidden » dans le HTML et maj.js le lève. Un bouton
+     « vérifier » posté en permanence dans l'en-tête ne servirait qu'à inquiéter :
+     la vérification se fait seule au lancement.
+
+     L'or plutôt que le blanc des deux voisins : c'est la seule chose de cette
+     barre qui demande une décision, et elle doit se voir sans clignoter. */
+  .maj-btn{
+    margin-left:10px;
+    height:34px;
+    padding:0 14px;
+    border-radius:999px;
+    border:1px solid var(--gold);
+    background:var(--gold);
+    color:#2a1f05;
+    font-family:var(--font-data);
+    font-size:11px; font-weight:700;
+    letter-spacing:.06em;
+    line-height:1;
+    cursor:pointer;
+    flex-shrink:0;
+    white-space:nowrap;
+    transition:background 120ms, opacity 120ms;
+  }
+  .maj-btn:hover{ background:var(--gold-deep); border-color:var(--gold-deep); }
+  .maj-btn:focus-visible{ outline:2.5px solid #fff; outline-offset:2px; }
+  .maj-btn[hidden]{ display:none; }
+  /* Pendant le téléchargement : le libellé devient un pourcentage, et le bouton
+     cesse de répondre. Rendre la main ici relancerait un second transfert. */
+  .maj-btn:disabled{ cursor:default; opacity:.72; }
+
   /* Langue des noms de Pokémon. Même famille que le bouton de thème, mais en
      pilule : le libellé porte un mot, pas une icône, et doit rester lisible. */
   .lang-btn{

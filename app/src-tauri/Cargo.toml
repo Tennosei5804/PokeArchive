@@ -17,6 +17,16 @@ tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
+# La mise à jour. Le plugin va chercher un latest.json publié avec la Release
+# GitHub, compare son numéro de version à celui d'ici, et n'installe que ce qui
+# porte une signature faite avec notre clé privée — sans quoi n'importe qui
+# pouvant intercepter le téléchargement pourrait livrer son propre installeur.
+#
+# « process » l'accompagne : après l'installation, il faut relancer, et c'est
+# lui qui sait le faire proprement.
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+
 # rustls plutôt que le TLS du système : un binaire distribuable qui ne dépend
 # d'aucune bibliothèque installée sur la machine du joueur.
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

@@ -957,6 +957,72 @@ Le résultat sort dans
 >
 > Sans cela, l'application de tes amis cherchera l'API sur *leur* machine.
 
+## Publier une version
+
+Le dépôt est <https://github.com/Tennosei5804/PokeArchive>. Livrer une version
+tient en trois gestes, et le dernier est le seul qui compte :
+
+```
+# 1. monter le numéro AUX DEUX ENDROITS — ils doivent rester d'accord
+#    app/src-tauri/tauri.conf.json   "version": "0.2.0"
+#    app/src-tauri/Cargo.toml        version = "0.2.0"
+
+# 2. commiter
+git commit -am "Version 0.2.0"
+
+# 3. poser le tag : c'est lui qui déclenche tout
+git tag v0.2.0
+git push origin main --tags
+```
+
+`.github/workflows/publier.yml` prend le relais : un runner Windows compile,
+signe l'installeur, et crée la Release **en brouillon** avec l'installeur et le
+`latest.json`. Le brouillon est délibéré — on relit les notes et on vérifie que
+l'installeur se lance avant de publier. **Les mises à jour ne partent qu'une
+fois la Release publiée.**
+
+Les deux numéros de version doivent monter ensemble. S'ils divergent,
+l'application compare le mauvais au numéro de la Release et se croit à jour :
+la mise à jour ne part jamais, et rien ne le signale.
+
+### La clé de signature
+
+L'application n'installe **que** ce qui est signé avec notre clé privée. Sans
+cela, quiconque peut intercepter le téléchargement peut livrer son propre
+programme — et il serait installé sans un mot.
+
+| | |
+|---|---|
+| clé publique | dans `tauri.conf.json`, `plugins.updater.pubkey`. Elle se versionne, c'est son rôle |
+| clé privée | `~/.tauri/pokearchive.key`, **hors du dépôt**, plus une copie dans les secrets GitHub |
+
+Le dépôt a besoin de deux secrets, dans *Settings → Secrets and variables →
+Actions* :
+
+| Nom du secret | Valeur |
+|---|---|
+| `TAURI_SIGNING_PRIVATE_KEY` | le contenu entier de `~/.tauri/pokearchive.key` |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | vide — la clé a été générée sans mot de passe |
+
+> **Perdre la clé privée coûte cher.** Sans elle, aucune version future ne peut
+> être signée, donc plus aucune mise à jour n'atteint les gens déjà installés :
+> il faudrait leur faire réinstaller à la main. Elle n'est nulle part ailleurs
+> que dans `~/.tauri/` et dans les secrets du dépôt — gardez-en une copie.
+
+### Ce que voit l'utilisateur
+
+`app/src/js/maj.js` interroge GitHub quatre secondes après le lancement, en
+silence. S'il n'y a rien, ou si la machine est hors ligne, rien ne se passe et
+rien ne s'affiche — une vérification que personne n'a demandée n'a pas à
+produire un message d'erreur.
+
+Quand une version existe, un bouton doré apparaît dans l'en-tête. Il ouvre un
+dialogue qui montre les deux numéros et les notes de version ; l'installation ne
+commence qu'après un oui, et le bouton affiche la progression réelle du
+téléchargement. Rien ne s'installe dans le dos de qui que ce soit : une
+application qui se met à jour toute seule redémarre au mauvais moment, et il n'y
+a aucune urgence à corriger un Pokédex.
+
 ## La connexion Discord
 
 Sur <https://discord.com/developers/applications>, onglet **OAuth2 > Redirects**,
