@@ -1054,6 +1054,70 @@ cd PokeArchive && git pull && cd api && npm install --omit=dev
 Puis *redémarrer* le site depuis le panneau. Le service ne se recharge pas
 tout seul : sans redémarrage, il continue de servir l'ancien code.
 
+## Les pseudos et les noms d'aventure
+
+Les deux s'affichent chez les autres — dans le classement, dans la recherche de
+dresseurs, à côté du Pokédex de gens qui n'ont rien demandé — et **personne ne
+surveille la liste après coup**. Le refus se fait donc à la saisie, dans
+`api/src/pseudos-interdits.js`, **côté serveur** : l'application est distribuée
+et son code public, un filtre côté client se contourne en deux minutes.
+
+### Pourquoi deux listes
+
+Chercher bêtement une sous-chaîne refuse des prénoms réels :
+
+| Refusé à tort | à cause de |
+|---|---|
+| Constance, Conrad, Consuelo | `con` |
+| Cassandre, Assassin, Bass | `ass` |
+| Calculette, Culotte | `cul` |
+| Analyse | `anal` |
+
+C'est le **problème de Scunthorpe** — du nom de la ville anglaise qu'un filtre a
+empêchée entière de créer des comptes en 1996 — et il rend le filtre pire que
+rien : refuser son prénom à quelqu'un est une insulte en soi.
+
+D'où deux listes :
+
+| | |
+|---|---|
+| **fortes** | sans hôte innocent. Cherchées **partout**, même collées : « xXenculéXx » tombe |
+| **faibles** | courtes, logeant dans des mots ordinaires. Cherchées **en mot entier** : « con » tombe, « Conrad » passe |
+
+### Ce que la normalisation rattrape
+
+Les contournements sont mécaniques, donc rattrapables :
+
+| | |
+|---|---|
+| accents | `ènculé` |
+| chiffres | `c0nnard` |
+| séparateurs | `c.o.n.n.a.r.d` |
+| répétitions | `connnnnard` |
+
+**L'ordre compte** : on ôte les séparateurs *avant* de replier les répétitions.
+L'inverse laisse `c.o.n.n.a.r.d` avec ses deux n — ils ne sont pas adjacents —
+et la racine n'est jamais rencontrée.
+
+Et une racine peut **disparaître au repli** : `kkk` devient `k`, une lettre
+unique qui bloquait *Shitake* et *Dickens*. Toute racine tombée sous quatre
+caractères rejoint donc les faibles.
+
+### Deux choix de comportement
+
+- **Le refus ne nomme jamais le mot déclencheur.** Le dire apprendrait quoi
+  contourner.
+- **Un nom Discord grossier n'empêche pas d'entrer.** Il est remplacé en
+  silence par le nom neutre ; la personne pourra en choisir un autre, qui
+  passera par le filtre.
+
+### Ce que ça n'attrape pas
+
+Aucune liste n'arrête quelqu'un de déterminé : restent les fautes volontaires,
+les langues non listées, et l'insulte qui n'en est une que pour celui qui la
+reçoit. Ce filtre écarte le gros et l'évident. **Il ne remplace pas la
+possibilité de renommer quelqu'un à la main, qui n'existe pas encore.**
+
 ## Ce qui protège l'API en ligne
 
 Tant que le service vivait sur `127.0.0.1`, le seul client possible était sur

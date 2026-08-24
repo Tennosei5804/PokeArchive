@@ -191,9 +191,18 @@ const PROFIL_MIN = 2;
 const PROFIL_MAX = 40;
 
 /**
- * Un nom d'aventure. Plus permissif qu'un pseudo — il n'identifie personne et
- * ne sert qu'à son auteur — mais on écarte tout de même les caractères qui
- * n'ont rien à faire dans un libellé.
+ * Un nom d'aventure. Plus long et plus libre qu'un pseudo — c'est une phrase,
+ * « Ma chasse aux chromatiques », pas une étiquette — mais on écarte les
+ * caractères qui n'ont rien à faire dans un libellé.
+ *
+ * Il passe par le MÊME filtre que les pseudos. Le commentaire d'origine disait
+ * qu'un nom d'aventure « n'identifie personne et ne sert qu'à son auteur » :
+ * ce n'est plus vrai depuis qu'on consulte le dex des autres. Il s'affiche
+ * chez les gens qui viennent voir votre avancée, et une grossièreté y est
+ * exactement aussi visible que dans un pseudo.
+ *
+ * Le découpage en mots sert d'ailleurs mieux ici : sur une phrase de quarante
+ * caractères, les racines courtes se lisent en mot entier sans risque.
  */
 function nettoyerNomProfil(brut) {
   const propre = [...(brut || '').normalize('NFC').replace(INTERDITS, '').trim().replace(/\s+/g, ' ')]
@@ -202,6 +211,9 @@ function nettoyerNomProfil(brut) {
     throw new ErreurCompte(
       `Donne un nom de ${PROFIL_MIN} à ${PROFIL_MAX} caractères : lettres, chiffres, `
       + `espace, tiret et souligné, en commençant et finissant par une lettre ou un chiffre.`);
+  }
+  if (estInterdit(propre)) {
+    throw new ErreurCompte('Ce nom ne convient pas. Choisis-en un autre.');
   }
   return propre;
 }
