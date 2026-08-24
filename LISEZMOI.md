@@ -1004,9 +1004,17 @@ Trois variables décident de tout, et deux d'entre elles ne viennent pas de nous
 
    | | |
    |---|---|
-   | Commande | `node --env-file-if-exists=.env src/serveur.js` |
-   | Répertoire de travail | `PokeArchive/api` |
+   | Commande | `node /home/<compte>/PokeArchive/api/src/serveur.js` |
    | Adresse | `pokearchive.alwaysdata.net` |
+
+   > **Le chemin doit être absolu.** Le champ « répertoire de travail » n'a
+   > pas d'effet sur un site Node : alwaysdata lance la commande depuis la
+   > racine du compte, quoi qu'on y mette. Avec un chemin relatif, le
+   > journal affiche `Cannot find module '/home/<compte>/src/serveur.js'`
+   > et le site reste en 502 — le fichier existe, il est cherché ailleurs.
+
+   Pas de `--env-file` : il n'y a pas de `.env` sur le serveur, les variables
+   viennent du panneau.
 
    Les variables d'environnement se posent dans la configuration du site —
    surtout pas dans un `.env` versionné.
