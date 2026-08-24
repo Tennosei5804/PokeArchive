@@ -76,10 +76,11 @@ function puceType(id){
 // ce qu'il touche double, ce qu'il touche de moitié, et ce qu'il ne touche pas.
 // Tout ce qui n'y figure pas est neutre.
 //
-// Figée, comme TYPES_FR juste à côté, et pour la même raison : elle n'a pas
-// bougé depuis la sixième génération, quand la Fée est arrivée. PokeAPI la
-// publie, mais aller la chercher coûterait dix-huit requêtes au premier
-// affichage d'une fiche — pour une table qui ne change jamais.
+// C'est la table ACTUELLE, celle de la sixième génération et des suivantes.
+// Elle n'est pas la seule : voir TYPE_RELATIONS_PASSEES juste en dessous.
+//
+// Figée dans le fichier, comme TYPES_FR à côté : PokeAPI la publie, mais aller
+// la chercher coûterait dix-huit requêtes au premier affichage d'une fiche.
 const TYPE_RELATIONS = {
   1:  { double: [],                moitie: [6, 9],                   nul: [8] },
   2:  { double: [1, 6, 9, 15, 17], moitie: [3, 4, 7, 14, 18],        nul: [8] },
@@ -100,6 +101,110 @@ const TYPE_RELATIONS = {
   17: { double: [8, 14],           moitie: [2, 17, 18],              nul: [] },
   18: { double: [2, 16, 17],       moitie: [4, 9, 10],               nul: [] }
 };
+
+// ---- La table d'avant ------------------------------------------------------
+//
+// La fiche s'adapte déjà au jeu ouvert pour la notice, les lieux, la lignée et
+// le seuil de bonheur. Les faiblesses, non : elles affichaient la table
+// moderne sur les vingt-quatre onglets. Sur un Pokédex de Rouge et Bleu, cela
+// annonçait des faiblesses Fée, Ténèbres et Acier — trois types qui
+// n'existaient pas — et cachait les règles d'époque.
+//
+// Trois ères, et deux ruptures :
+//
+//   génération 1        quinze types. Ni Acier, ni Ténèbres, ni Fée.
+//   générations 2 à 5   Acier et Ténèbres arrivent avec Or et Argent.
+//   génération 6 et +   la Fée arrive avec X et Y, et deux règles changent.
+//
+// Les valeurs viennent des « past_damage_relations » de PokeAPI, relevées et
+// non récitées — deux souvenirs se sont révélés faux au passage : Spectre et
+// Ténèbres n'étaient PAS super-efficaces contre l'Acier avant la sixième, ils
+// étaient à moitié.
+//
+// Seules les lignes qui CHANGENT figurent ici ; le reste vient de la table
+// moderne. Une ligne présente remplace entièrement la moderne.
+const TYPE_RELATIONS_PASSEES = {
+  1: {
+    4:  { double: [12, 7],           moitie: [4, 5, 6, 8],          nul: [] },
+    7:  { double: [12, 14, 4],       moitie: [2, 3, 8, 10],         nul: [] },
+    8:  { double: [8],               moitie: [],                    nul: [1, 14] },
+    10: { double: [7, 12, 15],       moitie: [6, 10, 11, 16],       nul: [] },
+    14: { double: [2, 4],            moitie: [14],                  nul: [] },
+    15: { double: [3, 5, 12, 16],    moitie: [11, 15],              nul: [] },
+  },
+  2: {
+    8:  { double: [8, 14],           moitie: [17, 9],               nul: [1] },
+    9:  { double: [6, 15],           moitie: [9, 10, 11, 13],       nul: [] },
+    17: { double: [8, 14],           moitie: [2, 17, 9],            nul: [] },
+  },
+};
+
+// Quand chaque type est apparu. Un type qui n'existe pas encore ne doit figurer
+// nulle part : ni dans les faiblesses affichées, ni parmi les types du Pokémon.
+const TYPE_APPARITION = { 9: 2, 17: 2, 18: 6 };
+
+// L'ère de chaque jeu. Trois valeurs seulement — 1, 2 ou 6 —, puisque la table
+// n'a changé que deux fois. Les jeux absents de cette liste, Pokémon HOME et
+// Cobblemon compris, prennent la table moderne : le premier n'est pas un jeu,
+// le second suit les règles d'aujourd'hui.
+const ERE_DES_TYPES = {
+  rby: 1, jaune: 1,
+  gsc: 2, cristal: 2, rse: 2, emeraude: 2, frlg: 2,
+  dp: 2, pt: 2, hgss: 2, bw: 2, b2w2: 2,
+};
+
+/** L'ère du jeu ouvert. 6 par défaut : les règles d'aujourd'hui. */
+function ereDesTypes(cleJeu){
+  return ERE_DES_TYPES[cleJeu] || 6;
+}
+
+/** Le type existait-il à cette époque ? */
+function typeExiste(id, ere){
+  return !TYPE_APPARITION[id] || TYPE_APPARITION[id] <= ere;
+}
+
+/**
+ * Les types d'un Pokémon, ramenés à l'époque.
+ *
+ * La plupart des retypages SONT l'arrivée d'un type neuf — Magnéti gagne
+ * l'Acier en deuxième, Grodoudou la Fée en sixième —, si bien que retirer ce
+ * qui n'existait pas retrouve le type d'époque dans presque tous les cas.
+ *
+ * PRESQUE. Mélofée est Fée aujourd'hui et n'a que ça : la retirer ne laisse
+ * rien, et le calcul rendrait « neutre partout », ce qui est faux et muet.
+ * Elle était Normal, mais rien ici ne le sait — il faudrait relever les types
+ * d'époque espèce par espèce. On rend donc une liste vide, et l'appelant le
+ * dit au lieu d'inventer.
+ *
+ * Deux espèces sont dans ce cas en première génération, six en deuxième.
+ */
+function typesDeLEre(ids, ere){
+  return (ids || []).filter(function(id){ return typeExiste(id, ere); });
+}
+
+/**
+ * La table des types telle qu'elle était.
+ *
+ * On part de la moderne, on écrase les lignes qui ont changé, et on retire les
+ * types qui n'existaient pas encore — des deux côtés : comme attaquants, et
+ * dans les listes de ceux qu'ils touchent.
+ */
+function relationsDeLEre(ere){
+  if(ere >= 6) return TYPE_RELATIONS;
+  const passees = TYPE_RELATIONS_PASSEES[ere] || {};
+  const sortie = {};
+  Object.keys(TYPE_RELATIONS).forEach(function(cle){
+    const id = parseInt(cle, 10);
+    if(!typeExiste(id, ere)) return;
+    const rel = passees[id] || TYPE_RELATIONS[id];
+    sortie[id] = {
+      double: rel.double.filter(function(d){ return typeExiste(d, ere); }),
+      moitie: rel.moitie.filter(function(d){ return typeExiste(d, ere); }),
+      nul:    rel.nul.filter(function(d){ return typeExiste(d, ere); }),
+    };
+  });
+  return sortie;
+}
 
 // Les lignes affichées, dans l'ordre où on les lit : ce qui fait mal d'abord.
 // Le neutre (×1) n'a pas de ligne — c'est la moitié des types, et l'afficher
@@ -129,16 +234,30 @@ const AFFINITE_LIGNES = [
  * les ×4 et les ×¼ : la Roche touche double un Vol comme un Insecte, donc
  * quadruple un Papilusion.
  */
-function affinitesDe(ids){
+function affinitesDe(ids, ere){
+  const epoque = ere || 6;
+  const table = relationsDeLEre(epoque);
+
+  // Les types du Pokémon lui-même, ramenés à l'époque. Rondoudou est
+  // Normal/Fée aujourd'hui et n'était que Normal en première génération : lui
+  // laisser sa Fée sur un Pokédex de Rouge et Bleu donnerait une résistance au
+  // Dragon qu'il n'avait pas.
+  //
+  // C'est une approximation, et elle vaut la peine d'être dite : la plupart des
+  // changements de type SONT l'arrivée d'un type neuf — Magnéti gagne l'Acier,
+  // Rondoudou la Fée. Les rares retypages sans rapport ne sont pas rattrapés,
+  // faute d'avoir relevé les types d'époque espèce par espèce.
+  const miens = typesDeLEre(ids, epoque);
+
   // Le neutre est un groupe comme un autre depuis que la fiche l'affiche : sans
   // lui, on comptait six types sur dix-huit et l'on cherchait les autres.
   const groupes = { 4: [], 2: [], 1: [], 0.5: [], 0.25: [], 0: [] };
   Object.keys(TYPES_FR).forEach(function(cle){
     const attaque = parseInt(cle, 10);
-    const rel = TYPE_RELATIONS[attaque];
+    const rel = table[attaque];
     if(!rel) return;
     let mult = 1;
-    ids.forEach(function(defenseur){
+    miens.forEach(function(defenseur){
       if(rel.nul.indexOf(defenseur) !== -1) mult *= 0;
       else if(rel.double.indexOf(defenseur) !== -1) mult *= 2;
       else if(rel.moitie.indexOf(defenseur) !== -1) mult *= 0.5;
@@ -156,8 +275,35 @@ function dessinerAffinites(ids){
     return;
   }
 
-  const groupes = affinitesDe(ids);
+  // Les faiblesses suivent le jeu ouvert, comme la notice et les lieux. Hors
+  // d'un onglet de jeu — le Pokédex d'ensemble — ce sont les règles actuelles.
+  const ere = ereDesTypes(currentTab);
   ficheAffinites.innerHTML = '';
+
+  // Tous ses types sont postérieurs à ce jeu : il en avait un autre, et on ne
+  // sait pas lequel. Le dire vaut mieux qu'afficher « neutre partout », qui
+  // serait faux sans en avoir l'air.
+  const miens = typesDeLEre(ids, ere);
+  if(!miens.length){
+    ficheAffinites.innerHTML = '<p class="fiche-vide">Son type d\'aujourd\'hui '
+      + 'n\'existait pas dans ce jeu — il en avait un autre, que le relevé ne '
+      + 'connaît pas. Ses faiblesses d\'époque ne peuvent pas être calculées.</p>';
+    return;
+  }
+
+  const groupes = affinitesDe(ids, ere);
+
+  // Le dire, plutôt que de laisser croire à une erreur. Quelqu'un qui connaît
+  // le jeu remarquera l'absence de la Fée ; quelqu'un qui ne le connaît pas
+  // doit pouvoir comprendre pourquoi Spectre ne touche pas Psy.
+  if(ere < 6){
+    const note = document.createElement('p');
+    note.className = 'affinites-epoque';
+    note.textContent = ere === 1
+      ? 'Table de la première génération : ni Acier, ni Ténèbres, ni Fée.'
+      : 'Table des générations 2 à 5 : la Fée n\'existe pas encore.';
+    ficheAffinites.appendChild(note);
+  }
 
   AFFINITE_LIGNES.forEach(function(l){
     const types = groupes[l.mult];

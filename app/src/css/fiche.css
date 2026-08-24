@@ -667,3 +667,15 @@ table.attaques{
 @media (prefers-reduced-motion:reduce){
   *{ animation:none !important; transition:none !important; }
 }
+
+/* La note d'époque, au-dessus des faiblesses. Elle n'apparaît que sur un jeu
+   d'avant la sixième génération : ailleurs, la table est celle qu'on connaît et
+   il n'y a rien à expliquer. Discrète — c'est un avertissement, pas un titre. */
+.affinites-epoque{
+  margin:0 0 8px;
+  font-family:var(--font-data);
+  font-size:9.5px; font-weight:700;
+  letter-spacing:.06em;
+  line-height:1.5;
+  color:var(--gold-deep);
+}
