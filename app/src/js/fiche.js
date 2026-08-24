@@ -3005,6 +3005,10 @@ async function remplirFiche(entry){
   // apparition la comble en prenant les deux colonnes.
   const grille = previewOverlay.querySelector('.colonnes');
   if(grille) grille.classList.toggle('sans-jeux', surUnJeu);
+  // Le cri ne depend d'aucune requete : il se prepare avant le reste, et
+  // survit donc a une panne de reseau sur les types.
+  preparerCri(entry);
+
   // --- Types ---
   ficheTypes.innerHTML = '<span class="jeu-puce">Chargement…</span>';
   try{
@@ -3064,3 +3068,101 @@ async function remplirFiche(entry){
     ficheJeux.innerHTML = '<span class="jeu-puce">Disponibilité indisponible hors ligne</span>';
   }
 }
+
+// ---- Le cri -----------------------------------------------------------------
+//
+// PokeAPI en publie deux par espèce : « latest », celui des jeux récents, et
+// « legacy », celui de l'époque Game Boy — plus court, plus rêche, et
+// franchement plus juste sur un Pokédex de Rouge et Bleu.
+//
+// Le choix suit le jeu ouvert, comme la notice, les lieux et la table des
+// types : ereDesTypes() rend 1 ou 2 pour les jeux d'avant la sixième, ce qui
+// est exactement la limite où « legacy » s'arrête d'exister.
+//
+// Le fichier vient de raw.githubusercontent.com, autorisé dans la CSP pour
+// « media-src ». Sans cette directive la balise audio est bloquée en silence :
+// media-src n'a pas de valeur par défaut propre et retombe sur default-src,
+// qui vaut 'self'.
+
+const CRI_BASE = 'https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon';
+
+let criAudio = null;      // une seule balise, réutilisée
+let criEntree = null;     // l'entrée dont le cri est prêt
+let criJeton = 0;         // même garde que noticeJeton : deux clics rapides
+
+/**
+ * Les adresses à tenter, dans l'ordre.
+ *
+ * Relevé sur l'arbre du dépôt, comparé aux 1 634 entrées embarquées :
+ *
+ *   latest/{id}          existe pour les 1 634, formes régionales comprises.
+ *   legacy/{id}          existe pour 808 d'entre elles — jusqu'à la cinquième.
+ *   legacy/{speciesId}   rattrape 185 formes de plus : Deoxys Attaque n'a pas
+ *                        d'ancien cri à son propre identifiant, l'espèce si,
+ *                        et c'est le même son dans le jeu.
+ *
+ * D'où trois adresses sur un vieux jeu, une seule sur un récent. Le dernier
+ * repli est toujours le cri moderne : mieux vaut le mauvais siècle que rien.
+ */
+function adressesDuCri(entry, ere){
+  const moderne = CRI_BASE + '/latest/' + entry.id + '.ogg';
+  if(ere >= 6) return [moderne];
+  const liste = [CRI_BASE + '/legacy/' + entry.id + '.ogg'];
+  if(entry.speciesId && entry.speciesId !== entry.id){
+    liste.push(CRI_BASE + '/legacy/' + entry.speciesId + '.ogg');
+  }
+  liste.push(moderne);
+  return liste;
+}
+
+function preparerCri(entry){
+  if(!portraitCri) return;
+  criJeton++;                       // la fiche a changé : ce qui jouait est caduc
+  arreterCri();
+  criEntree = entry || null;
+  portraitCri.hidden = !entry;
+  portraitCri.disabled = false;
+  // Le bouton ne promet rien : on ne va pas chercher le fichier avant qu'on le
+  // demande. Vérifier à l'ouverture de chaque fiche ferait une requête réseau
+  // pour un bouton que personne ne clique la plupart du temps.
+}
+
+async function jouerCri(){
+  if(!criEntree || !portraitCri) return;
+  const entry = criEntree;
+  const jeton = ++criJeton;
+  const adresses = adressesDuCri(entry, ereDesTypes(currentTab));
+
+  if(!criAudio){
+    criAudio = new Audio();
+    criAudio.preload = 'none';
+  }
+  criAudio.pause();
+  portraitCri.disabled = true;
+
+  for(const url of adresses){
+    try{
+      criAudio.src = url;
+      await criAudio.play();
+      if(jeton === criJeton) portraitCri.disabled = false;
+      return;                       // joué : on ne tente pas le repli
+    }catch(e){
+      // 404 sur l'ancien, ou lecture interrompue. Si la fiche a changé entre
+      // temps, on abandonne sans toucher à un bouton qui parle d'un autre.
+      if(jeton !== criJeton) return;
+    }
+  }
+
+  // Aucune des adresses. Le relevé dit que cela n'arrive pas — mais hors ligne,
+  // si : le bouton se retire plutôt que de rester inerte, un bouton qui ne fait
+  // rien deux fois de suite passe pour cassé.
+  portraitCri.disabled = false;
+  portraitCri.hidden = true;
+}
+
+/** Couper le cri. Appelée par closePreview() : fermer la fiche coupe le son. */
+function arreterCri(){
+  if(criAudio) criAudio.pause();
+}
+
+if(portraitCri) portraitCri.addEventListener('click', jouerCri);

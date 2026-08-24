@@ -100,6 +100,21 @@
 }
 .portrait-source button.actif{ background:var(--teinte); color:var(--card); }
 .portrait-source button:focus-visible{ outline:2px solid var(--dex-red); outline-offset:-2px; }
+/* Le cri, en face du numero : le numero tient le coin gauche, le cri tient le
+   droit. Le bouton de fermeture de la fiche est loin — il est cale sur le coin
+   de la carte, pas sur celui du portrait, qui ne fait que 264 px de large. */
+.portrait-cri{
+  position:absolute; top:9px; right:10px;
+  width:26px; height:26px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; line-height:1;
+  border:1px solid var(--card-border); border-radius:50%;
+  background:var(--card); color:var(--ink-soft);
+  cursor:pointer; padding:0;
+}
+.portrait-cri:hover{ background:var(--teinte); border-color:var(--teinte); }
+.portrait-cri:disabled{ opacity:.45; cursor:default; }
+.portrait-cri:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
 /* Le numero national, en police d'ecran. C'est le seul endroit de la
    fiche ou elle sert : un Pokedex affiche un numero, pas du texte. */
 .portrait-no{

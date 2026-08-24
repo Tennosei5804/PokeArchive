@@ -83,7 +83,7 @@ console document window alert confirm prompt Error TypeError RegExp Symbol Intl 
 sessionStorage navigator location btoa atob structuredClone queueMicrotask requestAnimationFrame
 await new delete void in of do else try finally throw class extends super this URL URLSearchParams
 Uint8Array TextEncoder TextDecoder Infinity NaN undefined null true false crypto performance
-AbortController Image Blob FileReader CustomEvent Event KeyboardEvent MouseEvent
+AbortController Image Audio Blob FileReader CustomEvent Event KeyboardEvent MouseEvent
 BigInt Option Proxy Reflect globalThis
 async constructor static process Buffer setImmediate queueMicrotask
 Response Request Headers FormData AbortSignal AggregateError

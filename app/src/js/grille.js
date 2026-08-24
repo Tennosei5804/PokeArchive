@@ -221,6 +221,7 @@ function openPreview(entry, resolvedSrc){
 function closePreview(){
   previewOverlay.style.display = 'none';
   previewImg.removeAttribute('src');
+  arreterCri();
 }
 
 previewClose.addEventListener('click', closePreview);

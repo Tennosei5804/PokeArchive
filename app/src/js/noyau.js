@@ -97,6 +97,7 @@ const ficheObtentionNav = document.getElementById('ficheObtentionNav');
 const previewOverlay = document.getElementById('previewOverlay');
 const previewClose = document.getElementById('previewClose');
 const previewFrame = document.getElementById('previewFrame');
+const portraitCri = document.getElementById('portraitCri');
 const previewImg = document.getElementById('previewImg');
 const previewNo = document.getElementById('previewNo');
 const previewName = document.getElementById('previewName');
