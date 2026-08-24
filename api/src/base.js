@@ -268,4 +268,28 @@ export async function creerSchema(journal = () => {}) {
   await migrerModeProfil(journal);
   await migrerNiveauFormes(journal);
   await migrerVersProfils(journal);
+  await migrerIdSession(journal);
+}
+
+/**
+ * Un identifiant sur les sessions.
+ *
+ * La table n'avait que l'empreinte du jeton pour clé. Elle suffit au service,
+ * qui cherche par empreinte, mais pas au dresseur : pour lui montrer ses
+ * sessions et le laisser en fermer une, il faut pouvoir la désigner — et
+ * l'empreinte d'un jeton n'a rien à faire dans une adresse ni dans une page.
+ *
+ * La clé primaire ne bouge pas : c'est toujours l'empreinte qui identifie une
+ * session pour le service. L'identifiant n'est qu'une poignée, et il est donc
+ * seulement UNIQUE.
+ */
+async function migrerIdSession(journal) {
+  const deja = await une(
+    `SELECT COUNT(*) AS n FROM information_schema.columns
+      WHERE table_schema = DATABASE() AND table_name = 'pa_sessions'
+        AND column_name = 'id'`);
+  if (deja?.n) return;
+  await base().query(
+    'ALTER TABLE pa_sessions ADD COLUMN id BIGINT NOT NULL AUTO_INCREMENT UNIQUE FIRST');
+  journal('schéma : colonne pa_sessions.id ajoutée');
 }

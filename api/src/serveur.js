@@ -333,6 +333,77 @@ app.post('/api/deconnexion', route(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// --- Emporter ses donnees ---------------------------------------------------
+
+app.get('/api/export', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  const contenu = await comptes.exporter(d.id);
+  // Un nom de fichier lisible, et une invite de telechargement plutot qu'un
+  // mur de JSON dans le navigateur.
+  const jour = contenu.exporteLe.slice(0, 10);
+  res.setHeader('Content-Disposition',
+    `attachment; filename="pokearchive-${jour}.json"`);
+  res.json(contenu);
+}));
+
+// --- Les sessions ouvertes --------------------------------------------------
+
+// Le jeton brut sert a reconnaitre la session courante. Il ne quitte pas cette
+// fonction : ce qui part vers l'application n'est qu'une poignee numerique.
+const jetonDe = (req) => {
+  const e = req.get('Authorization') || '';
+  return e.startsWith('Bearer ') ? e.slice(7).trim() : '';
+};
+
+app.get('/api/sessions', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json({ sessions: await comptes.sessions(d.id, jetonDe(req)) });
+}));
+
+app.delete('/api/sessions/:id', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  await comptes.fermerSession(d.id, req.params.id);
+  res.json({ ok: true });
+}));
+
+app.post('/api/sessions/fermer-les-autres', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json({ ok: true, fermees: await comptes.fermerLesAutres(d.id, jetonDe(req)) });
+}));
+
+// --- Le journal des captures ------------------------------------------------
+
+app.get('/api/journal', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json(await comptes.journal(d.id, req.query.avant, req.query.limite));
+}));
+
+// --- Administration ---------------------------------------------------------
+
+/**
+ * L'administrateur, ou personne.
+ *
+ * Repond 404 et non 403 quand ce n'est pas lui : un 403 confirmerait que la
+ * route existe, et inviterait a chercher. Pour tout le monde sauf
+ * l'administrateur, ces adresses n'existent tout simplement pas.
+ */
+async function exigerAdmin(req, res) {
+  const d = await exiger(req, res); if (!d) return null;
+  if (!config.adminDiscordId || d.discordId !== config.adminDiscordId) {
+    res.status(404).json({ erreur: 'Route inconnue.' });
+    return null;
+  }
+  return d;
+}
+
+app.post('/api/admin/renommer', route(async (req, res) => {
+  const a = await exigerAdmin(req, res); if (!a) return;
+  const { pseudo, nouveau } = req.body || {};
+  const r = await comptes.renommerDresseur(pseudo, nouveau);
+  journal(`admin : ${a.pseudo} a renomme « ${pseudo} » en « ${r.pseudo} »`);
+  res.json({ ok: true, pseudo: r.pseudo });
+}));
+
 app.get('/api/etat', (req, res) => res.json({ service: 'pokearchive', discord: discord.actif() }));
 
 app.use((req, res) => res.status(404).json({ erreur: 'Route inconnue.' }));

@@ -26,6 +26,14 @@ export const config = {
     ssl: /^(oui|1|true|yes)$/i.test(process.env.DB_SSL || ''),
   },
 
+  // L'administrateur, designe par son identifiant Discord.
+  //
+  // Pas de role en base, pas de mot de passe de plus : l'identite vient deja
+  // de Discord, et un compte a privileges de plus serait un secret de plus a
+  // garder. Vide, AUCUNE route d'administration ne repond — c'est le reglage
+  // par defaut, et le bon quand personne n'en a besoin.
+  adminDiscordId: process.env.ADMIN_DISCORD_ID || '',
+
   discord: {
     clientId: process.env.DISCORD_CLIENT_ID || '',
     secret: process.env.DISCORD_SECRET || '',

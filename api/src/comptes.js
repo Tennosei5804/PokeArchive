@@ -582,3 +582,140 @@ export async function dexDe(pseudo, profilId = null) {
 export async function nombreDresseurs() {
   return (await une('SELECT COUNT(*) AS n FROM pa_dresseurs'))?.n ?? 0;
 }
+
+// --- Emporter ses données ---------------------------------------------------
+
+/**
+ * Tout ce qu'un dresseur possède, en un objet.
+ *
+ * Le service tourne sur un hébergement gratuit. Le jour où il ferme — ou celui
+ * où l'envie change — il ne doit pas retenir les collections en otage. C'est
+ * aussi la seule sauvegarde que le dresseur contrôle lui-même : celle du
+ * serveur ne lui appartient pas.
+ *
+ * Ce qui n'y est PAS : les sessions, qui sont des jetons de connexion et non
+ * des données, et l'identifiant Discord, qui appartient à Discord.
+ */
+export async function exporter(dresseurId) {
+  const d = await une(
+    'SELECT pseudo, avatar, cree_le FROM pa_dresseurs WHERE id = ?', [dresseurId]);
+  if (!d) throw new ErreurCompte('Dresseur introuvable.', 404);
+
+  const profils = await lire(
+    `SELECT id, nom, public, par_defaut, mode, niveau_formes, cree_le, maj_le
+       FROM pa_profils WHERE dresseur_id = ? ORDER BY id`, [dresseurId]);
+
+  for (const p of profils) {
+    const l = await une('SELECT donnees FROM pa_dex WHERE profil_id = ?', [p.id]);
+    try { p.dex = l ? JSON.parse(l.donnees) : null; } catch { p.dex = null; }
+    p.historique = await lire(
+      `SELECT pokemon, dex, chromatique, ajoute_le FROM pa_historique
+        WHERE profil_id = ? ORDER BY id`, [p.id]);
+    delete p.id;   // un identifiant de base n'a aucun sens hors de la base
+  }
+
+  return {
+    exporteLe: horodatage(),
+    format: 'pokearchive-1',
+    dresseur: { pseudo: d.pseudo, avatar: d.avatar, creeLe: d.cree_le },
+    aventures: profils,
+  };
+}
+
+// --- Les sessions ouvertes --------------------------------------------------
+
+/**
+ * Les connexions en cours, la plus récente d'abord.
+ *
+ * L'empreinte du jeton ne sort jamais : elle sert à reconnaître la session
+ * courante, ici, et rien de plus. Ce qu'on rend est une poignée numérique.
+ */
+export async function sessions(dresseurId, jetonCourant) {
+  const courante = jetonCourant ? cle(jetonCourant) : null;
+  const l = await lire(
+    `SELECT id, jeton_cle, cree_le, expire_le FROM pa_sessions
+      WHERE dresseur_id = ? ORDER BY cree_le DESC`, [dresseurId]);
+  return l.map((s) => ({
+    id: s.id,
+    creeLe: s.cree_le,
+    expireLe: s.expire_le,
+    courante: s.jeton_cle === courante,
+  }));
+}
+
+/** Ferme une session précise. La sienne comprise — c'est se déconnecter. */
+export async function fermerSession(dresseurId, sessionId) {
+  const r = await ecrire('DELETE FROM pa_sessions WHERE id = ? AND dresseur_id = ?',
+    [Number(sessionId) || 0, dresseurId]);
+  if (!r.affectedRows) throw new ErreurCompte('Session introuvable.', 404);
+  return r.affectedRows;
+}
+
+/**
+ * Ferme tout sauf celle d'où vient la demande.
+ *
+ * C'est le geste qu'on cherche après s'être connecté sur la machine d'un ami :
+ * tout couper sans se déconnecter soi-même.
+ */
+export async function fermerLesAutres(dresseurId, jetonCourant) {
+  const r = await ecrire(
+    'DELETE FROM pa_sessions WHERE dresseur_id = ? AND jeton_cle <> ?',
+    [dresseurId, jetonCourant ? cle(jetonCourant) : '']);
+  return r.affectedRows;
+}
+
+// --- Le journal des captures ------------------------------------------------
+
+/**
+ * Ce qui a été coché, toutes aventures confondues.
+ *
+ * L'accueil en montrait les dernières et rien d'autre, alors que la table
+ * garde tout depuis le premier jour. On pagine par identifiant décroissant et
+ * non par date : deux captures de la même seconde garderaient sinon un ordre
+ * instable, et la pagination sauterait des lignes.
+ */
+export async function journal(dresseurId, avant = null, limite = 50) {
+  const borne = Math.min(Math.max(Number(limite) || 50, 1), 200);
+  const curseur = Number(avant);
+  const params = [dresseurId];
+  let filtre = '';
+  if (Number.isInteger(curseur) && curseur > 0) {
+    filtre = 'AND h.id < ?';
+    params.push(curseur);
+  }
+
+  // La borne est interpolée, jamais passée en paramètre : MySQL refuse un
+  // marqueur dans un LIMIT de requête préparée. Elle est sûre parce qu'elle
+  // sort de Math.min/Math.max — c'est un nombre, pas une saisie. Même règle
+  // que historique() juste au-dessus, et pour la même raison.
+  const l = await lire(
+    `SELECT h.id, h.pokemon, h.dex, h.chromatique, h.ajoute_le, p.nom AS aventure
+       FROM pa_historique h JOIN pa_profils p ON p.id = h.profil_id
+      WHERE p.dresseur_id = ? ${filtre}
+      ORDER BY h.id DESC LIMIT ${borne + 1}`, params);
+
+  // Une ligne de plus que demandé : sa présence dit qu'il y a une suite, sans
+  // avoir à compter la table entière à chaque page.
+  const encore = l.length > borne;
+  return { lignes: l.slice(0, borne), encore };
+}
+
+// --- Administration ---------------------------------------------------------
+
+/**
+ * Renommer quelqu'un, quand son pseudo ne peut pas rester.
+ *
+ * Le filtre de pseudos refuse à la saisie, mais aucune liste n'arrête un
+ * déterminé : il reste les fautes volontaires, les langues non listées, et
+ * l'insulte qui n'en est une que pour celui qui la reçoit. Sans ce filet, un
+ * pseudo passé au travers s'affichait pour toujours dans le classement.
+ *
+ * Le nouveau nom passe par les MÊMES règles que les autres : rien ne servirait
+ * de remplacer une grossièreté par une autre.
+ */
+export async function renommerDresseur(pseudoActuel, nouveau) {
+  const d = await une('SELECT id FROM pa_dresseurs WHERE pseudo_cle = ?',
+    [normaliser(pseudoActuel || '')]);
+  if (!d) throw new ErreurCompte('Dresseur introuvable.', 404);
+  return { id: d.id, pseudo: await changerPseudo(d.id, nouveau) };
+}
