@@ -590,6 +590,13 @@
 .obt-cobblemon .obt-ligne.dim-ailleurs{
   border-left-style:dashed; border-left-color:var(--ink-faint);
 }
+/* La part d'un palier. Chiffre, donc font-data et tabular-nums : deux lignes
+   l'une sous l'autre doivent aligner leurs pourcentages. En retrait — c'est
+   une nuance de la rareté, pas une information de plus. */
+.obt-mention.mention-part{
+  color:var(--ink-faint); border-color:var(--card-border);
+  font-variant-numeric:tabular-nums;
+}
 .obt-cat.monde-overworld{ color:#5d9c4b; border-color:#5d9c4b; }
 .obt-cat.monde-nether{ color:#c9503f; border-color:#b0392b; }
 .obt-cat.monde-end{ color:#8f6fc4; border-color:#8f6fc4; }

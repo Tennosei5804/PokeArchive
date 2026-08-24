@@ -2313,6 +2313,24 @@ function spawnsDeLEspece(reserve, entry){
       dimension:  typeof l[15] === 'number' ? l[15] : 0,
       rang:       RANG_DIMENSION[typeof l[15] === 'number' ? l[15] : 0]
     };
+  }).map(function(l, _, toutes){
+    // La part que cette ligne prend dans son palier de rareté.
+    //
+    // Le poids brut du mod ne dit rien à personne : « 9,9 » n'est comparable à
+    // rien. Rapporté au total du palier, il répond en revanche à la seule
+    // question qui se pose devant deux lignes « Peu commun » — laquelle vaut le
+    // déplacement.
+    //
+    // JAMAIS quand le palier n'a qu'une ligne. Elle vaudrait 100 % sans rien
+    // dire de la probabilité réelle, et c'est exactement le piège que le bloc
+    // d'obtention a déjà rencontré avec la fréquence de PokeAPI : une méthode
+    // à créneau unique affichait « 100 % » et faisait croire à une certitude.
+    const memePalier = toutes.filter(function(a){ return a.iRarete === l.iRarete; });
+    const total = memePalier.reduce(function(s, a){ return s + (a.poids || 0); }, 0);
+    l.part = (memePalier.length > 1 && total > 0)
+      ? Math.round(100 * (l.poids || 0) / total)
+      : null;
+    return l;
   }).sort(function(a, b){
     // Ce qu'on peut atteindre d'abord, et dans l'ordre où on y accède : la
     // surface où l'on démarre, le Nether qui demande un portail, l'End qui
@@ -2419,6 +2437,18 @@ function poserGroupeCobblemon(jeu, lignes){
       chip.className = 'obt-cat rarete-' + (RARETE_CLASSE[l.iRarete] || 'commun');
       chip.textContent = l.rarete;
       bloc.appendChild(chip);
+
+      // La part du palier, juste après lui : les deux se lisent ensemble ou
+      // pas du tout. « Peu commun · 70 % » veut dire que sur dix rencontres
+      // peu communes de cette espèce, sept se font ici.
+      if(l.part !== null){
+        const part = document.createElement('span');
+        part.className = 'obt-mention mention-part';
+        part.textContent = l.part + ' %';
+        part.title = 'Sur les rencontres « ' + l.rarete.toLowerCase()
+          + ' » de cette espèce, ' + l.part + ' % se font ici';
+        bloc.appendChild(part);
+      }
     }
 
     // La manière, l'heure, le temps qu'il fait, la structure où il se tient, et
