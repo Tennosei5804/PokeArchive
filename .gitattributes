@@ -1,0 +1,22 @@
+# Les fins de ligne, décidées une fois pour toutes.
+#
+# Le dossier est en CRLF de bout en bout — les outils Python écrivent avec
+# newline='\r\n', et les réserves générées suivent. « text=auto » laisse Git
+# normaliser en LF dans le dépôt et rendre du CRLF à la sortie sur Windows :
+# le fichier de travail ne bouge pas, l'historique reste propre, et un diff ne
+# se remplit pas de lignes fantômes le jour où quelqu'un clone ailleurs.
+* text=auto
+
+# Les binaires, nommés explicitement. Git les détecte presque toujours seul,
+# mais « presque » suffit à corrompre une bannière : une conversion de fins de
+# ligne dans un PNG le rend illisible, et le mal est fait à la première pousse.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.otf  binary

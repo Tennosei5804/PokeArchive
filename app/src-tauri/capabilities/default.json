@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permissions de la fenêtre principale. Les commandes de l'application (connexion, dex, partage) sont définies par nous et n'ont pas besoin d'y figurer.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

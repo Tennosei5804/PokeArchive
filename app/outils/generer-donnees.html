@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Génération des données embarquées</title>
+<link rel="stylesheet" href="../src/css/polices.css">
+<link rel="stylesheet" href="../src/css/base.css">
+<link rel="stylesheet" href="../src/css/accueil.css">
+<link rel="stylesheet" href="../src/css/dex.css">
+<link rel="stylesheet" href="../src/css/fiche.css">
+<link rel="stylesheet" href="../src/css/compte.css">
+<link rel="stylesheet" href="../src/css/strategie.css">
+</head>
+<body>
+
+<div class="dex">
+  <div class="dex-header">
+    <div class="dex-lens"></div>
+    <div class="dex-titleblock">
+      <span class="dex-eyebrow">Terminal de collecte</span>
+      <span class="dex-title">PokéArchive</span>
+    </div>
+    <div class="compte-menu" id="compteMenu" hidden>
+      <button class="player-badge" id="playerBadge" type="button"
+              aria-haspopup="menu" aria-expanded="false" title="Ton compte et tes aventures">
+        <img id="avatar" alt="">
+        <span id="playerNameText">—</span>
+        <span class="chevron" aria-hidden="true">▾</span>
+      </button>
+      <div class="compte-panneau" id="comptePanneau" role="menu">
+        <div class="compte-entete">
+          <span class="compte-pseudo" id="comptePseudo">—</span>
+          <span class="compte-aventure" id="compteAventure"></span>
+        </div>
+        <button class="compte-item" id="menuAventures" type="button" role="menuitem">
+          🎒 Mes aventures<small>Changer, créer, partager</small>
+        </button>
+        <button class="compte-item" id="menuDresseurs" type="button" role="menuitem">
+          👥 Chercher un dresseur<small>Voir et comparer son avancée</small>
+        </button>
+        <div class="compte-separateur"></div>
+        <button class="compte-item danger" id="menuReset" type="button" role="menuitem">
+          ♻️ Réinitialiser cette aventure<small>Vide son Pokédex, sans toucher aux autres</small>
+        </button>
+        <button class="compte-item" id="quitter" type="button" role="menuitem">
+          ⏻ Se déconnecter
+        </button>
+      </div>
+    </div>
+    <button class="lang-btn" id="langBtn" type="button" aria-pressed="false"
+            title="Afficher les noms de Pokémon en anglais">Français</button>
+    <button class="theme-btn" id="themeBtn" type="button" aria-pressed="false" title="Basculer clair / sombre">🌙</button>
+    <div class="dex-lights"><span></span><span></span><span></span></div>
+  </div>
+
+  <div class="screen-frame">
+    <div class="screen screen-boot">
+
+      <nav class="page-nav" id="pageNav" aria-label="Navigation">
+        <button class="page-tab active" type="button" data-page="home" aria-current="page">🏠 Accueil</button>
+        <button class="page-tab" type="button" data-page="jeux">📖 Pokédex</button>
+        <button class="page-tab" type="button" data-page="dresseurs">👥 Dresseurs</button>
+        <button class="page-tab" type="button" data-page="chasse">✨ Chasse</button>
+        <button class="page-tab" type="button" data-page="cadeaux">🎁 Cadeau Mystère</button>
+        <button class="page-tab" type="button" data-page="strategie">⚔️ Stratégie</button>
+        <button class="page-tab" type="button" data-page="reproduction">🥚 Reproduction</button>
+        <button class="page-tab" type="button" data-page="profil">🧑 Profil</button>
+      </nav>
+
+      <section class="page active" id="page-home">
+        <div class="home-hero">
+          <div class="home-eyebrow">Terminal de collecte</div>
+          <h2 class="home-title">Bonjour, <span id="homePlayer">Dresseur</span></h2>
+          <p class="home-sub" id="homeSummary">Chargement du Pokédex national…</p>
+        </div>
+
+        <button class="accueil-aventure" id="accueilAventure" type="button" style="display:none;"></button>
+
+        <div class="home-gauges">
+          <div class="home-gauge">
+            <div class="gauge">
+              <svg viewBox="0 0 74 74">
+                <circle class="track" cx="37" cy="37" r="31"></circle>
+                <circle class="fill" id="homeGaugeNormal" cx="37" cy="37" r="31" stroke-dasharray="194.8" stroke-dashoffset="194.8"></circle>
+              </svg>
+              <div class="gauge-value" id="homeGaugeNormalValue">0%</div>
+            </div>
+            <div class="home-gauge-label">
+              <strong id="homeNormalCount">0</strong>
+              <span>/ <span id="homeNormalTotal">0</span></span>
+              <em>⬤ forme normale</em>
+            </div>
+          </div>
+          <div class="home-gauge shiny">
+            <div class="gauge">
+              <svg viewBox="0 0 74 74">
+                <circle class="track" cx="37" cy="37" r="31"></circle>
+                <circle class="fill" id="homeGaugeShiny" cx="37" cy="37" r="31" stroke-dasharray="194.8" stroke-dashoffset="194.8"></circle>
+              </svg>
+              <div class="gauge-value" id="homeGaugeShinyValue">0%</div>
+            </div>
+            <div class="home-gauge-label">
+              <strong id="homeShinyCount">0</strong>
+              <span>/ <span id="homeShinyTotal">0</span></span>
+              <em>✨ forme shiny</em>
+            </div>
+          </div>
+        </div>
+
+        <div class="home-mode" id="homeMode" style="display:none;"></div>
+
+        <div class="home-section-title">Progression par génération</div>
+        <div class="home-gens" id="homeGens">
+          <div class="state-msg">Chargement…</div>
+        </div>
+
+        <div class="home-section-title">À portée</div>
+        <div class="a-portee" id="aPortee"></div>
+
+        <div class="home-section-title">Tes dernières captures</div>
+        <div class="journal accueil-journal" id="accueilJournal"></div>
+
+        <div class="home-section-title">Reprendre</div>
+        <div class="home-actions">
+          <button class="toggle-btn" type="button" data-goto="all">📖 Ouvrir le Pokédex</button>
+          <button class="toggle-btn" type="button" data-goto="missing">⬤ Mes manquants (normal)</button>
+          <button class="toggle-btn" type="button" data-goto="hunt">✨ Ma chasse shiny</button>
+        </div>
+      </section>
+
+      <section class="page" id="page-dex">
+
+      <div class="scope-head" id="scopeHead" style="display:none;">
+        <div class="scope-title" id="scopeTitle"></div>
+        <div class="scope-switch" id="scopeSwitch" role="group" aria-label="Type de Pokédex">
+          <button type="button" class="scope-btn active" data-variant="regional">Régional</button>
+          <button type="button" class="scope-btn" id="secondScopeBtn" data-variant="second">National</button>
+        </div>
+      </div>
+      <p class="scope-note" id="scopeNote" style="display:none;"></p>
+
+      <div class="stat-bar">
+        <div class="gauge">
+          <svg viewBox="0 0 74 74">
+            <circle class="track" cx="37" cy="37" r="31"></circle>
+            <circle class="fill" id="gaugeFill" cx="37" cy="37" r="31" stroke-dasharray="194.8" stroke-dashoffset="194.8"></circle>
+          </svg>
+          <div class="gauge-value" id="gaugeValue">0%</div>
+        </div>
+        <div class="stat-readout">
+          <div class="stat-status" id="readout-left">Chargement du Pokédex national…</div>
+          <div class="stat-numbers">
+            <div class="stat-line" id="statLineNormal">
+              <span class="stat-dot">⬤</span>
+              <strong id="caughtCount">0</strong>
+              <span>/ <span id="totalCount">0</span> forme normale</span>
+            </div>
+            <div class="stat-line shiny" id="statLineShiny">
+              <span class="stat-dot">✨</span>
+              <strong id="shinyCount">0</strong>
+              <span>/ <span id="totalCountShiny">0</span> forme shiny</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar filters-row">
+        <input type="search" id="search" placeholder="Rechercher un Pokémon…" aria-label="Rechercher un Pokémon" autocomplete="off">
+        <select id="sort" aria-label="Trier">
+          <option value="game">Tri : N° du jeu</option>
+          <option value="id">Tri : N° National</option>
+          <option value="gen">Tri : Génération</option>
+          <option value="name">Tri : Alphabétique</option>
+        </select>
+        <select id="filter" aria-label="Filtrer">
+          <option value="all">Tout afficher</option>
+          <option value="caught">Capturés (vue active)</option>
+          <option value="uncaught">Manquants (vue active)</option>
+          <option value="normal-not-shiny">Normal ✓ · Shiny ✗</option>
+          <optgroup label="Obtention, d'après le relevé">
+            <option value="obt-sauvage">Capturable dans ce jeu</option>
+            <option value="obt-offert">Offert</option>
+            <option value="obt-echange">Par échange</option>
+            <option value="obt-evolution">Par évolution</option>
+            <option value="obt-indisponible">Indisponible — à transférer</option>
+            <option value="obt-shiny-lock">Shiny-lock</option>
+          </optgroup>
+        </select>
+        <select id="genFilter" aria-label="Filtrer par génération">
+          <option value="all">Toutes générations</option>
+          <option value="1">Génération 1 — Kanto</option>
+          <option value="2">Génération 2 — Johto</option>
+          <option value="3">Génération 3 — Hoenn</option>
+          <option value="4">Génération 4 — Sinnoh</option>
+          <option value="5">Génération 5 — Unys</option>
+          <option value="6">Génération 6 — Kalos</option>
+          <option value="7">Génération 7 — Alola</option>
+          <option value="8">Génération 8 — Galar/Hisui</option>
+          <option value="9">Génération 9 — Paldea</option>
+        </select>
+        <select id="typeFilter" aria-label="Filtrer par type">
+          <option value="all">Tous les types</option>
+        </select>
+      </div>
+
+      <!-- Ce que veulent dire les pastilles des cartes. Cachée hors du Pokédex
+           d'un jeu : là, aucune carte n'en porte. -->
+      <p class="obtention-legende" id="legendeObtention" hidden></p>
+
+      <div class="toolbar modes-row">
+        <button class="toggle-btn" id="shinyView" type="button" aria-pressed="false">Vue ✨ shiny</button>
+        <select id="niveauFormes" aria-label="Niveau de formes"
+                title="Jusqu'où compter les formes d'une même espèce.">
+          <option value="1">🧬 Une forme par espèce</option>
+          <option value="2">🧬 Avec les régionales</option>
+          <option value="3" selected>🧬 Avec les alternatives</option>
+          <option value="4">🧬 Avec mâle / femelle</option>
+        </select>
+        <button class="toggle-btn" id="importCodeBtn" type="button"
+                title="Choisir un dresseur et confronter vos collections.">👥 Comparer</button>
+        <button class="toggle-btn" id="legendeBtn" type="button" aria-pressed="false"
+                aria-controls="legendeObtention" hidden
+                title="Ce que veulent dire les pastilles des cartes.">🏷️ Voir les pastilles</button>
+        <button class="toggle-btn" id="spritesJeuBtn" type="button" aria-pressed="false" hidden
+                title="Afficher les sprites du jeu à la place des rendus Pokémon HOME.">🕹️ Sprites du jeu</button>
+      </div>
+
+      <div class="compare-bar" id="compareBar" style="display:none;">
+        <span class="compare-label" id="compareLabel"></span>
+        <button class="bulk-btn" id="compareQuit" type="button">Quitter</button>
+      </div>
+
+      <div class="bulk-bar" id="bulkBar">
+        <span class="bulk-label" id="bulkLabel">—</span>
+        <button class="bulk-btn" id="bulkCheck" type="button">Tout coché</button>
+        <button class="bulk-btn" id="bulkUncheck" type="button">Tout décoché</button>
+      </div>
+
+      <div class="grid" id="list" aria-live="polite">
+        <div class="state-msg" id="state-msg">Connexion au PokéAPI…</div>
+      </div>
+
+      <button class="load-more" id="loadMore" type="button" style="display:none;">Afficher plus</button>
+
+      </section>
+
+      <section class="page" id="page-jeux">
+        <div class="home-hero">
+          <div class="home-eyebrow">Collection</div>
+          <h2 class="home-title">Pokédex</h2>
+          <p class="home-sub">Choisis un jeu pour ouvrir son Pokédex. L'avancement est celui de sa propre collection.</p>
+        </div>
+        <div class="jeux" id="listeJeux"></div>
+      </section>
+
+      <section class="page" id="page-chasse">
+        <div class="home-hero">
+          <div class="home-eyebrow">Chromatiques</div>
+          <h2 class="home-title">Chasse en cours</h2>
+          <p class="home-sub">Compte tes rencontres. Le compteur suit ton aventure, d'un ordinateur à l'autre.</p>
+        </div>
+
+        <div class="chasse-depart">
+          <button class="toggle-btn primary" id="chasseNouvelle" type="button">✨ Créer une chasse</button>
+        </div>
+
+        <div class="chasse-resume" id="chasseResume"></div>
+        <div class="chasse-liste" id="chasseListe"></div>
+      </section>
+
+      <section class="page" id="page-cadeaux">
+        <div class="home-hero">
+          <div class="home-eyebrow">Distributions</div>
+          <h2 class="home-title">Cadeau Mystère</h2>
+          <p class="home-sub">Les Pokémon fabuleux ne se rencontrent nulle part : ils s'obtiennent
+             lors de distributions officielles, puis se transfèrent de jeu en jeu.
+             Les dates sont celles des distributions <strong>françaises</strong> :
+             un évènement réservé au Japon n'aurait jamais aidé personne ici.</p>
+        </div>
+        <div class="cadeaux-resume" id="cadeauxResume"></div>
+
+        <div class="toolbar cadeaux-filtres">
+          <select id="cadeauxGen" aria-label="Filtrer par génération">
+            <option value="all">Toutes générations</option>
+          </select>
+          <select id="cadeauxEtat" aria-label="Filtrer par état">
+            <option value="all">Tout afficher</option>
+            <option value="obtenu">⬤ Obtenus</option>
+            <option value="manquant">Manquants</option>
+            <option value="shiny">✨ Obtenus en chromatique</option>
+            <option value="dispo">Encore obtenables aujourd'hui</option>
+          </select>
+          <select id="cadeauxVoie" aria-label="Filtrer par méthode de distribution">
+            <option value="all">Toutes les méthodes</option>
+          </select>
+        </div>
+
+        <div class="cadeaux-generations" id="cadeauxListe"></div>
+        <p class="cadeaux-source-note">
+          Dates et évènements relevés sur l'Evendex de Pokébip, pages
+          « Distributions ayant eu lieu en France » —
+          <span>pokebip.com/page/jeux-video/evendex/accueil</span>
+        </p>
+      </section>
+
+      <section class="page" id="page-profil">
+        <div class="home-hero">
+          <div class="home-eyebrow">Ton compte</div>
+          <h2 class="home-title">Profil</h2>
+          <p class="home-sub">Ton identité, tes aventures, et le journal de tes captures.</p>
+        </div>
+
+        <div class="profil-identite" id="profilIdentite"></div>
+
+        <div class="home-section-title">Mes aventures</div>
+        <div class="profil-aventures" id="profilAventures"></div>
+        <div class="profil-creation profil-creation-page">
+          <input type="text" id="profilPageNom" maxlength="40"
+                 placeholder="Nouvelle aventure — ex. Chasse shiny">
+                <select id="profilPageMode" aria-label="Ce que compte l'aventure">
+                  <option value="capture">📕 Pokédex — capturer chaque Pokémon</option>
+                  <option value="vu">👁️ Pokémon vus — les avoir rencontrés</option>
+                  <option value="living">📦 Living Dex — les posséder tous en même temps</option>
+                </select>
+          <button class="toggle-btn primary" id="profilPageCreer" type="button">Créer</button>
+        </div>
+        <p class="modal-error" id="profilPageErreur" role="alert"></p>
+
+        <div class="home-section-title">Journal des captures</div>
+        <div class="journal-entete">
+          <span class="journal-quoi" id="journalQuoi">—</span>
+          <span class="journal-total" id="journalTotal"></span>
+        </div>
+        <div class="journal" id="journalListe"></div>
+        <button class="load-more" id="journalPlus" type="button" style="display:none;">Afficher plus</button>
+      </section>
+
+      <section class="page" id="page-dresseurs">
+        <div class="home-hero">
+          <div class="home-eyebrow">Partage</div>
+          <h2 class="home-title">Les dresseurs</h2>
+          <p class="home-sub">Le classement se met à jour dès que quelqu'un synchronise son dex.</p>
+        </div>
+        <div class="dresseur-recherche">
+          <input type="search" id="dresseurQ" placeholder="Chercher un dresseur par son pseudo…"
+                 aria-label="Chercher un dresseur" autocomplete="off">
+          <button class="toggle-btn" id="dresseurRetour" type="button" style="display:none;">← Classement</button>
+        </div>
+        <div class="dresseurs" id="listeDresseurs"></div>
+        <div class="dresseur-visite" id="dresseurVisite" style="display:none;"></div>
+      </section>
+
+      <section class="page" id="page-strategie">
+        <div class="home-hero">
+          <div class="home-eyebrow">Avant le combat</div>
+          <h2 class="home-title">Stratégie</h2>
+          <p class="home-sub">Ce qui passe, ce qui casse, et sur qui. Tout se calcule
+             hors ligne, sur les données déjà embarquées.</p>
+        </div>
+
+        <div class="strat-onglets" id="stratOnglets" role="tablist" aria-label="Outils">
+          <button class="strat-onglet active" type="button" data-outil="types"
+                  role="tab" aria-selected="true">Efficacité des types</button>
+          <button class="strat-onglet" type="button" data-outil="equipe"
+                  role="tab" aria-selected="false">Team Builder</button>
+          <button class="strat-onglet" type="button" data-outil="degats"
+                  role="tab" aria-selected="false">Calcul de dégâts</button>
+          <button class="strat-onglet" type="button" data-outil="ev"
+                  role="tab" aria-selected="false">Entraînement EV</button>
+        </div>
+
+        <section class="strat-outil active" id="strat-types">
+          <div class="strat-bloc">
+            <h3>Une attaque, un défenseur</h3>
+            <div class="eff-formule">
+              <span>Une attaque de type</span>
+              <select id="effAttaque" aria-label="Type de l'attaque"></select>
+              <span>sur un Pokémon</span>
+              <select id="effDef1" aria-label="Premier type du défenseur"></select>
+              <span>et</span>
+              <select id="effDef2" aria-label="Second type du défenseur">
+                <option value="aucun">— rien —</option>
+              </select>
+            </div>
+            <div class="eff-resultat" id="effResultat"></div>
+          </div>
+
+          <div class="strat-bloc">
+            <h3>La table complète</h3>
+            <p class="strat-aide">Les lignes attaquent, les colonnes défendent.
+               Une case vide vaut ×1. Table de la 6<sup>e</sup> génération et
+               suivantes — celle en vigueur depuis l'arrivée du type Fée.</p>
+            <div class="table-types-cadre" id="tableTypes"></div>
+          </div>
+        </section>
+
+        <section class="strat-outil" id="strat-equipe">
+          <div class="strat-bloc">
+            <h3>Ton équipe</h3>
+            <p class="strat-aide">Jusqu'à six Pokémon. L'analyse se met à jour à chaque ajout.</p>
+            <div class="equipe-slots" id="equipeSlots"></div>
+          </div>
+          <div class="strat-bloc">
+            <h3>Ce que ça donne</h3>
+            <div class="equipe-analyse" id="equipeAnalyse"></div>
+          </div>
+        </section>
+
+
+        <section class="strat-outil" id="strat-ev">
+          <div class="strat-bloc">
+            <h3>Quels points d'effort veux-tu ?</h3>
+            <p class="strat-aide">Chaque Pokémon battu donne des points d'effort dans une
+               statistique précise. Quatre points font +1 à la statistique finale, et le
+               plafond est de 252 par statistique.</p>
+            <div class="ev-filtres">
+              <label class="dgt-condition">
+                <span>Statistique</span>
+                <select id="evStat" aria-label="Statistique recherchée"></select>
+              </label>
+              <label class="dgt-condition">
+                <span>Points donnés</span>
+                <select id="evCombien" aria-label="Nombre de points donnés">
+                  <option value="all">Peu importe</option>
+                  <option value="3">3 points</option>
+                  <option value="2">2 points</option>
+                  <option value="1">1 point</option>
+                </select>
+              </label>
+              <label class="dgt-condition">
+                <span>Nom</span>
+                <input type="search" id="evNom" placeholder="Filtrer…" autocomplete="off"
+                       aria-label="Filtrer par nom">
+              </label>
+            </div>
+          </div>
+
+          <div class="strat-bloc">
+            <div class="repro-entete">
+              <h3>Où les trouver</h3>
+              <span class="repro-compte" id="evCompte"></span>
+            </div>
+            <p class="strat-aide">Clique sur un Pokémon pour ouvrir sa fiche : le bloc
+               « Où l'obtenir » dit dans quels jeux et à quels endroits le croiser.</p>
+            <div class="repro-liste" id="evListe"></div>
+            <button class="load-more" id="evPlus" type="button" style="display:none;">Afficher plus</button>
+          </div>
+        </section>
+
+        <section class="strat-outil" id="strat-degats">
+          <div class="strat-bloc">
+            <div class="dgt-grille">
+              <div class="dgt-cote attaquant">
+                <h3>Attaquant</h3>
+                <div class="strat-champ">
+                  <input type="search" id="dgtAtkNom" placeholder="Un Pokémon…"
+                         autocomplete="off" aria-label="Pokémon attaquant">
+                  <div class="strat-suggestions" id="dgtAtkSug" style="display:none;"></div>
+                </div>
+                <div class="dgt-resume" id="dgtAtkResume"></div>
+                <button class="toggle-btn dgt-config" id="dgtAtkConfig" type="button" disabled>
+                  Capacité, EV, IV, nature, objet, talent…
+                </button>
+              </div>
+
+              <div class="dgt-cote defenseur">
+                <h3>Défenseur</h3>
+                <div class="strat-champ">
+                  <input type="search" id="dgtDefNom" placeholder="Un Pokémon…"
+                         autocomplete="off" aria-label="Pokémon défenseur">
+                  <div class="strat-suggestions" id="dgtDefSug" style="display:none;"></div>
+                </div>
+                <div class="dgt-resume" id="dgtDefResume"></div>
+                <button class="toggle-btn dgt-config" id="dgtDefConfig" type="button" disabled>
+                  EV, IV, nature, objet, talent…
+                </button>
+              </div>
+            </div>
+
+            <div class="dgt-conditions">
+              <label class="dgt-condition">
+                <span>Météo</span>
+                <select id="dgtMeteo" aria-label="Météo"></select>
+              </label>
+              <label class="dgt-condition">
+                <span>Terrain</span>
+                <select id="dgtTerrain" aria-label="Terrain"></select>
+              </label>
+              <label class="dgt-condition etroit">
+                <span>Nombre de coups</span>
+                <div id="dgtCoups"></div>
+              </label>
+            </div>
+
+            <div class="dgt-mods">
+              <button class="bascule" id="dgtCrit" type="button" aria-pressed="false">
+                <span class="bascule-temoin" aria-hidden="true"></span>
+                <span class="bascule-nom">Coup critique</span>
+                <span class="bascule-effet">×1,5</span>
+              </button>
+              <button class="bascule chaude" id="dgtBrulure" type="button" aria-pressed="false">
+                <span class="bascule-temoin" aria-hidden="true"></span>
+                <span class="bascule-nom">Attaquant brûlé</span>
+                <span class="bascule-effet">×0,5 physique</span>
+              </button>
+              <span class="strat-aide">Le nombre de coups se règle à la main :
+                la réserve ne dit pas si une capacité en donne deux ou cinq.</span>
+            </div>
+          </div>
+
+          <div class="dgt-resultat" id="dgtResultat"></div>
+        </section>
+      </section>
+
+      <section class="page" id="page-reproduction">
+        <div class="home-hero">
+          <div class="home-eyebrow">Élevage</div>
+          <h2 class="home-title">Reproduction</h2>
+          <p class="home-sub">Qui pond avec qui. Les groupes d'œufs appartiennent à
+             l'espèce : une forme régionale pond comme la forme d'origine.</p>
+        </div>
+
+        <div class="strat-onglets" id="reproOnglets" role="tablist" aria-label="Outils">
+          <button class="strat-onglet active" type="button" data-outil="parent"
+                  role="tab" aria-selected="true">Trouver un co-parent</button>
+          <button class="strat-onglet" type="button" data-outil="groupes"
+                  role="tab" aria-selected="false">Les groupes d'œufs</button>
+        </div>
+
+        <section class="strat-outil active" id="repro-parent">
+          <div class="strat-bloc">
+            <h3>Le Pokémon à faire pondre</h3>
+            <div class="strat-champ">
+              <input type="search" id="reproNom" placeholder="Un Pokémon…"
+                     autocomplete="off" aria-label="Pokémon à faire pondre">
+              <div class="strat-suggestions" id="reproSug" style="display:none;"></div>
+            </div>
+            <div class="repro-choisi" id="reproChoisi" style="display:none;"></div>
+          </div>
+
+          <div class="strat-bloc">
+            <div class="repro-entete">
+              <h3>Partenaires compatibles</h3>
+              <span class="repro-compte" id="reproCompte"></span>
+            </div>
+            <div class="repro-filtres">
+              <label class="dgt-condition etroit">
+                <span>Le tien est</span>
+                <select id="reproSexe" aria-label="Sexe du Pokémon choisi">
+                  <option value="all">Peu importe</option>
+                  <option value="male">♂ Mâle</option>
+                  <option value="femelle">♀ Femelle</option>
+                </select>
+              </label>
+              <input type="search" id="reproFiltre" placeholder="Filtrer par nom…"
+                     autocomplete="off" aria-label="Filtrer les partenaires">
+              <button class="bascule" id="reproPossedes" type="button" aria-pressed="false">
+                <span class="bascule-temoin" aria-hidden="true"></span>
+                <span class="bascule-nom">Seulement ceux que j'ai</span>
+              </button>
+            </div>
+            <p class="strat-aide">Le sexe compte aussi en jeu — la réserve ne porte
+               aucun taux de genre, la liste ne le filtre donc pas.</p>
+            <div class="repro-liste" id="reproListe"></div>
+            <button class="load-more" id="reproPlus" type="button" style="display:none;">Afficher plus</button>
+          </div>
+        </section>
+
+        <section class="strat-outil" id="repro-groupes">
+          <div class="strat-bloc">
+            <h3>Les quinze groupes</h3>
+            <p class="strat-aide">Deux Pokémon pondent ensemble s'ils partagent au moins
+               un groupe. Métamorph s'accouple avec tous les autres ; le groupe Inconnu,
+               avec personne.</p>
+            <div class="repro-groupes" id="reproGroupes"></div>
+          </div>
+        </section>
+      </section>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="credit-block">
+      <span class="credit" id="saveModeLabel">Données : PokéAPI · Sprites : rendus Pokémon HOME · Suivi sauvegardé automatiquement</span>
+      <!-- Rempli par majEtatCache(), appelé au démarrage : ce que l'application
+           garde en réserve, et depuis quand. Sans cette ligne, la fonction
+           s'exécutait dans le vide et « fonctionne hors ligne » restait une
+           promesse invisible. -->
+      <span class="credit credit-folder" id="cacheLabel"></span>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="chasseOverlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="chasseTitre">
+  <div class="modal-card profil-card">
+    <div class="modal-eyebrow">Chromatiques</div>
+    <h2 class="modal-title" id="chasseTitre">Créer une chasse</h2>
+
+    <label class="chasse-label" for="chasseRecherche">Quel Pokémon ?</label>
+    <div class="chasse-champ">
+      <input type="search" id="chasseRecherche" autocomplete="off"
+             placeholder="Son nom…" aria-label="Chercher un Pokémon à chasser">
+      <div class="chasse-suggestions" id="chasseSuggestions" style="display:none;"></div>
+    </div>
+    <div class="chasse-choisi" id="chasseChoisi" style="display:none;"></div>
+
+    <label class="chasse-label" for="chasseJeu">Dans quel jeu ?</label>
+    <select id="chasseJeu" aria-label="Jeu de la chasse"></select>
+
+    <label class="chasse-label" for="chasseMethode">Avec quelle méthode ?</label>
+    <select id="chasseMethode" aria-label="Méthode de chasse"></select>
+
+    <div id="chasseBlocBonus" style="display:none;">
+      <span class="chasse-label">Bonus cumulables</span>
+      <div class="chasse-bonus" id="chasseBonus"></div>
+    </div>
+
+    <p class="chasse-taux" id="chasseTaux"></p>
+
+    <p class="modal-error" id="chasseErreur" role="alert"></p>
+    <div class="modal-actions">
+      <button class="toggle-btn" id="chasseAnnuler" type="button">Annuler</button>
+      <button class="toggle-btn primary" id="chasseValider" type="button">Commencer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="comparerOverlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="comparerTitre">
+  <div class="modal-card profil-card">
+    <div class="modal-eyebrow">Comparaison</div>
+    <h2 class="modal-title" id="comparerTitre">Avec qui te comparer ?</h2>
+    <p class="modal-sub">
+      Sa collection sera confrontée à la tienne, Pokémon par Pokémon. Un dresseur
+      qui tient plusieurs aventures est représenté par sa principale.
+    </p>
+    <input type="search" id="comparerQ" placeholder="Chercher un dresseur…" aria-label="Chercher un dresseur">
+    <div class="profil-liste" id="comparerListe"></div>
+    <p class="modal-error" id="comparerErreur" role="alert"></p>
+    <div class="modal-actions">
+      <button class="toggle-btn" id="comparerFermer" type="button">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="profilOverlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="profilTitre">
+  <div class="modal-card profil-card">
+    <div class="modal-eyebrow">Ton compte</div>
+    <h2 class="modal-title" id="profilTitre">Quelle aventure ?</h2>
+    <p class="modal-sub">
+      Chaque aventure a son propre Pokédex. L'étoile désigne celle qui s'ouvre
+      au lancement ; l'œil dit si tes amis peuvent la voir.
+    </p>
+    <div class="profil-liste" id="profilListe"></div>
+    <p class="modal-error" id="profilErreur" role="alert"></p>
+    <div class="profil-creation">
+      <input type="text" id="profilNouveauNom" maxlength="40" placeholder="Nouvelle aventure — ex. Chasse shiny">
+                <select id="profilNouveauMode" aria-label="Ce que compte l'aventure">
+                  <option value="capture">📕 Pokédex — capturer chaque Pokémon</option>
+                  <option value="vu">👁️ Pokémon vus — les avoir rencontrés</option>
+                  <option value="living">📦 Living Dex — les posséder tous en même temps</option>
+                </select>
+      <button class="toggle-btn primary" id="profilCreer" type="button">Créer</button>
+    </div>
+    <div class="modal-actions">
+      <button class="toggle-btn" id="profilFermer" type="button">Fermer</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="jeuOverlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="jeuTitre">
+  <div class="modal-card jeu-card">
+    <div class="modal-eyebrow" id="jeuRole">Configuration</div>
+    <div class="jeu-entete">
+      <img id="jeuSprite" alt="">
+      <div>
+        <h2 class="modal-title" id="jeuTitre">—</h2>
+        <div class="jeu-types" id="jeuTypes"></div>
+      </div>
+    </div>
+
+    <div class="jeu-reglages">
+      <label class="jeu-champ">
+        <span>Niveau</span>
+        <div id="jeuNiveau"></div>
+      </label>
+      <label class="jeu-champ large">
+        <span>Nature</span>
+        <select id="jeuNature" aria-label="Nature"></select>
+      </label>
+      <label class="jeu-champ large">
+        <span>Talent</span>
+        <select id="jeuTalent" aria-label="Talent"></select>
+      </label>
+      <label class="jeu-champ large">
+        <span>Objet tenu</span>
+        <select id="jeuObjet" aria-label="Objet tenu"></select>
+      </label>
+    </div>
+
+    <div id="jeuBlocCapacite">
+      <span class="jeu-attaques-titre">Attaques</span>
+      <div class="jeu-attaques">
+        <select id="jeuCapacite1" aria-label="Première attaque"></select>
+        <select id="jeuCapacite2" aria-label="Deuxième attaque"></select>
+        <select id="jeuCapacite3" aria-label="Troisième attaque"></select>
+        <select id="jeuCapacite4" aria-label="Quatrième attaque"></select>
+      </div>
+    </div>
+
+    <div class="jeu-stats-entete">
+      <span>Statistique</span><span>Base</span><span>IV</span><span>EV</span><span>Palier</span><span>Total</span>
+    </div>
+    <div class="jeu-stats" id="jeuStats"></div>
+    <p class="jeu-ev-total" id="jeuEvTotal"></p>
+
+    <div class="modal-actions">
+      <button class="toggle-btn" id="jeuAnnuler" type="button">Annuler</button>
+      <button class="toggle-btn primary" id="jeuValider" type="button">Valider</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="confirmOverlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="confirmTitre">
+  <div class="modal-card confirm-card">
+    <div class="modal-eyebrow" id="confirmEyebrow">Confirmation</div>
+    <h2 class="modal-title" id="confirmTitre">—</h2>
+    <div class="confirm-corps" id="confirmCorps"></div>
+    <div class="confirm-saisie" id="confirmSaisieBloc" style="display:none;">
+      <label id="confirmSaisieLabel" for="confirmSaisie"></label>
+      <input type="text" id="confirmSaisie" autocomplete="off" spellcheck="false">
+      <p class="confirm-saisie-erreur" id="confirmSaisieErreur" role="alert"></p>
+    </div>
+    <div class="modal-actions">
+      <button class="toggle-btn" id="confirmAnnuler" type="button">Annuler</button>
+      <button class="toggle-btn danger" id="confirmValider" type="button">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="previewOverlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="previewName">
+  <div class="preview-card fiche">
+    <button class="preview-close fiche-fermer" id="previewClose" type="button" aria-label="Fermer">✕</button>
+    <div class="preview-defilant">
+
+      <!-- 1. La bande d'identité. Le portrait à gauche, l'identité à droite :
+           empilés, le nom et les types passaient sous la ligne de flottaison
+           d'un écran de portable. -->
+      <div class="identite">
+        <div class="portrait" id="previewFrame">
+          <span class="portrait-no" id="previewNo"></span>
+          <img id="previewImg" alt="">
+          <div class="portrait-source" id="portraitSource" role="group" aria-label="Source de l'image">
+            <button type="button" data-source="anime">Sprite animé</button>
+            <button type="button" class="actif" data-source="rendu">Rendu HOME</button>
+          </div>
+        </div>
+
+        <div class="identite-corps">
+          <div class="surtitre" id="previewMeta"></div>
+          <h1 class="nom" id="previewName"></h1>
+          <p class="nom-autre" id="ficheNomAutre"></p>
+          <div class="types" id="ficheTypes"></div>
+          <dl class="gabarit" id="ficheGabarit"></dl>
+          <!-- Les numéros régionaux. Le portrait affiche le numéro national ;
+               celui-ci ne dit rien de la place qu'occupe l'espèce dans le jeu
+               qu'on a sous la main — n° 149 au national, n° 66 à Kanto. -->
+          <div class="dex-regionaux" id="ficheDexRegionaux"></div>
+          <div class="etats" id="previewStates"></div>
+        </div>
+      </div>
+
+      <div class="corps">
+
+        <!-- 2. Les talents. Une carte par talent : son rang, ses deux noms, le
+             texte du jeu et l'effet chiffré — le jeu dit « subit moins de
+             dégâts », la réserve dit « divise par deux ». -->
+        <!-- Deux talents par ligne. Un Pokémon en a un, deux ou trois : quand
+             le compte est impair, le dernier prend la ligne entière plutôt que
+             de laisser une case vide à côté de lui. -->
+        <section class="bloc">
+          <h4>Talents <em>ce qu'il fait, et pas seulement comment il s'appelle</em></h4>
+          <div class="talents" id="ficheTalents"><p class="fiche-vide">—</p></div>
+        </section>
+
+        <!-- Deux colonnes en FLUX, et non deux piles assignées à la main : les
+             blocs se répartissent d'eux-mêmes et les deux colonnes finissent à
+             la même hauteur, quelle que soit l'espèce. Le classement d'avant —
+             à gauche ce qu'il est, à droite où on le trouve — tenait tant que
+             les deux moitiés se valaient ; mesurées, elles allaient de 596 à
+             1 034 px selon le nombre de jeux où l'espèce se croise, et le vide
+             sous la plus courte se voyait plus que le classement ne se lisait.
+             L'ordre de lecture, lui, ne change pas : il descend la première
+             colonne puis la seconde. -->
+        <div class="colonnes">
+
+            <!-- Ce bloc couvre trois rangées : celles que remplissent, en
+                 face, la notice, la lignée et la reproduction. Sa hauteur est
+                 donc égale à leur somme sans qu'on ait rien à régler. -->
+            <section class="bloc bloc-stats">
+              <h4>Statistiques de base <em>rang sur les 1 025 espèces</em></h4>
+              <div class="stats" id="ficheStats"><p class="fiche-vide">—</p></div>
+              <!-- Ce que la base donne vraiment en jeu, du pire au meilleur jet. -->
+              <div id="fichePaliers"></div>
+              <!-- Ce que l'espèce rapporte quand on la bat : la donnée qu'on
+                   cherche pour savoir où entraîner. -->
+              <div class="effort" id="ficheEffort"></div>
+            </section>
+
+            <!-- L'ordre du DOM est celui du placement dans la grille : la
+                 notice, la lignée et la reproduction remplissent les trois
+                 rangées que le bloc des statistiques couvre en face. Les
+                 faiblesses ouvrent donc la rangée suivante. -->
+            <section class="bloc" id="ficheBlocNotice">
+              <h4>Notice du Pokédex <em>ce que le jeu dit de lui</em></h4>
+              <div class="notice" id="ficheNotice"></div>
+            </section>
+
+            <section class="bloc">
+              <h4>Lignée</h4>
+              <div class="lignee" id="ficheEvolution"><p class="fiche-vide">—</p></div>
+            </section>
+
+            <section class="bloc">
+              <h4>Reproduction</h4>
+              <div class="repro" id="ficheOeufs"><p class="fiche-vide">—</p></div>
+            </section>
+
+            <!-- Sous les statistiques, parce que c'est des types que tout se
+                 déduit : on lit « Dragon · Vol », puis ce que ça coûte. -->
+            <section class="bloc">
+              <h4>Faiblesses et résistances <em>les 18 types, le neutre compris</em></h4>
+              <div class="affinites" id="ficheAffinites"><p class="fiche-vide">—</p></div>
+            </section>
+
+            <section class="bloc">
+              <h4>Où l'obtenir</h4>
+              <div class="fiche-raccourcis" id="ficheObtentionNav"></div>
+              <div class="obtention" id="ficheObtention"><p class="fiche-vide">—</p></div>
+            </section>
+
+            <!-- Sur l'onglet d'un jeu, « Disponible dans » disparaît et la
+                 dernière rangée n'aurait plus qu'une case : celle-ci prend
+                 alors les deux colonnes, plutôt que d'en laisser une vide. -->
+            <section class="bloc" id="ficheBlocPremier">
+              <h4>Première apparition</h4>
+              <p id="fichePremier">—</p>
+            </section>
+
+            <!-- Réservé au Pokédex Pokémon HOME : sur l'onglet d'un jeu, la
+                 question « dans quels jeux ? » est déjà tranchée. -->
+            <section class="bloc" id="ficheBlocJeux">
+              <h4>Disponible dans</h4>
+              <div class="jeux-liste" id="ficheJeux"></div>
+            </section>
+
+        </div>
+
+    <div class="bloc fiche-bloc-attaques">
+      <h4>Attaques apprises</h4>
+      <div class="fiche-jeux-attaques" id="ficheAttaquesJeux" role="tablist" aria-label="Jeu"></div>
+      <div class="fiche-barre-attaques">
+        <div class="fiche-raccourcis" id="ficheAttaquesNav"></div>
+        <input class="fiche-filtre" id="ficheAttaquesFiltre" type="search" autocomplete="off"
+               placeholder="Filtrer une capacité…" aria-label="Filtrer les capacités">
+      </div>
+      <div class="fiche-attaques" id="ficheAttaques"><p class="fiche-vide">—</p></div>
+
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="authOverlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="authTitre">
+  <div class="modal-card">
+    <div class="modal-eyebrow">Bienvenue, Dresseur</div>
+    <h2 class="modal-title" id="authTitre">Connecte-toi</h2>
+    <p class="modal-sub">
+      Avec ton compte Discord. Ta progression te suivra d'un ordinateur à
+      l'autre, et tu pourras la comparer à celle de tes amis.
+    </p>
+    <p class="modal-error" id="authErreur" role="alert"></p>
+    <button class="discord-btn" id="authConnexion" type="button">
+      <svg viewBox="0 0 127 96" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"/>
+      </svg>
+      <span id="authLibelle">Se connecter avec Discord</span>
+    </button>
+    <p class="auth-note">Ton mot de passe Discord ne passe jamais par PokéArchive.</p>
+    <div class="modal-actions">
+      <button class="toggle-btn" id="authAnnuler" type="button">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<script src="../src/js/donnees.js?v=1787578148"></script>
+<!-- Généré par outils/generer-donnees.html. Doit précéder cache.js, qui y
+     puise quand le stockage local est vide. -->
+<script src="../src/js/donnees-embarquees.js?v=1787578148"></script>
+<!-- Les notices du Pokédex, une par espèce et par jeu, relevées sur Poképédia
+     par outils/relever-descriptions.py, ne sont PAS déclarées ici : fiche.js va
+     les chercher à la première fiche ouverte, comme les attaques et les lieux.
+     Une notice par jeu, c'est vingt-deux fois le texte d'une notice par espèce
+     — de quoi allonger chaque démarrage pour une carte qu'on ne lit pas
+     toujours. -->
+<script src="../src/js/cache.js?v=1787578148"></script>
+<script src="../src/js/noyau.js?v=1787578148"></script>
+<script src="../src/js/confirmer.js?v=1787578148"></script>
+<script src="../src/js/serveur.js?v=1787578148"></script>
+<script src="../src/js/formes.js?v=1787578148"></script>
+<script src="../src/js/accueil.js?v=1787578148"></script>
+<script src="../src/js/dex.js?v=1787578148"></script>
+<!-- Les distributions françaises, à la main. Doit précéder cadeaux.js et
+     fiche.js, qui y puisent tous les deux. -->
+<script src="../src/js/evenements.js?v=1787578148"></script>
+<script src="../src/js/cadeaux.js?v=1787578148"></script>
+<script src="../src/js/fiche.js?v=1787578148"></script>
+<script src="../src/js/grille.js?v=1787578148"></script>
+<script src="../src/js/chasse.js?v=1787578148"></script>
+<!-- Les règles de combat, puis l'écran qui s'appuie dessus. Tous deux après
+     fiche.js (TYPE_RELATIONS, puceType, decoderBloc) et avant menus.js, qui
+     stylise leurs menus déroulants. -->
+<script src="../src/js/combat.js?v=1787578148"></script>
+<script src="../src/js/strategie.js?v=1787578148"></script>
+<!-- Après strategie.js : il lui emprunte creerSelecteur. -->
+<script src="../src/js/reproduction.js?v=1787578148"></script>
+<script src="../src/js/partage.js?v=1787578148"></script>
+<script src="../src/js/menus.js?v=1787578148"></script>
+<!-- Redéfinit la couche de sauvegarde quand l'app tourne dans Tauri.
+     Hors Tauri (serveur.py, ou fichier ouvert directement), il ne fait rien. -->
+
+
+<script src="generer.js"></script>
+</body>
+</html>

@@ -1,0 +1,919 @@
+/* Page Pokedex : compteurs, filtres, grille de cartes, bas de page. */
+
+  /* ---- Stat bar with gauge ---- */
+  .stat-bar{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    padding:14px 18px;
+    margin-bottom:14px;
+    box-shadow:0 1px 0 rgba(255,255,255,0.6) inset, 0 8px 18px -14px rgba(20,20,30,0.4);
+  }
+  .gauge{
+    position:relative;
+    width:74px; height:74px;
+    flex-shrink:0;
+  }
+  .gauge svg{ width:100%; height:100%; transform:rotate(-90deg); }
+  .gauge circle{ fill:none; stroke-width:9; }
+  .gauge .track{ stroke:#eceaf2; }
+  .gauge .fill{
+    stroke:var(--dex-red);
+    stroke-linecap:round;
+    transition:stroke-dashoffset 500ms cubic-bezier(.4,0,.2,1);
+  }
+  .gauge-value{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-data); font-weight:600; font-size:15px;
+    color:var(--ink);
+  }
+  .stat-readout{ flex:1; min-width:0; }
+  .stat-status{
+    font-family:var(--font-data);
+    font-size:11px;
+    letter-spacing:0.05em;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  /* Deux lignes de score, une par forme. Celle du mode actif est en couleur
+     pleine, l'autre estompée : c'est le rappel permanent de ce qu'on remplit. */
+  .stat-numbers{ display:flex; flex-direction:column; gap:1px; }
+  .stat-line{
+    display:flex; align-items:baseline; gap:7px;
+    opacity:0.42;
+    transition:opacity 160ms;
+  }
+  .stat-line.active{ opacity:1; }
+  .stat-line strong{ font-size:21px; font-weight:800; color:var(--ink); }
+  .stat-line span{ font-size:12px; color:var(--ink-soft); }
+  .stat-line .stat-dot{ font-size:12px; width:15px; text-align:center; }
+  .stat-line.shiny strong{ color:var(--gold-deep); }
+
+  /* ---- Mode shiny : toute la page Dex change de teinte pour qu'on ne puisse
+     pas se tromper de forme en cochant 40 cases d'affilée. La teinte s'arrête
+     à cette page — l'accueil, lui, montre toujours les deux formes. ---- */
+  /* La teinte se déduit de l'or de la palette : les deux crèmes qu'elle
+     remplace n'avaient pas de contrepartie sombre, et la page entière restait
+     couleur parchemin sur fond noir. */
+  .page.mode-shiny{
+    background:linear-gradient(180deg,
+      color-mix(in srgb, var(--gold) 12%, var(--screen)) 0%,
+      color-mix(in srgb, var(--gold) 20%, var(--screen)) 100%);
+    box-shadow:0 0 0 2px var(--gold) inset;
+    border-radius:11px;
+    padding:12px;
+    margin:-8px -6px;
+  }
+  .mode-shiny .gauge .fill{ stroke:var(--gold-deep); }
+  .mode-shiny .gen-header{ border-left-color:var(--gold-deep); }
+
+  /* ---- Toolbar ---- */
+  .toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .toolbar input[type="search"],
+  .toolbar select{
+    font-family:var(--font-body);
+    font-size:13.5px;
+    font-weight:500;
+    border:1px solid var(--card-border);
+    background:var(--card);
+    color:var(--ink);
+    padding:9px 12px;
+    border-radius:10px;
+    outline-offset:2px;
+    transition:border-color 120ms, box-shadow 120ms;
+  }
+  /* Les quatre filtres tiennent sur une seule ligne : ils se partagent la
+     largeur et rétrécissent ensemble plutôt que de passer à la ligne. Les
+     deux bascules (shiny, formes) vivent sur leur propre rangée. */
+  .filters-row{ flex-wrap:nowrap; margin-bottom:8px; }
+  .filters-row select{ flex:1 1 0; min-width:0; }
+  .modes-row{ flex-wrap:wrap; }
+  /* Les media queries doivent viser AUSSI .select-wrap : menus.js masque le
+     <select> natif et le remplace par ce conteneur. En ne réglant que le
+     <select>, la règle ne portait sur rien, et les quatre filtres restaient sur
+     une seule ligne — écrasés à neuf pixels de large, illisibles. */
+  @media (max-width:820px){
+    .filters-row{ flex-wrap:wrap; }
+    .filters-row select,
+    .filters-row .select-wrap{ flex:1 1 45%; min-width:150px; }
+    .filters-row input[type="search"]{ flex:1 1 100%; }
+  }
+  /* Plus étroit encore, deux filtres côte à côte ne tiennent plus : un par
+     ligne, pleine largeur. */
+  @media (max-width:520px){
+    .filters-row select,
+    .filters-row .select-wrap{ flex:1 1 100%; }
+  }
+
+  .toolbar input[type="search"]{flex:1 1 200px; min-width:120px;}
+  .toolbar input::placeholder{ color:var(--ink-faint); }
+  .toolbar input[type="search"]:hover{ border-color:var(--chrome-lo); }
+
+  /* Menus déroulants : on retire le rendu natif du système pour garder la même
+     allure en clair et en sombre, et on dessine le chevron nous-mêmes. Seule
+     la liste ouverte reste rendue par le navigateur (non stylable). */
+  .toolbar select{
+    flex:0 0 auto;
+    appearance:none;
+    -webkit-appearance:none;
+    /* Forme pilule : les filtres se distinguent des champs de saisie au premier
+       coup d'œil, sans avoir à lire leur contenu. */
+    border-radius:999px;
+    padding:9px 34px 9px 16px;
+    cursor:pointer;
+    background-image:
+      linear-gradient(45deg, transparent 50%, currentColor 50%),
+      linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position:
+      calc(100% - 19px) calc(50% + 1px),
+      calc(100% - 14px) calc(50% + 1px);
+    background-size:5px 5px, 5px 5px;
+    background-repeat:no-repeat;
+    box-shadow:0 1px 2px rgba(20,20,30,.06);
+  }
+  .toolbar input[type="search"]{ border-radius:999px; padding-left:16px; }
+  .toolbar select:hover{ border-color:var(--chrome-lo); }
+  /* Un filtre actif se voit : sinon on cherche longtemps pourquoi la grille
+     paraît vide. */
+  .toolbar select.filtering{
+    border-color:var(--dex-red);
+    box-shadow:0 0 0 2px rgba(238,58,58,.14);
+    font-weight:700;
+  }
+  /* ---- Menus déroulants stylisés (voir js/menus.js) ---- */
+  .select-native{ position:absolute; opacity:0; pointer-events:none; width:0; height:0; }
+  .select-wrap{ position:relative; flex:1 1 0; min-width:0; }
+  /* Dans la barre des filtres, quatre menus se partagent la ligne et doivent
+     s'étirer. Dans celle des modes, le menu des formes est seul entre deux
+     boutons : étiré, il occupait toute la largeur pour afficher trois mots.
+     Il se règle donc sur son contenu, comme les boutons qui l'encadrent. */
+  .modes-row .select-wrap{ flex:0 0 auto; }
+  /* Une largeur fixe plutôt que la largeur du texte : les quatre libellés ne
+     font pas la même longueur, et le menu sautait de vingt pixels à chaque
+     changement de niveau. */
+  .modes-row .select-btn{ width:15rem; max-width:100%; }
+  .select-btn{
+    width:100%;
+    display:flex; align-items:center; gap:8px;
+    font-family:var(--font-body);
+    font-size:13.5px; font-weight:500;
+    color:var(--ink);
+    background:var(--card);
+    border:1.5px solid var(--card-border);
+    border-radius:999px;
+    padding:9px 14px 9px 16px;
+    cursor:pointer;
+    box-shadow:0 1px 2px rgba(20,20,30,.06);
+    transition:border-color 120ms, box-shadow 120ms;
+  }
+  .select-btn:hover{ border-color:var(--chrome-lo); }
+  .select-btn:focus-visible{ outline:2.5px solid var(--dex-red); outline-offset:2px; }
+  .select-btn.filtering{
+    border-color:var(--dex-red);
+    box-shadow:0 0 0 2px rgba(238,58,58,.14);
+    font-weight:700;
+  }
+  .select-label{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; }
+  .select-arrow{
+    width:0; height:0; flex-shrink:0;
+    border-left:4.5px solid transparent;
+    border-right:4.5px solid transparent;
+    border-top:5px solid currentColor;
+    transition:transform 140ms;
+  }
+  .select-wrap.open .select-arrow{ transform:rotate(180deg); }
+
+  .select-list{
+    display:none;
+    position:absolute; z-index:30;
+    top:calc(100% + 6px); left:0; min-width:100%;
+    max-height:320px; overflow-y:auto;
+    background:var(--card);
+    border:1.5px solid var(--card-border);
+    border-radius:14px;
+    padding:5px;
+    box-shadow:0 18px 36px -14px rgba(10,10,20,.55);
+    animation:select-in 130ms ease-out;
+  }
+  .select-wrap.open .select-list{ display:block; }
+  @keyframes select-in{ from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:none;} }
+  .select-item{
+    display:block; width:100%;
+    font-family:var(--font-body);
+    font-size:13px; font-weight:500;
+    color:var(--ink);
+    background:transparent;
+    border:none; border-radius:9px;
+    padding:8px 12px;
+    text-align:left;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .select-item:hover{ background:var(--screen); }
+  .select-item:focus-visible{ outline:2px solid var(--dex-red); outline-offset:-2px; }
+  .select-item.selected{
+    background:var(--dex-red); color:#fff; font-weight:700;
+  }
+  .select-item.selected:hover{ background:var(--dex-red-deep); }
+
+  .toggle-btn{
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:13px;
+    border:1.5px solid var(--card-border);
+    background:var(--card);
+    color:var(--ink);
+    padding:9px 14px;
+    border-radius:9px;
+    cursor:pointer;
+    transition:background 150ms, border-color 150ms, color 150ms;
+  }
+  .toggle-btn:hover{ border-color:var(--chrome-lo); }
+  .toggle-btn[aria-pressed="true"]{
+    background:linear-gradient(180deg,#ffcf5c,var(--gold));
+    color:#3a2405;
+    border-color:var(--gold-deep);
+  }
+  .toggle-btn:focus-visible, .toolbar input:focus-visible, .toolbar select:focus-visible, button:focus-visible{
+    outline:2.5px solid var(--dex-red);
+  }
+
+  /* ---- Grid of Pokémon cards ---- */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(148px, 1fr));
+    gap:10px;
+    max-height:560px;
+    overflow-y:auto;
+    padding:4px 4px 4px 2px;
+    scroll-behavior:smooth;
+  }
+  .grid::-webkit-scrollbar{ width:9px; }
+  .grid::-webkit-scrollbar-thumb{ background:var(--chrome-lo); border-radius:6px; }
+  .grid::-webkit-scrollbar-track{ background:transparent; }
+
+  .gen-header{
+    grid-column:1 / -1;
+    font-family:var(--font-data);
+    font-weight:600;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.14em;
+    color:var(--ink-faint);
+    /* Le dégradé partait d'un gris en dur, qui restait clair en thème sombre.
+       La carte s'éteint avec le thème, et le liseré passe à 3 px : c'est
+       l'épaisseur de tous les accents du modèle. */
+    background:linear-gradient(90deg, var(--card), transparent);
+    border-left:3px solid var(--dex-red);
+    border-radius:0 10px 10px 0;
+    padding:7px 10px;
+    margin-top:6px;
+  }
+  .gen-header:first-child{ margin-top:0; }
+
+  .card{
+    display:flex;
+    flex-direction:column;
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    padding:10px 10px 9px;
+    transition:transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+  }
+  .card:hover{ transform:translateY(-2px); box-shadow:0 10px 20px -12px rgba(20,20,30,0.35); }
+  .card:focus-visible{ outline:2.5px solid var(--dex-red); outline-offset:2px; }
+  /* « Possédé » se lit dans la forme du mode actif : vert en normal, or en
+     shiny. Une carte ne porte donc jamais deux états contradictoires. */
+  /* Les deux teintes de « possédé » se déduisent de la palette : codées en
+     dur, elles restaient des pastels de plein jour sur fond noir. */
+  .card.is-owned{
+    background:var(--caught-soft);
+    border-color:color-mix(in srgb, var(--caught) 40%, var(--card-border));
+  }
+  .mode-shiny .card.is-owned{
+    background:color-mix(in srgb, var(--gold) 16%, var(--card));
+    border-color:var(--gold);
+    box-shadow:0 0 0 1px var(--gold) inset;
+  }
+
+  .card-sprite{
+    position:relative;
+    width:100%;
+    aspect-ratio:1 / 1;
+    border-radius:10px;
+    /* Le dégradé du portrait de la fiche, aux jetons près : il suit le thème
+       de lui-même, là où les deux gris en dur demandaient un rattrapage. */
+    background:radial-gradient(120% 120% at 50% 14%, var(--card) 0%, var(--screen) 68%);
+    box-shadow:inset 0 0 0 1px var(--card-border);
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+    margin-bottom:8px;
+  }
+  .card-sprite img{
+    width:88%; height:88%;
+    object-fit:contain;
+    image-rendering:auto;
+    filter:drop-shadow(0 6px 8px rgba(20,20,30,0.18));
+  }
+  .card-sprite .fallback-icon{
+    width:38%; height:38%;
+    opacity:0.25;
+  }
+  /* Témoin de l'AUTRE forme : non cliquable, il n'existe que pour garder la
+     vue d'ensemble (« lequel me manque en shiny ? ») sans permettre de
+     modifier depuis le mauvais mode. Éteint = pas encore possédée. */
+  .card-other-flag{
+    position:absolute; top:5px; right:5px;
+    display:flex; align-items:center; justify-content:center;
+    width:20px; height:20px;
+    border-radius:50%;
+    font-size:11px;
+    line-height:1;
+    background:var(--card);
+    border:1px solid var(--card-border);
+    opacity:0.3;
+    filter:grayscale(1);
+    pointer-events:auto;
+    cursor:help;
+  }
+  .card-other-flag.on{
+    opacity:1;
+    filter:none;
+    border-color:var(--gold);
+    background:color-mix(in srgb, var(--gold) 18%, var(--card));
+  }
+  .mode-shiny .card-other-flag.on{
+    border-color:var(--caught);
+    background:var(--caught-soft);
+  }
+  /* Le numéro national : la même pastille que .portrait-no sur la fiche, en
+     plus petit. Le blanc à 80 % qu'elle portait devait être repeint en sombre. */
+  .card-id{
+    position:absolute; top:6px; left:7px;
+    font-family:var(--font-data);
+    font-size:10px;
+    font-weight:600;
+    color:var(--ink-soft);
+    font-variant-numeric:tabular-nums;
+    background:var(--card);
+    border:1px solid var(--card-border);
+    padding:1px 6px;
+    border-radius:7px;
+  }
+
+  .card-name{
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:-.01em;
+    color:var(--ink);
+    text-transform:capitalize;
+    text-align:center;
+    line-height:1.25;
+    margin-bottom:8px;
+    min-height:2.4em;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .card-actions{
+    display:flex;
+    gap:6px;
+    margin-top:auto;
+  }
+  .chip-check{
+    position:relative;
+    flex:1;
+    display:flex; align-items:center; justify-content:center;
+    gap:5px;
+    font-family:var(--font-body);
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    background:var(--screen);
+    border:1.5px solid var(--card-border);
+    border-radius:7px;
+    padding:6px 4px;
+    cursor:pointer;
+    user-select:none;
+    transition:background 120ms, border-color 120ms, color 120ms;
+  }
+  .chip-check input{ position:absolute; opacity:0; width:0; height:0; }
+  .chip-check.checked{
+    background:var(--caught); border-color:var(--caught); color:#fff;
+  }
+  .mode-shiny .chip-check.checked{
+    background:linear-gradient(180deg,#ffcf5c,var(--gold)); border-color:var(--gold-deep); color:#3a2405;
+  }
+  .chip-check:focus-within{ outline:2.5px solid var(--dex-red); outline-offset:1px; }
+
+  .state-msg{
+    grid-column:1 / -1;
+    font-family:var(--font-data);
+    font-size:12.5px;
+    color:var(--ink-soft);
+    text-align:center;
+    padding:40px 8px;
+  }
+
+  .load-more{
+    display:block;
+    width:100%;
+    margin-top:10px;
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:12.5px;
+    background:var(--card);
+    border:1px dashed var(--chrome-lo);
+    color:var(--ink);
+    padding:10px;
+    border-radius:10px;
+    cursor:pointer;
+  }
+  /* Le survol passait par une couleur claire codée en dur, qui virait au blanc
+     en thème sombre : on reste sur les variables de la palette. */
+  .load-more:hover{ background:var(--screen); border-color:var(--ink-faint); }
+
+  /* ---- Bottom bar ---- */
+  .bottom-bar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:14px;
+    gap:10px;
+    flex-wrap:wrap;
+    padding:0 4px;
+  }
+  .bottom-actions{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .bottom-actions .toggle-btn{ padding:7px 11px; font-size:12px; }
+  .credit-block{ display:flex; flex-direction:column; gap:2px; }
+  .credit{
+    font-family:var(--font-data);
+    font-size:10.5px;
+    color:rgba(255,255,255,0.8);
+  }
+  .credit-folder.connected{ color:#c9f5d6; }
+  .credit-folder.unsupported{ color:rgba(255,255,255,0.55); }
+  .reset-btn{
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:12px;
+    text-transform:none;
+    color:#fff;
+    background:var(--danger);
+    border:1px solid rgba(0,0,0,0.15);
+    padding:7px 12px;
+    border-radius:7px;
+    cursor:pointer;
+  }
+  .reset-btn:hover{ background:#a8291f; }
+
+  @media (max-width:520px){
+    .dex-title{ font-size:21px; }
+    .stat-bar{ flex-wrap:wrap; }
+    .grid{ grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); }
+  }
+
+/* ===================== FICHE : CE QUI RESTE ICI =====================
+   La fiche est dessinée par fiche.css depuis le modèle du 24 août 2026, d'un
+   seul tenant. Ce fichier n'en garde que ce que fiche.css ne connaît pas : les
+   variantes d'obtention (relevé Pokébip, Cadeau Mystère, distributions) et le
+   tableau des attaques.
+
+   Ont disparu d'ici, mesure faite à zéro usage dans index.html et dans tous
+   les .js : .fiche-colonnes, .fiche-stats, .fiche-stat, .fiche-talents,
+   .fiche-evolution, .fiche-obtention et .fiche-affinites — le modèle les
+   nomme .colonnes, .stats, .stat, .talents, .lignee, .obtention, .affinites.
+
+   Ont disparu aussi les règles que fiche.css redéfinit à l'identique
+   (.affinite*, .effort-titre, .effort-puce, .repro-note, .obt-ligne, .obt-jeu,
+   .obt-lieu, .obt-cat, .obt-detail, .type-img) : les garder en double ne
+   changeait rien à l'écran, mais laissait croire que dex.css avait encore son
+   mot à dire sur la fiche. Deux d'entre elles l'avaient encore, et à tort —
+   voir .talent ci-dessous. */
+.fiche-vide{ color:var(--ink-faint); font-size:13px; margin:0; }
+.fiche-oeufs-aller{ margin-top:9px; width:100%; font-size:12px; padding:7px 10px; }
+
+/* ---- Lignée ---- */
+/* Le seul reste de l'ancienne évolution : fiche.js pose encore .evo-etape sur
+   les lignes du bloc « Reproduction », là où la lignée de la fiche, elle, est
+   passée à .evo et .evo-lien dans fiche.css. */
+.evo-etape{ display:flex; align-items:baseline; gap:8px; font-size:12.5px; flex-wrap:wrap; }
+.evo-etape .fleche{ color:var(--dex-red); font-weight:700; }
+.evo-etape .cond{ color:var(--ink-soft); font-size:11.5px; }
+/* Ce que le jeu ouvert ne connaît pas. Sans cette ligne, une lignée amputée
+   passerait pour une lacune de la réserve. */
+.evo-hors-jeu{
+  margin:0 0 7px; font-size:11px; line-height:1.45; color:var(--ink-faint);
+  font-style:italic;
+}
+
+/* ---- Talents : pourquoi ces deux règles devaient partir ----
+   L'ancienne fiche faisait du talent une pastille : .talent avec un rayon de
+   20 px, et .talent.cache qui passait toute la bordure et TOUT le texte en
+   doré. Le modèle réemploie le même nom pour une carte entière. fiche.css,
+   chargé après, reprenait le rayon et le fond — mais « border-color » et
+   « color » de .talent.cache (deux classes) l'emportaient sur le « border » de
+   .talent (une classe) : la carte du talent caché s'affichait cerclée d'or sur
+   ses quatre côtés, son texte en doré, au lieu du seul liseré gauche voulu. */
+
+/* Depuis le modèle, la catégorie est une pastille cerclée d'un filet de sa
+   propre couleur (fiche.css). Les variantes qui suivent ne reprenaient que la
+   couleur du texte : le filet restait celui du cas par défaut, et un « Sauvage »
+   vert se retrouvait cerné de rouge. Chacune emporte donc son filet avec elle. */
+
+/* Un don n'est pas une rencontre : on ne le cherche pas, on va le prendre.
+   La méthode passe du rouge de la rencontre au vert pour le dire. */
+.obt-cat.offert{ color:var(--caught); border-color:var(--caught); }
+
+/* Cadeau Mystère : ni lieu ni rencontre, une distribution datée. Le bloc se
+   démarque de la liste des lieux, parce qu'il ne répond pas à la même
+   question — « où le trouver » n'a simplement pas de réponse ici. */
+.obt-ligne.cadeau-mystere{
+  border-left-color:#a86fd0;
+  background:linear-gradient(180deg, rgba(168,111,208,.10), transparent 70%), var(--card);
+}
+.cadeau-mystere .obt-jeu{ color:#c79bea; }
+.cadeau-mystere .obt-lieu{ line-height:1.5; }
+.cadeau-mystere .obt-cat{ color:var(--ink-faint); }
+
+/* ---- Le relevé Pokébip / Pokékalos ---- */
+/* Deux sources cohabitent dans « Où l'obtenir » : les rencontres de PokeAPI,
+   qui s'arrêtent à la septième génération, et le relevé, qui couvre le reste et
+   porte seul la zone, la météo et l'heure. Le liseré bleuté dit d'où vient la
+   ligne, sans quoi on croirait à une contradiction quand les deux se suivent. */
+.obt-releve .obt-ligne{ border-left-color:#5b8fd0; }
+/* « pre-line » parce que le relevé empile les voies d'obtention, une par
+   ligne : « Route 5 » puis « Évolution de Machoc au niveau 28 ». Recollées en
+   un seul paragraphe, elles donnaient « Route 5Évolution de Machoc » — et sur
+   les Pokédex récents, la moitié des textes en comptent deux ou plus. */
+.obt-releve .obt-lieu{ line-height:1.5; white-space:pre-line; }
+
+/* La catégorie répond à « capturable, ou seulement vu ? ». Le cas par défaut
+   porte le rouge de la rencontre, que le modèle donne à .obt-cat ; seul
+   « indisponible » change ce qu'on peut cocher. */
+.obt-cat.categorie-sauvage{ color:var(--caught); border-color:var(--caught); }
+.obt-cat.categorie-indisponible{ color:var(--dex-red); border-color:var(--dex-red); }
+.obt-cat.categorie-evolution,
+.obt-cat.categorie-oeuf,
+.obt-cat.categorie-echange{ color:var(--ink-faint); border-color:var(--card-border); }
+
+/* ---- Cobblemon ---- */
+/* Le mod ne donne pas de lieux mais des biomes, et sa ligne se lit autrement.
+   Le liseré passe au vert des blocs de Minecraft : c'est un autre monde que
+   celui du relevé bleu, et on le voit avant de lire. */
+.obt-cobblemon .obt-ligne{ border-left-color:#5d9c4b; }
+
+/* Les trois mondes, au liseré. Le biome répond à « où dans le monde », la
+   dimension à « dans quel monde » — et c'est la question qui vient en premier :
+   inutile de chercher les Deltas de basalte tant qu'on n'a pas bâti de portail.
+   Les couleurs sont celles des lieux : l'herbe, la netherrack, le purpur. Le
+   liseré double la pastille plutôt que de la remplacer : l'un se voit de loin
+   quand on parcourt cinq lignes, l'autre se lit quand on n'en regarde qu'une.
+   L'Overworld a d'abord été laissé sans pastille — il porte 2 258 lignes sur
+   2 640 —, mais c'était faire reposer la réponse sur un code couleur que rien
+   n'explique. Les trois mondes se nomment. */
+.obt-cobblemon .obt-ligne.dim-nether{ border-left-color:#b0392b; }
+.obt-cobblemon .obt-ligne.dim-end{ border-left-color:#8f6fc4; }
+/* Nulle part sans mod de biomes : pas un monde, une absence de monde. Le tiret
+   reprend celui des distributions jamais sorties, plus bas dans cette feuille. */
+.obt-cobblemon .obt-ligne.dim-ailleurs{
+  border-left-style:dashed; border-left-color:var(--ink-faint);
+}
+.obt-cat.monde-overworld{ color:#5d9c4b; border-color:#5d9c4b; }
+.obt-cat.monde-nether{ color:#c9503f; border-color:#b0392b; }
+.obt-cat.monde-end{ color:#8f6fc4; border-color:#8f6fc4; }
+/* Les biomes s'écrivent en clair, séparés par des points médians, et non en
+   pré-formaté comme le relevé — il n'y a rien à empiler ici. */
+.obt-cobblemon .obt-lieu{ white-space:normal; }
+
+/* Au-delà de six biomes la ligne devient un mur : la suite se replie derrière
+   un bouton, comme les numéros régionaux au-dessus. Trente-neuf biomes sur la
+   ligne la plus fournie — six cent cinquante-cinq caractères. */
+.obt-cobblemon .biome-suite{ display:none; }
+.obt-cobblemon .obt-lieu.deplie .biome-suite{ display:inline; }
+.biome-plus{
+  margin-left:6px; padding:0; border:0; background:none; cursor:pointer;
+  font-family:var(--font-data); font-size:9.5px; font-weight:700;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--teinte);
+}
+.biome-plus:hover{ text-decoration:underline; }
+
+/* Une famille que Minecraft ne peut pas remplir : île tropicale, Aether,
+   Bumblezone. Écrite comme un biome, elle ferait chercher pour rien — d'où
+   l'italique, et la pastille qui l'accompagne toujours. */
+.biome-hors-jeu{ font-style:italic; color:var(--ink-faint); }
+.obt-mention.mention-autre-mod{ color:var(--ink-faint); border-style:dashed; }
+
+/* Sur chaque ligne de Cobblemon, on peut attraper : le dire à chaque fois ne
+   renseigne personne. La pastille de tête porte donc la rareté, qui est la
+   vraie question, sur une échelle qui se lit sans légende — vert on y va,
+   gris cherchez un peu, or armez-vous de patience, rouge revenez demain. */
+.obt-cat.rarete-commun{ color:var(--caught); border-color:var(--caught); }
+.obt-cat.rarete-peu-commun{ color:var(--ink-soft); border-color:var(--card-border); }
+.obt-cat.rarete-rare{ color:var(--gold-deep); border-color:var(--gold); }
+.obt-cat.rarete-tres-rare{ color:var(--dex-red); border-color:var(--dex-red); }
+
+/* Ce que le mod cache : la forme de Valence, ou la région de la future
+   évolution. Ce n'est ni un lieu ni une condition d'apparition — c'est ce
+   qu'on emporte. L'or, comme partout ailleurs dans l'application pour ce qui
+   ne se voit pas et vaut le détour. */
+.obt-mention.mention-forme-cachee{ color:var(--gold-deep); border-color:var(--gold); }
+
+/* ---- Distributions françaises ---- */
+/* Sous le bloc « Cadeau Mystère », l'historique : un évènement par ligne, du
+   plus récent au plus ancien. Le liseré reprend le violet du bloc parent, mais
+   en retrait — ce sont ses détails, pas une autre catégorie de réponse. */
+.obt-ligne.distribution{
+  border-left-color:rgba(168,111,208,.45);
+  margin-left:10px;
+}
+.obt-precision{
+  color:var(--ink-faint); font-size:11.5px; font-style:italic; line-height:1.45;
+}
+/* Encore ouverte aujourd'hui : c'est la seule information de cette liste sur
+   laquelle on peut encore agir, elle passe donc au vert de la collection. */
+.obt-ligne.distribution.permanente{ border-left-color:var(--caught); }
+.obt-badge{
+  display:inline-block; margin:3px 0 0 6px; padding:1px 7px;
+  border-radius:999px;
+  background:var(--caught-soft); color:var(--caught);
+  font-family:var(--font-data); font-size:8.5px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.12em;
+}
+/* La Flûte Azur n'a jamais été distribuée : la ligne existe parce que la
+   question se pose, pas parce qu'il y a une piste. */
+.obt-ligne.distribution.jamais{
+  border-left-style:dashed; border-left-color:var(--ink-faint); opacity:.72;
+}
+/* Rien en France. Ce n'est pas un trou dans les données, c'est la réponse. */
+.obt-ligne.sans-distribution{
+  margin-left:10px;
+  border-left:3px dashed var(--ink-faint);
+  background:transparent;
+}
+.sans-distribution .obt-jeu{ color:var(--ink-soft); }
+
+/* ---- Attaques apprises ---- */
+/* Un tableau plutôt qu'une liste : sept colonnes qu'on lit en balayant, et des
+   sections nettement séparées — savoir qu'une capacité s'apprend par CT ou par
+   reproduction change tout ce qu'on va faire pour l'obtenir. */
+.fiche-bloc-attaques{ margin-top:2px; }
+
+/* La bande des jeux ne paraît que si le Pokémon en connaît plusieurs. Elle
+   défile horizontalement : vingt-six groupes de versions ne tiennent pas sur
+   une ligne, et les empiler repousserait le tableau hors de l'écran. */
+.fiche-jeux-attaques{
+  display:flex; gap:6px;
+  overflow-x:auto; overflow-y:hidden;
+  padding:0 2px 8px;
+  margin-bottom:8px;
+  scrollbar-width:thin;
+}
+.fiche-jeux-attaques:empty{ display:none; }
+.jeu-onglet{
+  flex:0 0 auto;
+  font-family:var(--font-body); font-size:11.5px; font-weight:600;
+  color:var(--ink-soft);
+  background:var(--card);
+  border:1px solid var(--card-border);
+  border-radius:999px;
+  padding:5px 12px;
+  cursor:pointer; white-space:nowrap;
+  transition:border-color 120ms, background 120ms, color 120ms;
+}
+.jeu-onglet:hover{ border-color:var(--ink-faint); color:var(--ink); }
+.jeu-onglet.active{ background:var(--dex-red); border-color:var(--dex-red); color:#fff; }
+.jeu-onglet:focus-visible{ outline:2.5px solid var(--dex-red); outline-offset:2px; }
+
+/* Les listes de CT dépassent les deux cents lignes chez les légendaires : le
+   panneau défile plutôt que d'étirer la fiche sur dix écrans. */
+.fiche-attaques{ max-height:360px; overflow-y:auto; padding-right:2px; }
+
+.attaques-section{ margin-bottom:12px; }
+.attaques-section:last-child{ margin-bottom:0; }
+/* Collant : passé cinquante lignes, on ne sait plus quelle section on lit. */
+.attaques-titre{
+  position:sticky; top:0; z-index:2;
+  display:flex; align-items:center; gap:8px;
+  padding:5px 0 4px;
+  background:var(--screen);
+  font-size:12.5px; font-weight:700; color:var(--ink);
+}
+.attaques-compte{
+  font-family:var(--font-data); font-size:10px; font-weight:600;
+  color:var(--ink-faint);
+  font-variant-numeric:tabular-nums;
+  background:var(--card);
+  border:1px solid var(--card-border);
+  border-radius:999px; padding:1px 7px;
+}
+.attaques-aide{
+  margin-left:auto;
+  font-size:10.5px; font-weight:500; color:var(--ink-faint);
+}
+
+.attaque-ligne{
+  display:grid;
+  grid-template-columns:54px 1fr 108px 62px 44px 38px 46px;
+  gap:8px; align-items:center;
+  padding:4px 8px;
+  font-size:12px;
+  border-radius:7px;
+}
+.attaque-ligne:nth-child(even){ background:var(--card); }
+.attaque-ligne.entete{
+  background:transparent;
+  font-family:var(--font-data);
+  font-size:8.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink-faint);
+  border-bottom:1px solid var(--card-border);
+  border-radius:0;
+  padding-bottom:5px; margin-bottom:2px;
+}
+.attaque-cle{
+  font-family:var(--font-data); font-size:11px; font-weight:700;
+  color:var(--ink-soft); font-variant-numeric:tabular-nums;
+}
+.attaque-nom{
+  font-weight:600; color:var(--ink);
+  min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.attaque-chiffre{
+  font-family:var(--font-data); font-size:11px; color:var(--ink-soft);
+  font-variant-numeric:tabular-nums; text-align:right;
+}
+/* ---- Les logos de type ---- */
+/* .type-img — les images font 200 × 44 rendues à la moitié, une seule taille
+   dans toute l'application — est posé par fiche.css, qui est chargé pour
+   toutes les pages et non pour la seule fiche. Il n'a pas besoin d'une
+   deuxième déclaration ici. Ne reste que le repli, propre à dex.css.
+
+   Le repli, quand un logo manque : même encombrement que l'image, pour que la
+   ligne ne se décale pas. */
+.type-chip{
+  display:inline-flex; align-items:center; justify-content:center;
+  box-sizing:border-box;
+  min-width:100px; height:22px;
+  vertical-align:middle;
+}
+/* Sur un écran étroit, tout rapetisse ensemble : la règle « tous à la même
+   taille » vaut à un instant donné, pas d'un format d'écran à l'autre. */
+@media (max-width:560px){
+  .type-chip{ min-width:78px; height:17px; font-size:9.5px; padding:2px 8px; }
+}
+.attaque-cat{
+  font-size:10px; font-weight:700; text-align:center; white-space:nowrap;
+  border:1px solid var(--card-border); border-radius:6px; padding:2px 5px;
+  color:var(--ink-soft); background:var(--screen);
+}
+.attaque-cat.physique{ color:#c46a52; border-color:#7a4436; }
+.attaque-cat.speciale{ color:#7d9ddb; border-color:#3c4d72; }
+
+@media (max-width:720px){
+  .fiche-attaques{ max-height:none; }
+  .attaque-ligne{ grid-template-columns:50px 1fr 108px 56px 40px; }
+  .attaque-ligne .col-pp,
+  .attaque-ligne .col-prec{ display:none; }
+}
+/* En dessous, on sacrifie la catégorie plutôt que la puissance : un tiret dans
+   la colonne « Puis. » dit déjà qu'on a affaire à une capacité de statut. */
+@media (max-width:440px){
+  .attaque-ligne{ grid-template-columns:46px 1fr 82px 36px; gap:6px; }
+  .attaque-ligne .col-cat{ display:none; }
+}
+
+/* ---- Barres de navigation des longues listes ---- */
+/* Elles vivent hors du conteneur qui défile : elles restent donc visibles du
+   haut en bas de la liste, contrairement à un en-tête collant qui, lui, se
+   fait remplacer par le suivant. */
+/* Une seule ligne qui défile : sur Pokémon HOME, Pikachu se rencontre dans
+   trente-trois versions, et une barre qui passe à la ligne repousserait la
+   liste hors de l'écran. En dessous de dix puces, elle tient sans défiler. */
+.fiche-raccourcis{
+  display:flex; gap:5px; flex-wrap:nowrap;
+  overflow-x:auto; overflow-y:hidden;
+  margin-bottom:7px; padding-bottom:4px;
+  scrollbar-width:thin;
+  scrollbar-color:var(--card-border) transparent;
+}
+.fiche-raccourcis::-webkit-scrollbar{ height:6px; }
+.fiche-raccourcis::-webkit-scrollbar-thumb{ background:var(--card-border); border-radius:999px; }
+.fiche-raccourcis:empty{ display:none; }
+.raccourci{
+  display:inline-flex; align-items:center; gap:5px;
+  font-family:var(--font-body); font-size:11px; font-weight:600;
+  color:var(--ink-soft);
+  background:var(--card);
+  border:1px solid var(--card-border);
+  border-radius:999px;
+  padding:3px 5px 3px 10px;
+  cursor:pointer; white-space:nowrap;
+  transition:border-color 120ms, color 120ms;
+}
+.raccourci:hover{ border-color:var(--dex-red); color:var(--ink); }
+.raccourci:focus-visible{ outline:2px solid var(--dex-red); outline-offset:1px; }
+.raccourci-compte{
+  font-family:var(--font-data); font-size:9.5px;
+  color:var(--ink-faint);
+  background:var(--screen);
+  border-radius:999px; padding:1px 6px;
+}
+
+.fiche-barre-attaques{ display:flex; gap:8px; align-items:flex-start; margin-bottom:7px; }
+.fiche-barre-attaques .fiche-raccourcis{ flex:1 1 auto; margin-bottom:0; }
+.fiche-filtre{
+  flex:0 0 150px;
+  font-family:var(--font-body); font-size:11.5px;
+  color:var(--ink);
+  background:var(--card);
+  border:1px solid var(--card-border);
+  border-radius:999px;
+  padding:4px 12px;
+}
+.fiche-filtre:focus-visible{ outline:2px solid var(--dex-red); outline-offset:1px; }
+.fiche-filtre::placeholder{ color:var(--ink-faint); }
+
+/* ---- Lieux : un intertitre par jeu ---- */
+/* Sur Pokémon HOME la liste couvre vingt jeux. Sans regroupement, Rouge, Épée
+   et Platine s'entrelaçaient par ordre de fréquence, et le nom du jeu se
+   répétait sur chacune des cent lignes. */
+.obtention{ position:relative; }
+/* Un conteneur ordinaire par jeu : c'est lui la cible des raccourcis, parce
+   que l'intertitre, lui, est collant et ne sait plus dire où il se trouve. */
+.obt-groupe{ display:flex; flex-direction:column; gap:8px; }
+.obt-jeu-titre{
+  position:sticky; top:0; z-index:2;
+  display:flex; align-items:center; gap:8px;
+  padding:5px 2px 4px;
+  background:var(--screen);
+  font-size:12.5px; font-weight:700; color:var(--ink);
+}
+.obt-jeu-titre:not(:first-child){ margin-top:6px; }
+.obt-compte{
+  font-family:var(--font-data); font-size:9.5px; font-weight:600;
+  color:var(--ink-faint);
+  background:var(--card);
+  border:1px solid var(--card-border);
+  border-radius:999px; padding:1px 7px;
+}
+
+/* Le conteneur des attaques doit être positionné pour que les raccourcis
+   sachent où sauter : offsetTop se lit par rapport à lui. */
+.fiche-attaques{ position:relative; }
+
+/* Les mentions du relevé : elles ne disent pas où, mais quoi. Plus discrètes
+   que la catégorie, qui reste la réponse principale de la ligne. */
+.obt-mention{
+  display:inline-block; margin:3px 0 0 6px; padding:1px 7px;
+  border-radius:999px; border:1px solid var(--line);
+  font-family:var(--font-data); font-size:10px; letter-spacing:.3px;
+  color:var(--ink-faint);
+}
+.obt-mention.mention-shiny-lock{ color:var(--gold); border-color:var(--gold); }
+.obt-mention.mention-introuvable{ color:var(--dex-red); border-color:var(--dex-red); }
+
+/* La pastille d'obtention, en bas à gauche du sprite : le pendant du témoin
+   shiny, qui occupe l'autre coin. Elle ne s'affiche que sur le Pokédex d'un
+   jeu — ailleurs, « capturable ici » n'a pas de sens. */
+.card-obtention{
+  position:absolute; left:6px; bottom:6px;
+  font-size:11px; line-height:1; opacity:.75;
+  filter:grayscale(.35);
+}
+.card-obtention.obt-indisponible{ opacity:.95; filter:none; }
+/* Un chromatique verrouillé se voit de loin : c'est l'information qui fait
+   renoncer à une chasse, autant qu'elle saute aux yeux. */
+.card-obtention.shiny-lock::after{
+  content:'✨'; margin-left:1px; filter:grayscale(1) brightness(1.6);
+}
+
+/* La légende des pastilles. Elle emprunte au champ de recherche juste
+   au-dessus — même fond, même bordure, même arrondi — pour se lire comme un
+   élément de la barre et non comme une note collée dessous. Elle disparaît
+   hors du Pokédex d'un jeu, et derrière son bouton le reste du temps. */
+.obtention-legende{
+  display:block; width:100%; box-sizing:border-box;
+  margin:0 0 8px; padding:9px 12px;
+  border:1px solid var(--card-border); border-radius:999px;
+  background:var(--card);
+  font-family:var(--font-data); font-size:11px; line-height:1.5;
+  color:var(--ink-soft); letter-spacing:.2px;
+}
+/* Les séparateurs reculent d'un ton : ce sont les symboles qu'on vient lire. */
+.obtention-legende .sep{ color:var(--ink-faint); margin:0 7px; }
+/* Trop étroit, la ligne se casse : la pilule devient un pavé arrondi plutôt
+   qu'un ovale démesuré. */
+@media (max-width:820px){
+  .obtention-legende{ border-radius:11px; }
+}

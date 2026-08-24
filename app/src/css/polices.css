@@ -1,0 +1,27 @@
+/* Polices embarquées.
+   Une application de bureau ne doit pas aller chercher ses polices sur
+   internet : sans réseau, l'ancienne version retombait sur des polices
+   système et le boîtier perdait son allure. Les trois fichiers sont des
+   polices variables — un seul fichier couvre toutes les graisses, 84 Ko en
+   tout. Licence SIL Open Font, redistribuables. */
+
+@font-face{
+  font-family:"Press Start 2P";
+  src:url("../polices/PressStart2P.woff2") format("woff2");
+  font-weight:400;
+  font-display:swap;
+}
+
+@font-face{
+  font-family:"Outfit";
+  src:url("../polices/Outfit.woff2") format("woff2");
+  font-weight:100 900;
+  font-display:swap;
+}
+
+@font-face{
+  font-family:"JetBrains Mono";
+  src:url("../polices/JetBrainsMono.woff2") format("woff2");
+  font-weight:100 800;
+  font-display:swap;
+}

@@ -1,0 +1,49 @@
+# Ce qui ne monte jamais sur le dépôt.
+#
+# Deux catégories, et elles ne se négocient pas de la même façon : ce qui est
+# SECRET ne doit sortir de la machine sous aucun prétexte, ce qui est LOURD se
+# reconstruit et n'a donc rien à faire dans un historique — qui, lui, ne se
+# dégonfle pas. Ce qui est poussé une fois y reste, même supprimé ensuite.
+
+# ---- Secrets -----------------------------------------------------------
+# Les identifiants Discord et l'accès MySQL du service. api/.env.exemple, lui,
+# se versionne : il dit quelles variables existent sans donner leur valeur.
+.env
+*.env
+!*.env.exemple
+
+# La clé privée de signature des mises à jour. Qui la détient peut signer une
+# fausse version que l'application installera sans broncher. Elle vit dans les
+# secrets GitHub et sur la machine, nulle part ailleurs.
+*.key
+*.pem
+
+# ---- Ce qui se reconstruit ---------------------------------------------
+# 8 486 Mo de compilation Rust au dernier relevé — refaits à chaque build.
+app/src-tauri/target/
+
+# Les pages Poképédia mises en cache par les relevés. Les jeter ne coûte que du
+# temps au prochain passage ; les pousser coûterait à tout le monde.
+#
+# La règle ne nomme AUCUN chemin, et c'est délibéré : il y a deux caches, pas un.
+# app/outils/.pages pèse 1 030 Mo et se voyait de loin ; app/.pages n'en pèse que
+# 0,2 et est passé sous le radar de la première version de ce fichier — ses
+# trente-trois fichiers étaient déjà indexés. Une règle par emplacement en aurait
+# encore raté un troisième.
+.pages/
+
+# Les dépendances Node du service : package-lock.json suffit à les retrouver.
+node_modules/
+
+# Les schémas que Tauri regénère à chaque compilation.
+app/src-tauri/gen/schemas/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# ---- Bruit de fond -----------------------------------------------------
+*.log
+Thumbs.db
+desktop.ini
+.DS_Store

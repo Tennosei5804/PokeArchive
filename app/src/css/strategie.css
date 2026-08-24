@@ -1,0 +1,805 @@
+/* La page Stratégie : sous-onglets, table des types, équipe, dégâts.
+   Tout passe par les variables de base.css : le thème clair et le thème sombre
+   suivent sans qu'une seule couleur soit écrite deux fois. */
+
+/* ---- Sous-onglets ---- */
+/* Des outils dans une page plutôt que des onglets de plus dans la barre du
+   haut : elle en porte déjà huit, et une deuxième rangée la ferait déborder.
+   Même dessin que la barre principale — une barre d'onglets qui ne ressemble
+   pas à l'autre oblige à réapprendre le même geste. */
+.strat-onglets{
+  display:flex; gap:6px; flex-wrap:wrap;
+  margin:0 0 16px;
+  border-bottom:1px solid var(--card-border);
+  padding-bottom:8px;
+}
+.strat-onglet{
+  font-family:var(--font-body);
+  font-size:12.5px; font-weight:700;
+  color:var(--ink-soft);
+  background:transparent;
+  border:1px solid transparent;
+  border-radius:7px;
+  padding:7px 13px;
+  cursor:pointer;
+  transition:background 120ms, color 120ms;
+}
+.strat-onglet:hover{ background:var(--screen); color:var(--ink); }
+.strat-onglet.active{
+  background:var(--card);
+  border-color:var(--card-border);
+  color:var(--dex-red-deep);
+  box-shadow:0 2px 6px -3px rgba(20,20,30,0.35);
+}
+.strat-onglet:focus-visible{ outline:2.5px solid var(--dex-red); }
+
+.strat-outil{ display:none; }
+.strat-outil.active{ display:block; }
+
+.strat-bloc{
+  background:var(--card); border:1px solid var(--card-border);
+  border-radius:11px; padding:15px 17px;
+  margin-bottom:14px;
+}
+/* Le sur-titre du modèle, au pixel près : c'est le même objet qu'un <h4> de
+   fiche — il nomme un bloc à l'intérieur d'une carte. */
+.strat-bloc h3{
+  font-family:var(--font-data);
+  font-size:9.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-faint); font-weight:600;
+  margin:0 0 11px;
+}
+.strat-aide{
+  font-size:11.5px; line-height:1.55; color:var(--ink-faint);
+  margin:0 0 11px;
+}
+
+/* ---- Outil 1 : l'efficacité ---- */
+/* La question s'écrit comme une phrase, avec les menus dedans. Trois champs
+   étiquetés « Type attaquant / Type 1 / Type 2 » auraient dit la même chose,
+   mais il aurait fallu les relire pour comprendre ce qu'on demandait. */
+.eff-formule{
+  display:flex; align-items:center; flex-wrap:wrap; gap:8px;
+  font-family:var(--font-body); font-size:14px; color:var(--ink);
+  margin-bottom:14px;
+}
+.eff-formule .select-wrap{ min-width:150px; }
+
+.eff-resultat{
+  border-radius:11px; padding:13px 15px;
+  background:var(--screen);
+  border-left:3px solid var(--ink-faint);
+}
+.eff-haut{ display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+.eff-mult{
+  font-family:var(--font-data); font-size:27px; font-weight:700; line-height:1;
+  color:var(--ink); font-variant-numeric:tabular-nums;
+}
+.eff-verdict{ font-size:15px; font-weight:600; color:var(--ink); }
+.eff-phrase{ margin-top:7px; font-size:12.5px; color:var(--ink-soft); }
+.eff-note{ margin-top:5px; font-size:11.5px; color:var(--ink-faint); font-style:italic; }
+
+/* Le détail du calcul, quand le défenseur a deux types. Un ×1 sur un double
+   type est le résultat le plus déroutant du jeu : c'est un ×2 annulé par un
+   ×½, et sans cette ligne on croit à une erreur. */
+.eff-detail{
+  display:flex; align-items:center; flex-wrap:wrap; gap:10px;
+  margin-top:10px; padding-top:9px;
+  border-top:1px solid var(--card-border);
+}
+.eff-detail-ligne{ display:inline-flex; align-items:center; gap:5px; }
+.eff-detail-ligne b{
+  font-family:var(--font-data); font-size:12px; color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;
+}
+.eff-detail-total{
+  font-family:var(--font-data); font-size:13px; font-weight:700; color:var(--ink);
+  font-variant-numeric:tabular-nums; margin-left:2px;
+}
+
+.eff-resultat.tres-efficace{ border-left-color:var(--dex-red); }
+.eff-resultat.tres-efficace .eff-mult,
+.eff-resultat.efficace .eff-mult{ color:var(--dex-red); }
+.eff-resultat.efficace{ border-left-color:var(--dex-red); }
+.eff-resultat.neutre{ border-left-color:var(--ink-faint); }
+.eff-resultat.faible,
+.eff-resultat.tres-faible{ border-left-color:var(--caught); }
+.eff-resultat.faible .eff-mult,
+.eff-resultat.tres-faible .eff-mult{ color:var(--caught); }
+.eff-resultat.nul{ border-left-color:var(--ink); }
+.eff-resultat.nul .eff-mult{ color:var(--ink-soft); }
+
+/* ---- Outil 2 : la table des types ---- */
+/* Dix-neuf colonnes ne tiennent pas sur un écran étroit : le cadre défile
+   horizontalement plutôt que d'écraser les cases jusqu'à l'illisible. */
+.table-types-cadre{ overflow-x:auto; padding-bottom:4px; }
+.table-types{ border-collapse:collapse; font-family:var(--font-data); }
+.table-types th, .table-types td{
+  border:1px solid var(--card-border);
+  text-align:center; vertical-align:middle;
+}
+.table-types td{
+  width:36px; height:26px;
+  font-size:11px; font-weight:700; color:var(--ink-soft);
+}
+.tt-att{ padding:3px 6px 3px 2px; }
+/* Les en-têtes de colonne portent le logo couché. Une rotation ne change pas
+   la boîte de mise en page : sans ce conteneur, chaque colonne réserverait les
+   cent pixels du logo à plat et la table ferait deux mille pixels de large. */
+.tt-boite{
+  position:relative; display:block;
+  width:26px; height:106px; margin:0 auto;
+}
+.tt-boite .type-img,
+.tt-boite .type-chip{
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%, -50%) rotate(-90deg);
+}
+.tt-def{ padding:4px 2px; }
+.tt-coin{
+  font-family:var(--font-data); font-size:8.5px; color:var(--ink-faint);
+  padding:4px;
+}
+.tt-coin span{ display:block; line-height:1.3; }
+.tt-coin span:first-child{ text-align:left; }
+.tt-coin span:last-child{ text-align:right; }
+.tt-fort{ background:rgba(238,58,58,.22); color:var(--dex-red) !important; }
+.tt-faible{ background:rgba(47,158,99,.20); color:var(--caught) !important; }
+.tt-nul{ background:var(--ink); color:var(--screen) !important; }
+
+/* ---- Le sélecteur de Pokémon ---- */
+.strat-champ{ position:relative; }
+.strat-champ input,
+.equipe-champ{
+  width:100%;
+  font-family:var(--font-body); font-size:13px;
+  color:var(--ink); background:var(--screen);
+  border:1px solid var(--card-border); border-radius:10px;
+  padding:8px 11px;
+}
+.strat-champ input:focus,
+.equipe-champ:focus{ outline:2px solid var(--dex-red); outline-offset:1px; }
+.strat-suggestions{
+  position:absolute; z-index:20; left:0; right:0; top:calc(100% + 4px);
+  background:var(--card); border:1px solid var(--card-border);
+  border-radius:10px; padding:4px;
+  box-shadow:0 10px 26px rgba(0,0,0,.22);
+  max-height:260px; overflow-y:auto;
+}
+.strat-suggestion{
+  display:flex; align-items:center; gap:9px; width:100%;
+  padding:6px 8px; border:0; border-radius:7px;
+  background:transparent; cursor:pointer; text-align:left;
+  font-family:var(--font-body); font-size:13px; color:var(--ink);
+}
+.strat-suggestion:hover{ background:var(--screen); }
+.strat-suggestion img{ width:30px; height:30px; object-fit:contain; }
+
+/* ---- Outil 3 : l'équipe ---- */
+.equipe-slots{
+  /* Assez large pour les deux logos d'un double type sur une seule ligne :
+     2 × 100 px d'image, plus la vignette, le bouton et les écarts. */
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:10px;
+}
+.equipe-slot{
+  display:flex; align-items:flex-start; gap:10px;
+  background:var(--screen); border:1px solid var(--card-border);
+  border-left:3px solid var(--card-border);
+  border-radius:10px; padding:9px 11px;
+}
+.equipe-slot.rempli{ border-left-color:var(--dex-red); }
+.equipe-vignette{
+  width:44px; height:44px; flex-shrink:0;
+  display:grid; place-items:center;
+  background:var(--card); border-radius:10px;
+  background-size:contain; background-repeat:no-repeat; background-position:center;
+  font-family:var(--font-data); font-size:13px; color:var(--ink-faint);
+}
+.equipe-corps{ flex:1; min-width:0; position:relative; }
+.equipe-types{ display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; }
+.equipe-vider{
+  flex-shrink:0; width:22px; height:22px; padding:0;
+  border:1px solid var(--card-border); border-radius:7px;
+  background:var(--card); color:var(--ink-faint);
+  font-size:11px; cursor:pointer; line-height:1;
+}
+.equipe-vider:hover{ color:var(--danger); border-color:var(--danger); }
+
+.equipe-analyse{ display:flex; flex-direction:column; gap:15px; }
+.equipe-bloc-titre{
+  font-family:var(--font-data); font-size:9.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-faint); font-weight:600;
+  margin-bottom:7px;
+}
+.equipe-lignes{ display:flex; flex-wrap:wrap; gap:6px; }
+.equipe-ligne{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:3px 9px 3px 4px;
+  background:var(--screen); border:1px solid var(--card-border);
+  border-radius:999px;
+}
+.equipe-ligne b{
+  font-family:var(--font-data); font-size:10.5px; color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;
+}
+/* Le rouge est réservé au vrai problème : plusieurs membres faibles ET personne
+   pour encaisser. Le mettre partout l'aurait rendu muet. */
+.equipe-ligne.alerte{ border-color:var(--dex-red); background:rgba(238,58,58,.10); }
+.equipe-ligne.alerte b{ color:var(--dex-red); font-weight:700; }
+.equipe-vide{ font-size:12.5px; color:var(--ink-faint); font-style:italic; }
+
+/* ---- Outil 4 : les dégâts ---- */
+.dgt-grille{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.dgt-cote{
+  background:var(--screen); border-radius:11px; padding:12px 13px;
+  border-top:3px solid var(--card-border);
+}
+.dgt-cote.attaquant{ border-top-color:var(--dex-red); }
+.dgt-cote.defenseur{ border-top-color:var(--caught); }
+.dgt-cote h3{ margin:0 0 9px; }
+/* Le résumé d'un combattant : ce qu'on relit sans rouvrir la modale. */
+.dgt-resume{
+  margin-top:9px; min-height:16px;
+  font-family:var(--font-data); font-size:10.5px; line-height:1.6;
+  color:var(--ink-faint); font-variant-numeric:tabular-nums;
+}
+.dgt-resume.rempli{ color:var(--ink-soft); }
+.dgt-config{ margin-top:9px; width:100%; font-size:12px; padding:7px 10px; }
+.dgt-config:disabled{ opacity:.45; cursor:not-allowed; }
+
+.dgt-mods{
+  display:flex; align-items:center; flex-wrap:wrap; gap:10px;
+  margin-top:14px; padding-top:12px;
+  border-top:1px solid var(--card-border);
+}
+.dgt-mods .strat-aide{ margin:0; flex:1; min-width:220px; }
+
+/* ---- Les bascules ---- */
+/* Une case à cocher de douze pixels dans un thème sombre, on ne la voit pas et
+   on la rate une fois sur deux. Un vrai bouton se vise, dit son état par sa
+   couleur, et porte son effet chiffré — « ×1,5 » évite d'avoir à se rappeler
+   ce que fait un critique. */
+.bascule{
+  display:inline-flex; align-items:center; gap:9px;
+  padding:7px 14px 7px 10px;
+  font-family:var(--font-body); font-size:13px; font-weight:600;
+  color:var(--ink-soft);
+  background:var(--card); border:1px solid var(--card-border);
+  border-radius:999px; cursor:pointer;
+  transition:color 120ms, border-color 120ms, background 120ms;
+}
+.bascule:hover{ color:var(--ink); border-color:var(--ink-faint); }
+.bascule:focus-visible{ outline:2.5px solid var(--dex-red); outline-offset:2px; }
+.bascule-temoin{
+  width:15px; height:15px; flex-shrink:0;
+  border-radius:5px;
+  border:1.5px solid var(--ink-faint);
+  background:transparent;
+  position:relative;
+  transition:background 120ms, border-color 120ms;
+}
+.bascule-temoin::after{
+  content:'✓';
+  position:absolute; inset:0;
+  display:grid; place-items:center;
+  font-size:11px; font-weight:700; color:#fff;
+  opacity:0; transition:opacity 120ms;
+}
+.bascule-effet{
+  font-family:var(--font-data); font-size:10px; font-weight:700;
+  color:var(--ink-faint);
+}
+.bascule.on{ color:#fff; background:var(--dex-red); border-color:var(--dex-red); }
+.bascule.on .bascule-temoin{ background:#fff; border-color:#fff; }
+.bascule.on .bascule-temoin::after{ opacity:1; color:var(--dex-red); }
+.bascule.on .bascule-effet{ color:rgba(255,255,255,.82); }
+/* La brûlure a sa couleur : deux boutons rouges identiques se confondent. */
+.bascule.chaude.on{ background:var(--gold-deep); border-color:var(--gold-deep); }
+.bascule.chaude.on .bascule-temoin::after{ color:var(--gold-deep); }
+
+/* ---- Le champ « − valeur + » ---- */
+/* Les flèches natives d'un <input type="number"> font quatre pixels de haut et
+   disparaissent en thème sombre. Deux vrais boutons, qu'on peut viser et
+   maintenir enfoncés — passer de 0 à 252 EV demanderait sinon soixante-trois
+   clics. */
+.pas-a-pas{
+  display:inline-flex; align-items:stretch;
+  border:1px solid var(--card-border); border-radius:7px;
+  background:var(--card); overflow:hidden;
+}
+.pas-btn{
+  width:26px; flex-shrink:0; padding:0;
+  border:0; background:transparent;
+  color:var(--ink-soft); cursor:pointer;
+  font-family:var(--font-body); font-size:16px; font-weight:700; line-height:1;
+  transition:background 100ms, color 100ms;
+}
+.pas-btn:hover{ background:var(--dex-red); color:#fff; }
+.pas-btn:active{ background:var(--dex-red-deep); color:#fff; }
+.pas-valeur{
+  width:52px; min-width:0;
+  border:0; border-left:1px solid var(--card-border); border-right:1px solid var(--card-border);
+  background:transparent; color:var(--ink);
+  font-family:var(--font-data); font-size:13px; text-align:center;
+  font-variant-numeric:tabular-nums;
+  padding:6px 2px;
+}
+.pas-valeur:focus{ outline:2px solid var(--dex-red); outline-offset:-2px; }
+.pas-a-pas.court .pas-valeur{ width:40px; font-size:12px; }
+.pas-a-pas.court .pas-btn{ width:22px; font-size:14px; }
+
+/* ---- La modale de configuration ---- */
+.jeu-card{ max-width:720px; max-height:88vh; overflow-y:auto; }
+.jeu-entete{ display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+.jeu-entete img{ width:66px; height:66px; object-fit:contain; flex-shrink:0; }
+.jeu-entete .modal-title{ margin:0 0 6px; }
+.jeu-types{ display:flex; gap:5px; flex-wrap:wrap; }
+
+.jeu-reglages{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+.jeu-champ{ display:flex; flex-direction:column; gap:4px; }
+.jeu-champ.large{ flex:1; min-width:210px; }
+.jeu-champ > span{
+  font-family:var(--font-data); font-size:9.5px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-faint); font-weight:600;
+}
+.jeu-champ .select-wrap{ width:100%; }
+#jeuBlocCapacite{ margin-bottom:16px; }
+
+/* Les cinq colonnes du tableau des statistiques. L'en-tête porte les mêmes
+   largeurs que les lignes : sans ça, « IV » et « EV » ne tombent pas en face
+   de leurs champs et on remplit la mauvaise colonne. */
+.jeu-stats-entete,
+.jeu-stat{
+  display:grid;
+  grid-template-columns:1fr 36px 88px 88px 88px 74px;
+  gap:8px; align-items:center;
+}
+.jeu-stats-entete{
+  padding:0 2px 6px;
+  font-family:var(--font-data); font-size:8.5px; font-weight:600; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-faint);
+}
+.jeu-stats-entete span:not(:first-child){ text-align:center; }
+.jeu-stats{ display:flex; flex-direction:column; gap:5px; }
+.jeu-stat{ padding:3px 2px; }
+.jeu-stat-nom{ font-size:12.5px; font-weight:600; color:var(--ink); }
+.jeu-stat-nom.boost{ color:var(--caught); }
+.jeu-stat-nom.malus{ color:var(--dex-red); }
+.jeu-stat-base{
+  font-family:var(--font-data); font-size:11.5px; color:var(--ink-faint);
+  font-variant-numeric:tabular-nums; text-align:center;
+}
+.jeu-stat-total{
+  font-family:var(--font-data); font-size:13px; font-weight:700;
+  color:var(--ink); font-variant-numeric:tabular-nums;
+  text-align:center; white-space:nowrap;
+}
+/* Une statistique modifiée se voit : « 129 → 193 » en vert, « 129 → 86 » en
+   rouge. Le chiffre brut reste, parce que c'est lui qui est sur la fiche. */
+.jeu-stat-total.booste{ color:var(--caught); }
+.jeu-stat-total.baisse{ color:var(--dex-red); }
+.jeu-stat-sans-boost{
+  font-family:var(--font-data); font-size:11px;
+  color:var(--ink-faint); font-variant-numeric:tabular-nums; text-align:center;
+}
+.jeu-ev-total{
+  margin:11px 0 0;
+  font-family:var(--font-data); font-size:11px; color:var(--ink-faint);
+  font-variant-numeric:tabular-nums;
+}
+/* Dépasser 508 EV n'est pas légal en jeu : on le dit sans bloquer, parce que
+   comparer un jeu impossible reste parfois ce qu'on veut faire. */
+.jeu-ev-total.depasse{ color:var(--dex-red); font-weight:700; }
+
+/* ---- L'emplacement d'équipe ---- */
+.equipe-detail{
+  display:block; width:100%; margin-top:7px;
+  padding:5px 8px; text-align:left;
+  background:var(--card); border:1px solid var(--card-border); border-radius:7px;
+  font-family:var(--font-data); font-size:9.5px; line-height:1.55;
+  color:var(--ink-faint); cursor:pointer;
+  transition:color 120ms, border-color 120ms;
+}
+.equipe-detail:hover{ color:var(--ink); border-color:var(--dex-red); }
+
+.dgt-carte{
+  background:var(--card); border:1px solid var(--card-border);
+  border-left:3px solid var(--dex-red);
+  border-radius:11px; padding:15px 17px;
+}
+.dgt-titre{ font-size:14px; font-weight:700; letter-spacing:-.01em; color:var(--ink); }
+.dgt-attaque{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  margin-top:7px; font-size:12.5px; color:var(--ink-soft);
+}
+.dgt-attaque b{ color:var(--ink); font-size:13.5px; }
+/* Le chiffre est le produit de la page : il se lit avant tout le reste. */
+.dgt-chiffre{
+  font-family:var(--font-data); font-size:32px; font-weight:700;
+  color:var(--dex-red); line-height:1.1; font-variant-numeric:tabular-nums;
+  margin-top:12px;
+}
+.dgt-chiffre.nul{ color:var(--ink-soft); font-size:24px; }
+.dgt-sur{ font-size:14px; font-weight:400; color:var(--ink-faint); }
+.dgt-barre{
+  position:relative; height:9px; margin-top:10px;
+  background:var(--screen); border-radius:999px; overflow:hidden;
+}
+/* Deux barres superposées : la claire est le jet maximum, la vive le minimum.
+   L'écart entre les deux, c'est exactement l'aléa des seize jets. */
+.dgt-barre i{ position:absolute; left:0; top:0; bottom:0; border-radius:999px; }
+.dgt-barre i.max{ background:rgba(238,58,58,.35); }
+.dgt-barre i.min{ background:var(--dex-red); }
+.dgt-pct{
+  margin-top:6px; font-family:var(--font-data); font-size:11.5px;
+  color:var(--ink-soft); font-variant-numeric:tabular-nums;
+}
+.dgt-ko{
+  display:inline-block; margin-top:11px; padding:4px 11px;
+  border-radius:999px;
+  background:var(--screen); border:1px solid var(--card-border);
+  font-family:var(--font-body); font-size:13px; font-weight:700; color:var(--ink);
+}
+.dgt-ko.sur{ background:var(--dex-red); border-color:var(--dex-red); color:#fff; }
+.dgt-facteurs{
+  margin-top:11px; padding-top:9px;
+  border-top:1px solid var(--card-border);
+  font-family:var(--font-data); font-size:10.5px; color:var(--ink-faint);
+  font-variant-numeric:tabular-nums; line-height:1.6;
+}
+.dgt-sous{ margin-top:7px; font-size:12.5px; color:var(--ink-soft); }
+
+@media (max-width:720px){
+  .jeu-stats-entete,
+  .jeu-stat{ grid-template-columns:1fr 30px 78px 78px 78px 66px; gap:5px; }
+  .dgt-grille{ grid-template-columns:1fr; }
+  .equipe-slots{ grid-template-columns:1fr; }
+  .eff-formule{ font-size:13px; }
+}
+
+
+/* ---- La légende du tableau des types ---- */
+/* À droite du tableau sur un écran large, dessous quand il n'y a plus la place.
+   Les six valeurs y figurent, y compris le ×1 : les cases le laissent vide, et
+   c'est justement celle qu'on ne reconnaît pas. */
+.table-types-cadre{ display:flex; align-items:flex-start; gap:18px; }
+.table-types-cadre > .table-types{ flex-shrink:0; }
+.tt-legende{
+  flex:1; min-width:190px;
+  background:var(--screen); border:1px solid var(--card-border);
+  border-radius:11px; padding:12px 14px;
+}
+.tt-legende-titre{
+  font-family:var(--font-data); font-size:9.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-faint); font-weight:600;
+  margin-bottom:9px;
+}
+.tt-legende-ligne{ display:flex; align-items:center; gap:9px; margin-bottom:6px; }
+.tt-legende-case{
+  width:34px; height:24px; flex-shrink:0;
+  display:grid; place-items:center;
+  border:1px solid var(--card-border); border-radius:7px;
+  font-family:var(--font-data); font-size:11px; font-weight:700;
+}
+.tt-legende-case.tt-neutre{ background:transparent; color:var(--ink-faint); }
+.tt-legende-mot{ font-size:12.5px; color:var(--ink-soft); }
+.tt-legende-mot b{
+  font-family:var(--font-data); color:var(--ink); margin-right:5px;
+}
+.tt-legende-note{
+  margin:10px 0 0; padding-top:9px;
+  border-top:1px solid var(--card-border);
+  font-size:11px; line-height:1.55; color:var(--ink-faint);
+}
+
+/* ---- Conditions de combat ---- */
+.dgt-conditions{
+  display:flex; flex-wrap:wrap; gap:10px;
+  margin-top:14px; padding-top:12px;
+  border-top:1px solid var(--card-border);
+}
+.dgt-condition{ display:flex; flex-direction:column; gap:4px; flex:1; min-width:220px; }
+.dgt-condition.etroit{ flex:0 0 auto; min-width:0; }
+.dgt-condition > span{
+  font-family:var(--font-data); font-size:9.5px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-faint); font-weight:600;
+}
+.dgt-condition .select-wrap{ width:100%; }
+
+/* ---- Les quatre attaques de la modale ---- */
+.jeu-attaques-titre{
+  display:block; margin:0 0 6px;
+  font-family:var(--font-data); font-size:9.5px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-faint); font-weight:600;
+}
+.jeu-attaques{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.jeu-attaques .select-wrap{ width:100%; }
+
+/* ---- La page Reproduction ---- */
+.repro-entete{ display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+.repro-entete h3{ margin-bottom:0; }
+.repro-compte{
+  font-family:var(--font-data); font-size:10.5px; color:var(--ink-faint);
+  font-variant-numeric:tabular-nums;
+}
+.repro-filtres{ display:flex; gap:10px; flex-wrap:wrap; margin:11px 0; }
+.repro-filtres input[type="search"]{
+  flex:1; min-width:180px;
+  font-family:var(--font-body); font-size:13px;
+  color:var(--ink); background:var(--screen);
+  border:1px solid var(--card-border); border-radius:10px;
+  padding:8px 11px;
+}
+.repro-filtres input[type="search"]:focus{ outline:2px solid var(--dex-red); outline-offset:1px; }
+
+.repro-choisi{
+  display:flex; align-items:center; gap:14px;
+  margin-top:12px; padding:11px 13px;
+  background:var(--screen); border:1px solid var(--card-border);
+  border-left:3px solid var(--dex-red); border-radius:10px;
+}
+.repro-choisi img{ width:62px; height:62px; object-fit:contain; flex-shrink:0; }
+.repro-choisi-nom{
+  font-size:16px; font-weight:800; letter-spacing:-.01em;
+  color:var(--ink); margin-bottom:6px;
+}
+
+/* Une couleur par groupe : quinze pastilles indistinctes, on ne repère plus le
+   sien dans une liste de trois cents. */
+.repro-groupes-puces{ display:flex; gap:5px; flex-wrap:wrap; }
+.repro-puce{
+  padding:3px 10px; border-radius:999px;
+  font-family:var(--font-body); font-size:11px; font-weight:700;
+  color:#fff; text-shadow:0 1px 1px rgba(0,0,0,.3);
+  background:var(--ink-faint);
+}
+.repro-puce.vide{ background:transparent; color:var(--ink-faint); text-shadow:none; }
+.repro-puce.g1{ background:#8a6a52; }   .repro-puce.g2{ background:#4d90d5; }
+.repro-puce.g3{ background:#90c12c; }   .repro-puce.g4{ background:#8fa8dd; }
+.repro-puce.g5{ background:#d9a441; }   .repro-puce.g6{ background:#ec8fe6; }
+.repro-puce.g7{ background:#63bb5b; }   .repro-puce.g8{ background:#ce7f5a; }
+.repro-puce.g9{ background:#3f74a8; }   .repro-puce.g10{ background:#9099a1; }
+.repro-puce.g11{ background:#7c6fa8; }  .repro-puce.g12{ background:#4dbdc9; }
+.repro-puce.g13{ background:#c964a0; }  .repro-puce.g14{ background:#0b6dc3; }
+.repro-puce.g15{ background:#5a5366; }
+
+.repro-liste{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:8px;
+}
+.repro-carte{
+  display:flex; align-items:center; gap:10px;
+  padding:7px 10px; text-align:left;
+  background:var(--card); border:1px solid var(--card-border);
+  border-left:3px solid var(--card-border);
+  border-radius:10px; cursor:pointer;
+  font-family:var(--font-body);
+  transition:border-color 120ms, transform 90ms;
+}
+.repro-carte:hover{ border-color:var(--dex-red); transform:translateY(-1px); }
+.repro-carte:focus-visible{ outline:2.5px solid var(--dex-red); outline-offset:2px; }
+/* Déjà dans la collection : c'est avec celui-là qu'on peut faire pondre tout de
+   suite, sans aller le chercher. */
+.repro-carte.possede{ border-left-color:var(--caught); }
+.repro-carte img{ width:42px; height:42px; object-fit:contain; flex-shrink:0; }
+.repro-carte:not(.possede) img{ filter:grayscale(1); opacity:.55; }
+.repro-carte-nom{
+  display:block; font-size:13px; font-weight:700;
+  letter-spacing:-.01em; color:var(--ink);
+}
+.repro-carte-groupes{
+  display:block; margin-top:2px;
+  font-family:var(--font-data); font-size:9.5px; color:var(--ink-faint);
+}
+
+.repro-groupes{ display:flex; flex-direction:column; gap:8px; }
+.repro-groupe{
+  background:var(--screen); border:1px solid var(--card-border);
+  border-radius:11px; overflow:hidden;
+}
+.repro-groupe summary{
+  display:flex; align-items:center; gap:11px; flex-wrap:wrap;
+  padding:10px 13px; cursor:pointer;
+  list-style:none;
+}
+.repro-groupe summary::-webkit-details-marker{ display:none; }
+.repro-groupe summary::after{
+  content:'▾'; margin-left:auto; color:var(--ink-faint); font-size:12px;
+  transition:transform 140ms;
+}
+.repro-groupe[open] summary::after{ transform:rotate(180deg); }
+.repro-groupe-compte{
+  font-family:var(--font-data); font-size:10.5px; color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;
+}
+.repro-groupe summary em{ font-size:11.5px; color:var(--ink-faint); font-style:italic; }
+.repro-groupe-membres{
+  display:flex; flex-wrap:wrap; gap:2px;
+  padding:4px 11px 12px;
+}
+.repro-membre{
+  width:52px; height:52px; padding:0;
+  background:transparent; border:0; border-radius:10px; cursor:pointer;
+}
+.repro-membre:hover{ background:var(--card); }
+.repro-membre:focus-visible{ outline:2px solid var(--dex-red); }
+.repro-membre img{ width:100%; height:100%; object-fit:contain; }
+
+@media (max-width:900px){
+  /* La légende passe sous le tableau : à côté, elle le comprimerait. */
+  .table-types-cadre{ flex-direction:column; }
+  .tt-legende{ width:100%; }
+}
+@media (max-width:560px){
+  .jeu-attaques{ grid-template-columns:1fr; }
+}
+
+/* ---- Entraînement EV ---- */
+.ev-filtres{ display:flex; flex-wrap:wrap; gap:10px; }
+.ev-filtres input[type="search"]{
+  width:100%;
+  font-family:var(--font-body); font-size:13px;
+  color:var(--ink); background:var(--screen);
+  border:1px solid var(--card-border); border-radius:10px;
+  padding:9px 12px;
+}
+.ev-filtres input[type="search"]:focus{ outline:2px solid var(--dex-red); outline-offset:1px; }
+.ev-puces{ display:flex; gap:4px; flex-wrap:wrap; margin-top:3px; }
+.ev-puces .effort-puce{ font-size:10px; padding:1px 7px; }
+
+/* ---- Taux de genre ---- */
+/* Une barre plutôt qu'un pourcentage seul : « 87,5 % mâle » se lit, mais la
+   proportion se voit. Bleu et rose sont les couleurs du jeu depuis toujours. */
+.fiche-genre{
+  display:flex; align-items:center; gap:9px; flex-wrap:wrap;
+  margin-top:9px; padding-top:9px;
+  border-top:1px solid var(--card-border);
+}
+.fiche-genre-barre{
+  flex:1; min-width:110px; height:7px;
+  display:flex; border-radius:4px; overflow:hidden;
+  background:var(--screen);
+  box-shadow:inset 0 0 0 1px var(--card-border);
+}
+.fiche-genre-barre i.male{ background:#4d90d5; }
+.fiche-genre-barre i.femelle{ background:#ec8fe6; }
+.fiche-genre-texte{
+  font-family:var(--font-data); font-size:10.5px; color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;
+}
+.fiche-genre.asexue .fiche-genre-texte{ color:var(--ink-faint); font-style:italic; }
+.repro-choisi-genre{
+  margin-top:6px;
+  font-family:var(--font-data); font-size:10.5px; color:var(--ink-faint);
+}
+
+/* ---- Le mode d'une aventure ---- */
+/* La pastille suit le nom de l'aventure partout : deux totaux côte à côte sans
+   elle laissent croire à une comparaison qui n'en est pas une. */
+.mode-pastille{
+  display:inline-block; margin-left:8px;
+  padding:1px 8px; border-radius:999px;
+  font-family:var(--font-data); font-size:9.5px; font-weight:700;
+  vertical-align:middle;
+  background:var(--screen); border:1px solid var(--card-border); color:var(--ink-soft);
+}
+.mode-pastille.mode-living{ border-color:#a86fd0; color:#c79bea; }
+.mode-pastille.mode-vu{ border-color:var(--gold); color:var(--gold); }
+
+.home-mode{
+  background:var(--card); border:1px solid var(--card-border);
+  border-left:3px solid var(--card-border);
+  border-radius:13px; padding:13px 15px; margin-bottom:16px;
+}
+.home-mode.mode-living{ border-left-color:#a86fd0; }
+.home-mode.mode-vu{ border-left-color:var(--gold); }
+.home-mode.mode-capture{ border-left-color:var(--dex-red); }
+.home-mode-titre{
+  font-family:var(--font-body); font-size:13.5px; font-weight:700; color:var(--ink);
+}
+.home-mode-texte{
+  margin:7px 0 0; font-size:12.5px; line-height:1.6; color:var(--ink-soft);
+}
+.home-mode-texte b{ color:var(--ink); }
+.home-mode-texte em{ font-style:italic; }
+.home-mode-chiffres{
+  display:flex; flex-wrap:wrap; gap:8px;
+  margin-top:11px; padding-top:10px;
+  border-top:1px solid var(--card-border);
+}
+.home-mode-chiffre{
+  padding:3px 11px; border-radius:999px;
+  background:var(--screen);
+  font-family:var(--font-data); font-size:10.5px; color:var(--ink-faint);
+}
+.home-mode-chiffre b{ color:var(--ink); font-size:12.5px; margin-right:3px; }
+
+/* L'avertissement de la barre de comparaison : il ne sert que quand les deux
+   dex ne comptent pas la même chose, et il doit alors se voir. */
+.compare-avertissement{
+  display:inline-block; margin-left:12px;
+  padding:2px 10px; border-radius:999px;
+  background:var(--gold); color:#2a2000;
+  font-family:var(--font-body); font-size:11px; font-weight:700;
+}
+
+/* ---- La confirmation d'une action définitive ---- */
+/* window.confirm() est dessiné par Windows : il ne peut montrer que du texte,
+   et il se valide d'un « Entrée » réflexe. Pour une suppression de dex, les
+   deux sont disqualifiants. */
+.confirm-card{ max-width:520px; }
+.modal-eyebrow.danger{ color:var(--danger); }
+
+.confirm-corps{ margin-bottom:4px; }
+/* Ce dont on parle, chiffré : « 152 capturés » arrête la main, « ton Pokédex »
+   ne l'arrête pas. */
+.confirm-resume{
+  display:flex; flex-wrap:wrap; gap:8px;
+  margin:14px 0 16px;
+}
+.confirm-resume-ligne{
+  padding:5px 13px; border-radius:999px;
+  background:var(--screen); border:1px solid var(--card-border);
+  font-family:var(--font-data); font-size:11px; color:var(--ink-faint);
+  font-variant-numeric:tabular-nums;
+}
+.confirm-resume-ligne b{ color:var(--ink); font-size:14px; margin-right:4px; }
+
+.confirm-sous-titre{
+  font-family:var(--font-data); font-size:9.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-faint); font-weight:600;
+  margin-bottom:7px;
+}
+.confirm-pertes{
+  margin:0 0 14px; padding:0; list-style:none;
+  font-size:13px; line-height:1.75; color:var(--ink-soft);
+}
+.confirm-pertes li{ padding-left:19px; position:relative; }
+.confirm-pertes li::before{
+  content:'✕'; position:absolute; left:2px;
+  color:var(--danger); font-size:10px; font-weight:700; top:1px;
+}
+.confirm-note{
+  margin:0; padding:9px 12px;
+  border-radius:10px; background:var(--screen);
+  border-left:3px solid var(--ink-faint);
+  font-size:12.5px; line-height:1.55; color:var(--ink-soft);
+}
+.confirm-note.danger{ border-left-color:var(--danger); color:var(--ink); }
+
+/* Recopier le nom. Le champ est volontairement large et le bouton reste inerte
+   tant qu'il ne correspond pas : on ne supprime pas un dex par inadvertance. */
+.confirm-saisie{ margin-top:16px; }
+.confirm-saisie label{
+  display:block; margin-bottom:6px;
+  font-family:var(--font-data); font-size:10.5px; color:var(--ink-soft);
+}
+.confirm-saisie input{
+  width:100%; box-sizing:border-box;
+  font-family:var(--font-body); font-size:14px;
+  color:var(--ink); background:var(--screen);
+  border:1px solid var(--card-border); border-radius:10px;
+  padding:10px 13px;
+}
+.confirm-saisie input:focus{ outline:2px solid var(--danger); outline-offset:1px; }
+
+.toggle-btn.danger{
+  color:#fff; background:var(--danger); border-color:var(--danger); font-weight:700;
+}
+.toggle-btn.danger:hover:not(:disabled){ filter:brightness(1.08); }
+.toggle-btn.danger:disabled{
+  opacity:.4; cursor:not-allowed; filter:none;
+}
+
+/* ---- Saisie et information ---- */
+/* Le message de validation s'affiche pendant la frappe : découvrir un refus
+   après avoir validé, c'est refaire la saisie pour rien. */
+.confirm-saisie-erreur{
+  margin:6px 0 0; min-height:15px;
+  font-size:11.5px; color:var(--danger);
+}
+/* Conclure une chasse est le seul moment heureux de tout le fichier : il ne
+   mérite ni le rouge de l'erreur ni le gris du reste. */
+.modal-eyebrow.succes{ color:var(--caught); }
+.confirm-note.succes{ border-left-color:var(--caught); color:var(--ink); }
+.confirm-note.danger{ border-left-color:var(--danger); }
+.confirm-saisie-erreur.apercu{ color:var(--ink-faint); font-style:italic; }

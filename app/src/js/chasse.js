@@ -1,0 +1,638 @@
+// Le compteur de chasse aux chromatiques.
+// Script classique (pas de module ES), chargé après noyau.js.
+//
+// Un chasseur de shiny compte ses rencontres. C'est tout l'objet de cette page :
+// tenir ce compte, et dire ce qu'il vaut — 342 rencontres ne signifient rien
+// si l'on ne sait pas contre quelle probabilité on se bat.
+//
+// Les chasses vivent dans la sauvegarde du profil, comme le dex : elles
+// appartiennent à l'aventure, et changer d'ordinateur doit les retrouver.
+
+let chasses = [];
+
+// Les Pokémon chromatiques n'existent qu'à partir de la deuxième génération :
+// Rouge, Bleu et Jaune n'ont aucune méthode, et le disent.
+const SANS_CHROMATIQUES = ['rby', 'jaune'];
+
+// Jusqu'à la cinquième génération, un chromatique sur 8192 ; 1/4096 ensuite.
+const TAUX_ANCIEN = ['gsc', 'cristal', 'rse', 'emeraude', 'frlg', 'dp', 'pt',
+                     'hgss', 'bw', 'b2w2'];
+
+// La reproduction, donc la méthode Masuda, suppose une Pension. Let's Go et
+// Légendes Arceus n'en ont pas.
+const AVEC_REPRODUCTION = ['dp', 'pt', 'hgss', 'bw', 'b2w2', 'xy', 'oras', 'sm',
+                           'usum', 'swsh', 'bdsp', 'sv'];
+
+// Le Charme Chroma apparaît dans Noir 2 / Blanc 2.
+const AVEC_CHARME = ['b2w2', 'xy', 'oras', 'sm', 'usum', 'letsgo', 'swsh',
+                     'bdsp', 'pla', 'sv', 'za'];
+
+// ---- Les tirages -----------------------------------------------------------
+// Un chromatique ne se joue pas à un seul lancer de dé. Le jeu en lance
+// plusieurs — un par « tirage » — et il suffit d'un succès. C'est ainsi qu'il
+// cumule les bonus : le Charme Chroma n'améliore pas le dé, il en ajoute.
+//
+// D'où deux conséquences qu'un simple « taux » cachait :
+//   · les bonus s'additionnent au lieu de se multiplier — Charme + recherche
+//     complète, dans Légendes Arceus, font 1 + 3 + 3 = 7 tirages, soit 1/585 ;
+//   · une méthode et ses bonus se combinent librement, au lieu d'exiger une
+//     ligne par combinaison possible.
+//
+// Les valeurs viennent des taux publiés pour chaque jeu, et les reproduisent :
+// Mégapparition seule 1/158 (26 tirages), avec Charme et recherche 1/128
+// (32 tirages).
+
+// Ce que la situation de chasse ajoute. Une méthode à « taux » propre remplace
+// tout le calcul : la pêche à la chaîne ou le Combo Capture ne comptent pas en
+// tirages, ils ont leur propre règle.
+const METHODES = {
+  'rencontre':     { nom:'Rencontres sauvages', tirages:0, jeux:'*' },
+  'apparition':    { nom:'Apparition massive', tirages:25, tiragesParJeu:{ sv:2 },
+                     jeux:['pla', 'sv'] },
+  'megapparition': { nom:'Mégapparition', tirages:25, jeux:['pla'] },
+  'distorsion':    { nom:'Distorsion spatio-temporelle', taux:128, jeux:['pla'] },
+  'masuda':        { nom:'Méthode Masuda', tirages:5, jeux:AVEC_REPRODUCTION },
+  'reproduction':  { nom:'Reproduction ordinaire', tirages:0, jeux:AVEC_REPRODUCTION },
+  'chaine':        { nom:'Combo Capture', taux:315, jeux:['letsgo'] },
+  'peche':         { nom:'Pêche à la chaîne', taux:100, jeux:['xy'] },
+  'autre':         { nom:'Autre méthode', tirages:0, jeux:'*' }
+};
+
+// Ce qui s'ajoute par-dessus, et se cumule. Chacun déclare les jeux qui le
+// connaissent : cocher un Sandwich Éclat dans Rouge Feu n'aurait aucun sens.
+const BONUS = {
+  'charme':    { nom:'Charme Chroma', tirages:2, tiragesParJeu:{ pla:3 },
+                 jeux:AVEC_CHARME,
+                 aide:'Obtenu en complétant le Pokédex national.' },
+  'recherche': { nom:'Page de Pokédex complète', tirages:3, jeux:['pla'],
+                 aide:'Niveau de recherche 10 sur l\'espèce chassée.' },
+  'sandwich':  { nom:'Sandwich Éclat (niveau 3)', tirages:3, jeux:['sv'],
+                 aide:'Puissance Éclat du type visé, au niveau maximum.' }
+};
+
+// Le taux de base du jeu : c'est le dé, celui que les tirages relancent.
+function tauxDeBase(cle){
+  if(SANS_CHROMATIQUES.indexOf(cle) !== -1) return null;
+  return TAUX_ANCIEN.indexOf(cle) !== -1 ? 8192 : 4096;
+}
+
+function estPourCeJeu(info, cleJeu){
+  return info && (info.jeux === '*' || info.jeux.indexOf(cleJeu) !== -1);
+}
+
+// Combien de tirages ce bonus vaut dans ce jeu. Le Charme Chroma en donne deux
+// dans la série principale, trois dans Légendes Arceus : le détail compte, il
+// fait passer le taux maximal de 1/141 à 1/128.
+function tiragesDe(info, cleJeu){
+  if(!info) return 0;
+  const parJeu = info.tiragesParJeu && info.tiragesParJeu[cleJeu];
+  return parJeu === undefined ? (info.tirages || 0) : parJeu;
+}
+
+// Le nombre total de tirages d'une chasse : celui de base, plus la méthode,
+// plus chaque bonus coché que le jeu connaît.
+function tiragesDeChasse(cleMethode, bonus, cleJeu){
+  const m = METHODES[cleMethode] || METHODES['autre'];
+  let n = 1 + tiragesDe(m, cleJeu);
+  (bonus || []).forEach(function(cle){
+    const info = BONUS[cle];
+    if(estPourCeJeu(info, cleJeu)) n += tiragesDe(info, cleJeu);
+  });
+  return n;
+}
+
+function tauxDeChasse(cleMethode, cleJeu, bonus){
+  const m = METHODES[cleMethode] || METHODES['autre'];
+  if(m.taux) return m.taux;                 // règle propre : les tirages ne s'y appliquent pas
+  const base = tauxDeBase(cleJeu);
+  return base ? base / tiragesDeChasse(cleMethode, bonus, cleJeu) : null;
+}
+
+function methodesPour(cleJeu){
+  if(SANS_CHROMATIQUES.indexOf(cleJeu) !== -1) return [];
+  return Object.keys(METHODES).filter(function(cle){
+    return estPourCeJeu(METHODES[cle], cleJeu);
+  });
+}
+
+function bonusPour(cleJeu){
+  if(SANS_CHROMATIQUES.indexOf(cleJeu) !== -1) return [];
+  return Object.keys(BONUS).filter(function(cle){
+    return estPourCeJeu(BONUS[cle], cleJeu);
+  });
+}
+
+// Les anciennes chasses ne connaissaient qu'une méthode, qui mélangeait la
+// situation et les bonus. On les traduit à la lecture, une fois pour toutes :
+// sans quoi « Masuda + Charme Chroma » deviendrait « Autre méthode ».
+const METHODES_ANCIENNES = {
+  'pleine':        { methode:'rencontre', bonus:[] },
+  'charme':        { methode:'rencontre', bonus:['charme'] },
+  'masuda-charme': { methode:'masuda',    bonus:['charme'] },
+  'sandwich':      { methode:'rencontre', bonus:['sandwich'] }
+};
+
+function migrerChasse(c){
+  const ancien = METHODES_ANCIENNES[c.methode];
+  if(ancien){
+    c.methode = ancien.methode;
+    c.bonus = ancien.bonus.slice();
+  }
+  if(!Array.isArray(c.bonus)) c.bonus = [];
+  return c;
+}
+
+const chasseListe = document.getElementById('chasseListe');
+const chasseResume = document.getElementById('chasseResume');
+const chasseOverlay = document.getElementById('chasseOverlay');
+const chasseRecherche = document.getElementById('chasseRecherche');
+const chasseSuggestions = document.getElementById('chasseSuggestions');
+const chasseChoisi = document.getElementById('chasseChoisi');
+const chasseJeu = document.getElementById('chasseJeu');
+const chasseMethode = document.getElementById('chasseMethode');
+const chasseErreur = document.getElementById('chasseErreur');
+const chasseValider = document.getElementById('chasseValider');
+const chasseBonus = document.getElementById('chasseBonus');
+const chasseBlocBonus = document.getElementById('chasseBlocBonus');
+const chasseTaux = document.getElementById('chasseTaux');
+
+/**
+ * La probabilité d'avoir déjà croisé au moins un chromatique en `n` essais.
+ *
+ * C'est le complément de « n échecs d'affilée » : 1 − (1 − p)^n. On l'affiche
+ * parce qu'un compteur nu ne dit rien — et parce qu'elle rappelle une vérité
+ * utile : atteindre 100 % est impossible, chaque rencontre reste indépendante
+ * des précédentes. Le compteur ne « rapproche » de rien.
+ */
+function probabiliteCumulee(n, taux){
+  if(!n || !taux) return 0;
+  return 1 - Math.pow(1 - 1 / taux, n);
+}
+
+function nomDeChasse(c){
+  const e = allEntries.find(function(x){ return x.name === c.pokemon; });
+  return e ? nomAffiche(e) : c.pokemon;
+}
+
+function entreeDeChasse(c){
+  return allEntries.find(function(x){ return x.name === c.pokemon; });
+}
+
+function enregistrerChasses(){
+  dessinerChasses();
+  queueSave();
+}
+
+// ---- Rendu ------------------------------------------------------------------
+function dessinerChasses(){
+  if(!chasseListe) return;
+
+  // Le résumé : ce qui a été trouvé, et ce qui est en cours.
+  if(chasseResume){
+    const total = chasses.reduce(function(n, c){ return n + (c.compteur || 0); }, 0);
+    chasseResume.textContent = chasses.length
+      ? chasses.length + (chasses.length > 1 ? ' chasses en cours' : ' chasse en cours')
+        + '  ·  ' + total + ' rencontre' + (total > 1 ? 's' : '') + ' au total'
+      : '';
+  }
+
+  chasseListe.innerHTML = '';
+  if(!chasses.length){
+    chasseListe.innerHTML = '<div class="state-msg">Aucune chasse en cours. '
+      + 'Clique sur « Créer une chasse » pour en commencer une — le compteur te suivra '
+      + 'd\'un ordinateur à l\'autre.</div>';
+    return;
+  }
+
+  chasses.forEach(function(c){
+    const methode = METHODES[c.methode] || METHODES['autre'];
+    const taux = tauxDeChasse(c.methode, c.dex, c.bonus);
+    const p = probabiliteCumulee(c.compteur, taux);
+
+    const carte = document.createElement('div');
+    carte.className = 'chasse-carte';
+
+    // Le sprite, en version chromatique : c'est ce qu'on cherche.
+    const cadre = document.createElement('div');
+    cadre.className = 'chasse-sprite';
+    const e = entreeDeChasse(c);
+    if(e){
+      const img = document.createElement('img');
+      img.src = pokeosHomeUrl(e.id, true);
+      img.alt = '';
+      img.loading = 'lazy';
+      img.addEventListener('error', function(){
+        img.src = officialArtworkUrl(e.id, true);
+      });
+      cadre.appendChild(img);
+    }
+    carte.appendChild(cadre);
+
+    const infos = document.createElement('div');
+    infos.className = 'chasse-infos';
+
+    const nom = document.createElement('div');
+    nom.className = 'chasse-nom';
+    nom.textContent = nomDeChasse(c);
+    infos.appendChild(nom);
+
+    const meta = document.createElement('div');
+    meta.className = 'chasse-meta';
+    // Le jeu figure dans la ligne : la même espèce peut être chassée ailleurs,
+    // avec une autre méthode et un autre taux.
+    const nomJeu = gameByKey[c.dex] ? gameByKey[c.dex].tab : '🏡 Pokémon HOME';
+    // Les bonus cochés figurent dans la ligne : ce sont eux qui expliquent
+    // l'écart entre 1/4096 et 1/128, et on veut pouvoir le relire plus tard.
+    const cochés = (c.bonus || []).filter(function(b){ return estPourCeJeu(BONUS[b], c.dex); })
+      .map(function(b){ return BONUS[b].nom; });
+    meta.textContent = nomJeu + '  ·  ' + methode.nom
+      + (cochés.length ? '  +  ' + cochés.join(' + ') : '')
+      + (taux ? '  ·  1/' + Math.round(taux) : '')
+      + (c.debut ? '  ·  commencée ' + depuisQuand(c.debut) : '');
+    infos.appendChild(meta);
+
+    // La barre montre la probabilité cumulée, pas une progression : on ne
+    // progresse pas vers un shiny. Le libellé le dit.
+    const barre = document.createElement('div');
+    barre.className = 'chasse-barre';
+    const rempli = document.createElement('i');
+    rempli.style.width = Math.min(100, p * 100) + '%';
+    barre.appendChild(rempli);
+    infos.appendChild(barre);
+
+    const chance = document.createElement('div');
+    chance.className = 'chasse-chance';
+    chance.textContent = Math.round(p * 100) + ' % des dresseurs l\'auraient déjà trouvé';
+    chance.title = 'Probabilité d\'avoir eu au moins un chromatique en ' + c.compteur
+      + ' rencontres. Chaque rencontre reste indépendante : le compteur ne te '
+      + 'rapproche de rien.';
+    infos.appendChild(chance);
+    carte.appendChild(infos);
+
+    // Le compteur et ses boutons.
+    const bloc = document.createElement('div');
+    bloc.className = 'chasse-compteur';
+
+    const valeur = document.createElement('div');
+    valeur.className = 'chasse-valeur';
+    valeur.textContent = c.compteur || 0;
+    bloc.appendChild(valeur);
+
+    const boutons = document.createElement('div');
+    boutons.className = 'chasse-boutons';
+    [['+1', 1], ['+10', 10], ['−1', -1]].forEach(function(paire){
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chasse-bouton' + (paire[1] === 1 ? ' principal' : '');
+      b.textContent = paire[0];
+      b.addEventListener('click', function(){
+        c.compteur = Math.max(0, (c.compteur || 0) + paire[1]);
+        enregistrerChasses();
+      });
+      boutons.appendChild(b);
+    });
+    bloc.appendChild(boutons);
+    carte.appendChild(bloc);
+
+    const actions = document.createElement('div');
+    actions.className = 'chasse-actions';
+
+    const trouve = document.createElement('button');
+    trouve.type = 'button';
+    trouve.className = 'toggle-btn primary';
+    trouve.textContent = '✨ Trouvé !';
+    trouve.title = 'Coche le chromatique dans le Pokédex du jeu et clôt la chasse';
+    trouve.addEventListener('click', function(){ conclureChasse(c); });
+    actions.appendChild(trouve);
+
+    const abandon = document.createElement('button');
+    abandon.type = 'button';
+    abandon.className = 'toggle-btn';
+    abandon.textContent = 'Abandonner';
+    abandon.addEventListener('click', async function(){
+      const compteur = c.compteur || 0;
+      const ok = await demanderConfirmation({
+        eyebrow: 'Chasse en cours',
+        titre: 'Abandonner la chasse de ' + nomDeChasse(c) + ' ?',
+        danger: true,
+        resume: [
+          { cle: 'rencontres', valeur: compteur },
+          { cle: gameByKey[c.dex] ? gameByKey[c.dex].title : 'Pokémon HOME', valeur: '🎮' }
+        ],
+        pertes: ['Le compteur de rencontres', 'La méthode et les bonus enregistrés'],
+        note: compteur
+          ? 'Le compteur repart de zéro. Rien ne permet de le retrouver.'
+          : 'Cette chasse n\'a pas encore commencé : il n\'y a rien à perdre.',
+        // Au-delà de cinq cents rencontres, on a passé des heures dessus : la
+        // cérémonie est proportionnée à ce qu'elle coûte.
+        motAEcrire: compteur >= 500 ? nomDeChasse(c) : null,
+        libelleAction: 'Abandonner la chasse'
+      });
+      if(!ok) return;
+      chasses = chasses.filter(function(x){ return x !== c; });
+      enregistrerChasses();
+    });
+    actions.appendChild(abandon);
+    carte.appendChild(actions);
+
+    chasseListe.appendChild(carte);
+  });
+}
+
+/**
+ * La chasse aboutit : on coche le chromatique là où il a été trouvé, et la
+ * chasse disparaît. C'est le seul endroit où cette page touche au dex — et
+ * c'est ce qui évite d'avoir à cocher la case à la main après coup.
+ */
+function conclureChasse(c){
+  const e = entreeDeChasse(c);
+  if(!e){
+    prevenirErreur('Ce Pokémon est introuvable',
+      'Il n\'apparaît pas dans la liste des espèces. La chasse reste ouverte.');
+    return;
+  }
+
+  const cible = bucketFor(c.dex || 'national');
+  cible.shiny.add(e.name);
+  // Un chromatique attrapé est aussi un Pokémon possédé : cocher l'un sans
+  // l'autre laisserait une incohérence que personne ne penserait à corriger.
+  cible.caught.add(e.name);
+
+  chasses = chasses.filter(function(x){ return x !== c; });
+  dessinerChasses();
+  updateProgress();
+  renderList(true);
+  queueSave();
+
+  prevenir({
+    eyebrow: 'Chasse terminée',
+    genre: 'succes',
+    titre: '✨ ' + nomDeChasse(c) + ' est à toi',
+    resume: [
+      { cle: 'rencontres', valeur: c.compteur || 0 },
+      { cle: gameByKey[c.dex] ? gameByKey[c.dex].title : 'Pokémon HOME', valeur: '🎮' }
+    ],
+    note: 'Il est coché en chromatique et en forme normale — un chromatique '
+      + 'attrapé est aussi un Pokémon possédé.',
+    libelleAction: 'Parfait'
+  });
+}
+
+
+// ---- La modale « Créer une chasse » -----------------------------------------
+// Trois choix explicites plutôt qu'un champ qui devine : le Pokémon, le jeu, et
+// la méthode. Deviner le jeu depuis l'onglet ouvert marchait, mais rien ne le
+// disait — et on chasse rarement dans le jeu qu'on est en train de consulter.
+
+let chasseSelection = null;   // l'entrée retenue, en attente de validation
+
+// Le choix du jeu : les Pokédex de la série, plus la collection d'ensemble.
+// Pokémon HOME n'est pas un lieu de rencontre : c'est une boîte de rangement.
+// On ne l'y propose donc pas — une chasse se mène dans un jeu.
+// Cobblemon est un mod dont les taux dependent du serveur : on ne peut rien en
+// affirmer. Rouge, Bleu et Jaune n'ont pas de chromatiques. Et Pokemon HOME est
+// une boite de rangement, pas un lieu de rencontre. Aucun des trois n'a sa
+// place dans une chasse.
+const JEUX_SANS_CHASSE = SANS_CHROMATIQUES.concat(['cobblemon']);
+
+function jeuxChassables(){
+  return GAMES.filter(function(g){ return JEUX_SANS_CHASSE.indexOf(g.key) === -1; });
+}
+
+if(chasseJeu){
+  jeuxChassables().forEach(function(g){
+    const opt = document.createElement('option');
+    opt.value = g.key;
+    opt.textContent = g.tab;
+    chasseJeu.appendChild(opt);
+  });
+}
+
+function direErreurChasse(texte){
+  if(!chasseErreur) return;
+  chasseErreur.textContent = texte || '';
+  chasseErreur.classList.toggle('visible', !!texte);
+}
+
+function choisirPourChasse(entree){
+  chasseSelection = entree;
+  chasseRecherche.value = '';
+  chasseSuggestions.style.display = 'none';
+  chasseSuggestions.innerHTML = '';
+
+  chasseChoisi.style.display = '';
+  chasseChoisi.innerHTML = '';
+  const img = document.createElement('img');
+  img.src = pokeosHomeUrl(entree.id, true);
+  img.alt = '';
+  img.addEventListener('error', function(){ img.src = officialArtworkUrl(entree.id, true); });
+  const nom = document.createElement('span');
+  nom.textContent = nomAffiche(entree);
+  const changer = document.createElement('button');
+  changer.type = 'button';
+  changer.className = 'chasse-changer';
+  changer.textContent = 'changer';
+  changer.addEventListener('click', function(){
+    chasseSelection = null;
+    chasseChoisi.style.display = 'none';
+    chasseRecherche.focus();
+  });
+  chasseChoisi.appendChild(img);
+  chasseChoisi.appendChild(nom);
+  chasseChoisi.appendChild(changer);
+  direErreurChasse('');
+}
+
+function suggererChasse(){
+  const q = chasseRecherche.value.trim().toLowerCase();
+  chasseSuggestions.innerHTML = '';
+  if(q.length < 2){ chasseSuggestions.style.display = 'none'; return; }
+
+  const trouves = allEntries.filter(function(e){
+    return nomAffiche(e).toLowerCase().indexOf(q) !== -1;
+  }).slice(0, 8);
+
+  if(!trouves.length){ chasseSuggestions.style.display = 'none'; return; }
+  chasseSuggestions.style.display = '';
+  trouves.forEach(function(e){
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chasse-suggestion';
+    b.textContent = nomAffiche(e);
+    b.addEventListener('click', function(){ choisirPourChasse(e); });
+    chasseSuggestions.appendChild(b);
+  });
+}
+
+// Le menu des méthodes se reconstruit à chaque changement de jeu : proposer un
+// Sandwich Éclat dans Rouge Feu tromperait sur ce que le jeu permet.
+function majMethodesDisponibles(){
+  if(!chasseMethode || !chasseJeu) return;
+  const jeu = chasseJeu.value;
+  const dispo = methodesPour(jeu);
+  const avant = chasseMethode.value;
+
+  chasseMethode.innerHTML = '';
+  if(!dispo.length){
+    // Première génération : les chromatiques n'existaient pas encore.
+    const o = document.createElement('option');
+    o.textContent = 'Aucune — pas de chromatiques dans ce jeu';
+    chasseMethode.appendChild(o);
+    // Aucun jeu de la liste n'est dans ce cas : ce garde-fou ne sert que si
+    // l'on ajoutait un jour un jeu sans chromatiques sans penser à la chasse.
+    chasseMethode.disabled = true;
+    if(chasseValider) chasseValider.disabled = true;
+    return;
+  }
+
+  chasseMethode.disabled = false;
+  if(chasseValider) chasseValider.disabled = false;
+  direErreurChasse('');
+  dispo.forEach(function(cle){
+    const o = document.createElement('option');
+    o.value = cle;
+    // Plus de taux dans le libellé : il dépend maintenant des bonus cochés, et
+    // s'affiche en direct sous la liste.
+    o.textContent = METHODES[cle].nom;
+    chasseMethode.appendChild(o);
+  });
+  // On garde la méthode choisie si le nouveau jeu la connaît aussi.
+  chasseMethode.value = dispo.indexOf(avant) !== -1 ? avant : dispo[0];
+  majBonusDisponibles();
+  // Le menu stylisé lit sa valeur dans le <select> : une valeur posée par le
+  // code ne déclenche aucun évènement, il faut le lui dire.
+  if(typeof syncSelects === 'function') syncSelects();
+}
+
+// Les bonus que le jeu connaît. Une case cochée qui n'existe plus dans le
+// nouveau jeu est décochée : sinon le taux mentirait sans qu'on voie pourquoi.
+function majBonusDisponibles(){
+  if(!chasseBonus || !chasseJeu) return;
+  const jeu = chasseJeu.value;
+  const avant = bonusCoches();
+  const dispo = bonusPour(jeu);
+
+  chasseBonus.innerHTML = '';
+  if(chasseBlocBonus) chasseBlocBonus.style.display = dispo.length ? '' : 'none';
+
+  dispo.forEach(function(cle){
+    const info = BONUS[cle];
+    const etiquette = document.createElement('label');
+    etiquette.className = 'chasse-bonus-case';
+
+    const case_ = document.createElement('input');
+    case_.type = 'checkbox';
+    case_.value = cle;
+    case_.checked = avant.indexOf(cle) !== -1;
+    case_.addEventListener('change', majTauxAffiche);
+
+    const nom = document.createElement('span');
+    nom.className = 'chasse-bonus-nom';
+    nom.textContent = info.nom;
+
+    const gain = document.createElement('span');
+    gain.className = 'chasse-bonus-gain';
+    gain.textContent = '+' + tiragesDe(info, jeu) + ' tirage' + (tiragesDe(info, jeu) > 1 ? 's' : '');
+
+    etiquette.appendChild(case_);
+    etiquette.appendChild(nom);
+    etiquette.appendChild(gain);
+    if(info.aide) etiquette.title = info.aide;
+    chasseBonus.appendChild(etiquette);
+  });
+  majTauxAffiche();
+}
+
+function bonusCoches(){
+  if(!chasseBonus) return [];
+  return Array.prototype.slice.call(chasseBonus.querySelectorAll('input:checked'))
+    .map(function(c){ return c.value; });
+}
+
+// Le taux, recalculé à chaque case cochée. C'est lui qui rend les bonus
+// concrets : voir « 1/4096 » devenir « 1/128 » dit tout de leur intérêt.
+function majTauxAffiche(){
+  if(!chasseTaux || !chasseJeu || !chasseMethode) return;
+  const jeu = chasseJeu.value;
+  const methode = chasseMethode.value;
+  const taux = tauxDeChasse(methode, jeu, bonusCoches());
+  if(!taux){ chasseTaux.textContent = ''; return; }
+
+  const m = METHODES[methode] || METHODES['autre'];
+  const base = tauxDeBase(jeu);
+  if(m.taux){
+    chasseTaux.textContent = 'Taux estimé : 1/' + Math.round(taux)
+      + '  —  cette méthode a sa propre règle, les bonus ne s\'y ajoutent pas.';
+  } else {
+    const n = tiragesDeChasse(methode, bonusCoches(), jeu);
+    chasseTaux.textContent = 'Taux estimé : 1/' + Math.round(taux)
+      + '  —  ' + n + ' tirage' + (n > 1 ? 's' : '') + ' sur 1/' + base;
+  }
+}
+
+function ouvrirChasseModal(){
+  chasseSelection = null;
+  chasseRecherche.value = '';
+  chasseChoisi.style.display = 'none';
+  chasseSuggestions.style.display = 'none';
+  direErreurChasse('');
+  // Le Pokédex ouvert est un point de départ probable, pas une décision : il
+  // présélectionne, et reste modifiable.
+  // Le Pokédex ouvert sert de point de départ s'il s'agit d'un jeu ; sinon on
+  // prend le premier de la liste, HOME n'y figurant plus.
+  if(chasseJeu){
+    const ouvert = gameByKey[currentTab] && JEUX_SANS_CHASSE.indexOf(currentTab) === -1;
+    chasseJeu.value = ouvert ? currentTab : (chasseJeu.options[0] || {}).value;
+  }
+  majMethodesDisponibles();
+  chasseOverlay.style.display = 'flex';
+  setTimeout(function(){ chasseRecherche.focus(); }, 10);
+}
+
+function fermerChasseModal(){ chasseOverlay.style.display = 'none'; }
+
+function validerChasse(){
+  if(!chasseSelection){
+    direErreurChasse('Choisis d\'abord un Pokémon.');
+    chasseRecherche.focus();
+    return;
+  }
+  const dex = chasseJeu ? chasseJeu.value : 'national';
+  if(!methodesPour(dex).length){
+    direErreurChasse('Ce jeu ne contient pas de Pokémon chromatiques.');
+    return;
+  }
+  if(chasses.some(function(c){
+    return c.pokemon === chasseSelection.name && c.dex === dex;
+  })){
+    direErreurChasse('Une chasse est déjà en cours pour ce Pokémon dans ce jeu.');
+    return;
+  }
+
+  chasses.unshift({
+    pokemon: chasseSelection.name,
+    dex: dex,
+    methode: chasseMethode ? chasseMethode.value : 'rencontre',
+    bonus: bonusCoches(),
+    compteur: 0,
+    debut: new Date().toISOString()
+  });
+  fermerChasseModal();
+  enregistrerChasses();
+}
+
+if(chasseRecherche){
+  chasseRecherche.addEventListener('input', suggererChasse);
+  chasseRecherche.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') fermerChasseModal();
+  });
+}
+document.getElementById('chasseNouvelle').addEventListener('click', ouvrirChasseModal);
+chasseValider.addEventListener('click', validerChasse);
+document.getElementById('chasseAnnuler').addEventListener('click', fermerChasseModal);
+chasseOverlay.addEventListener('click', function(e){
+  if(e.target === chasseOverlay) fermerChasseModal();
+});
+if(chasseJeu) chasseJeu.addEventListener('change', majMethodesDisponibles);
+// Changer de méthode ne change pas les bonus proposés, mais bien le taux.
+if(chasseMethode) chasseMethode.addEventListener('change', majTauxAffiche);

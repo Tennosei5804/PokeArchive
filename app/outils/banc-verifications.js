@@ -1,0 +1,829 @@
+// Ce que le banc vérifie. Chargé par outils/banc.py, jamais par l'application.
+//
+// La règle pour ajouter quelque chose ici : un bug est passé, on écrit la
+// vérification qui l'aurait arrêté. Pas de tests écrits « au cas où » — ils
+// vieillissent mal et personne ne les relit. Chaque entrée ci-dessous porte
+// donc le nom du problème réel qu'elle surveille.
+
+const BANC = [];
+function verifier(titre, quoi, fn){ BANC.push({ titre: titre, quoi: quoi, fn: fn }); }
+
+const attendre = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
+const CB = /-(mega|primal|eternamax)(-|$)/;
+
+// ---------------------------------------------------------------------------
+
+verifier('Le périmètre HOME',
+  'Rien d\'indéposable dans la collection — les Méga y sont restées jusqu\'au 22 août 2026',
+  function(){
+    const avant = niveauFormes;
+    niveauFormes = 4;
+    const intrus = poolHome().filter(function(e){ return horsDeHome(e.name); });
+    const total = poolHome().length;
+    niveauFormes = avant;
+    if(intrus.length) return 'échec : ' + intrus.length + ' entrée(s), dont ' + intrus[0].name;
+    return 'aucune sur ' + total + ' entrées au niveau 4';
+  });
+
+verifier('Le périmètre HOME',
+  'Le niveau 4 tombe sur le relevé Pokékalos, à une entrée près',
+  function(){
+    // L'écart connu et unique : Farfuret de Hisui ♀, que PokeAPI ne modélise pas
+    // comme une forme distincte. Au-delà de 1, c'est une règle qui a bougé.
+    if(!extraFormEntries) return 'ignoré : les formes supplémentaires ne sont pas chargées';
+    const avant = niveauFormes;
+    niveauFormes = 4;
+    const n = poolHome().length;
+    niveauFormes = avant;
+    const attendu = homeTotal(4);
+    if(Math.abs(n - attendu) > 1) return 'échec : ' + n + ' au lieu de ' + attendu;
+    return n + ' contre ' + attendu + ' au relevé';
+  });
+
+verifier('Le périmètre HOME',
+  'La référence Pokékalos ne contient elle-même aucune forme de combat',
+  function(){
+    // Si un jour la référence en contient, c'est que HOME a changé de règle et
+    // que la nôtre est à revoir — pas que le relevé est faux.
+    const tous = ['base', 'regionale', 'alt', 'genre'].reduce(function(a, k){
+      return a.concat(homeNiveau(k));
+    }, []);
+    const suspects = tous.filter(function(s){ return /mega|primal|eternamax|gigamax/.test(s); });
+    // « megapagos » et « meganium » contiennent « mega » sans être des Méga.
+    const vrais = suspects.filter(function(s){ return CB.test(s); });
+    if(vrais.length) return 'échec : la référence contient ' + vrais.join(', ');
+    return 'confirmé sur ' + tous.length + ' entrées déposables';
+  });
+
+verifier('Le périmètre HOME',
+  'Les Pokédex de jeux gardent leurs Méga : Z-A les recense',
+  function(){
+    const brut = poolEntries().filter(function(e){ return CB.test(e.name); });
+    if(!brut.length) return 'échec : les formes de combat ont disparu de la réserve entière';
+    return brut.length + ' formes de combat toujours disponibles pour les scopes de jeu';
+  });
+
+// ---------------------------------------------------------------------------
+
+verifier('Le périmètre HOME',
+  'Le niveau 1 donne exactement une entrée par espèce — 1025, comme la référence',
+  async function(){
+    const avant = niveauFormes;
+    niveauFormes = 1;
+    const n = poolHome().length;
+    const especes = new Set(poolHome().map(function(e){ return e.speciesId; })).size;
+    niveauFormes = avant;
+    if(n !== especes) return 'échec : ' + n + ' entrées pour ' + especes + ' espèces';
+    if(n !== homeTotal(1)) return 'échec : ' + n + ' au lieu de ' + homeTotal(1);
+    return n + ' entrées, une par espèce';
+  });
+
+verifier('Le périmètre HOME',
+  'Les quatre niveaux sont emboîtés : chacun contient le précédent',
+  async function(){
+    const avant = niveauFormes;
+    const tailles = [];
+    const ensembles = [];
+    for(let n = 1; n <= 4; n++){
+      niveauFormes = n;
+      const noms = poolHome().map(function(e){ return e.name; });
+      tailles.push(noms.length);
+      ensembles.push(new Set(noms));
+    }
+    niveauFormes = avant;
+    for(let i = 1; i < 4; i++){
+      const perdus = [...ensembles[i - 1]].filter(function(x){ return !ensembles[i].has(x); });
+      if(perdus.length){
+        return 'échec : le niveau ' + (i + 1) + ' perd ' + perdus.length
+          + ' entrée(s) du niveau ' + i + ', dont ' + perdus[0];
+      }
+    }
+    return tailles.join(' → ');
+  });
+
+verifier('Le périmètre HOME',
+  'Le niveau de formes appartient à l\'aventure, pas à la machine',
+  async function(){
+    if(!profilCourant) return 'ignoré : aucune aventure ouverte';
+    const depart = niveauFormes;
+    const sel = document.getElementById('niveauFormes');
+    window.__appels = [];
+    sel.value = '2';
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    await attendre(700);
+    const envoi = window.__appels.find(function(a){ return a.cmd === 'modifier_profil'; });
+    if(!envoi) return 'échec : rien n\'est parti au serveur';
+    if(envoi.args.niveauFormes !== 2){
+      return 'échec : niveauFormes=' + envoi.args.niveauFormes + ' au lieu de 2';
+    }
+    if(profilCourant.niveau_formes !== 2) return 'échec : l\'aventure n\'a pas suivi';
+
+    // Et l'ouverture d'une autre aventure doit appliquer LE SIEN.
+    const autre = profilsConnus.find(function(p){ return p.id !== profilCourant.id; });
+    let bascule = 'une seule aventure, bascule non vérifiée';
+    if(autre){
+      await ouvrirProfil(autre);
+      await attendre(700);
+      bascule = (niveauFormes === autre.niveau_formes)
+        ? 'ouvrir « ' + autre.nom +' » applique son niveau ' + autre.niveau_formes
+        : 'échec : niveau ' + niveauFormes + ' au lieu de ' + autre.niveau_formes;
+    }
+    if(String(bascule).indexOf('échec') === 0) return bascule;
+    sel.value = String(depart);
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    await attendre(500);
+    return 'enregistré sur l\'aventure · ' + bascule;
+  });
+
+// ---------------------------------------------------------------------------
+
+// Les Pokédex de jeux, contre le relevé Pokékalos de donnees-pokedex.js.
+//
+// Le relevé nomme, la réserve numérote : chaque nom est ramené à son espèce
+// avant comparaison. Trois pièges, tous rencontrés en écrivant ceci :
+//   · ♀ et ♂ portent l'espèce — les effacer confond les deux Nidoran, et le
+//     relevé national retombait alors sur 492 espèces pour 493 noms ;
+//   · la forme de base porte parfois un qualificatif — « Mistigrix (Mâle) »
+//     côté application, « Lougaroc forme Nocturne » côté relevé ;
+//   · le relevé colle l'exclusivité de version au nom : « Capumain Violet ».
+function clefEspece(nom){
+  return String(nom).toLowerCase().replace(/♀/g, '-f').replace(/♂/g, '-m')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9-]/g, '');
+}
+
+function indexDesEspeces(){
+  const parNom = new Map(), nomDe = new Map();
+  allEntries.forEach(function(e){
+    const base = (typeof nomEspece === 'function') ? nomEspece(e.display) : e.display;
+    if(!parNom.has(clefEspece(base))) parNom.set(clefEspece(base), e.speciesId);
+    if(!nomDe.has(e.speciesId)) nomDe.set(e.speciesId, base);
+  });
+  return { parNom: parNom, nomDe: nomDe };
+}
+
+function especeDuReleve(nom, parNom){
+  const n = nom.replace(/\s*\([^)]*\)\s*$/, '')
+    .replace(/\s+(forme|motif|style)\s+.*$/i, '')
+    .replace(/\s+(Écarlate|Violet|Épée|Bouclier)$/i, '')
+    .replace(/\s+d[eu']?\s*(Alola|Galar|Hisui|Paldea)$/i, '')
+    .replace(/^(Méga-|Primo-)/i, '').replace(/\s+[XY]$/, '').trim();
+  const id = parNom.get(clefEspece(n));
+  return id === undefined ? (parNom.get(clefEspece(nom)) ?? null) : id;
+}
+
+// Ce que l'application compte EN PLUS du relevé, et pourquoi. Tout autre écart
+// fait échouer : c'est là qu'une régénération qui dérape se verrait.
+const SURPLUS_ADMIS = {
+  // Pokékalos ne donne pas de ligne aux formes régionales du Disque Indigo :
+  // « Ramoloss de Galar » n'y figure que dans la liste des quêtes, et le mot
+  // « Alola » pas une seule fois. PokeAPI, lui, les compte.
+  'blueberry': ['Feunard', 'Flagadoss', 'Goupix', 'Gravalanch', 'Grolem', 'Grotadmorv',
+                'Noadkoko', 'Plumeline', 'Qwilfish', 'Racaillou', 'Ramoloss', 'Roigada',
+                'Sabelette', 'Sablaireau', 'Tadmorv', 'Taupiqueur', 'Triopikeur'],
+  // La page de Sinnoh s'arrête à 150 lignes : Manaphy, qui ne s'obtient pas
+  // dans le jeu, n'y a pas la sienne. Le Pokédex du jeu, lui, le compte.
+  'original-sinnoh': ['Manaphy']
+};
+
+verifier('Les Pokédex de jeux',
+  'Chacun tombe sur le relevé Pokékalos, à ce qu\'il ne liste pas près',
+  function(){
+    if(typeof RELEVE_POKEDEX === 'undefined') return 'ignoré : relevé non chargé';
+    const idx = indexDesEspeces();
+    const fautes = [];
+    let exacts = 0, compares = 0;
+    Object.keys(RELEVE_POKEDEX).forEach(function(cle){
+      const noms = RELEVE_POKEDEX[cle];
+      const inconnus = noms.filter(function(n){ return especeDuReleve(n, idx.parNom) === null; });
+      if(inconnus.length){
+        fautes.push(cle + ' : ' + inconnus.length + ' nom(s) que la réserve ignore — ' + inconnus[0]);
+        return;
+      }
+      const especes = new Set(noms.map(function(n){ return especeDuReleve(n, idx.parNom); }));
+      const dex = DONNEES_EMBARQUEES.dex[cle];
+      if(!dex) return;                    // « national-gen4 » n'est pas un Pokédex de l'app
+      compares++;
+      const dansApp = new Set(dex.map(function(p){ return p[0]; }));
+      const manquants = [];
+      especes.forEach(function(id){ if(!dansApp.has(id)) manquants.push(idx.nomDe.get(id)); });
+      if(manquants.length){
+        fautes.push(cle + ' : ' + manquants.length + ' manquant(s) — ' + manquants.slice(0, 3).join(', '));
+      }
+      const surplus = [];
+      dansApp.forEach(function(id){ if(!especes.has(id)) surplus.push(idx.nomDe.get(id)); });
+      const admis = (SURPLUS_ADMIS[cle] || []).slice().sort().join(',');
+      if(surplus.sort().join(',') !== admis){
+        fautes.push(cle + ' : surplus inattendu — ' + (surplus.join(', ') || 'aucun')
+                    + ' au lieu de ' + (admis || 'aucun'));
+      } else if(!surplus.length){
+        exacts++;
+      }
+    });
+    if(fautes.length) return 'échec : ' + fautes.join(' · ');
+    return compares + ' Pokédex comparés, ' + exacts + ' au Pokémon près, '
+      + Object.keys(SURPLUS_ADMIS).length + ' avec un surplus connu';
+  });
+
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+
+// Ce qui n'est pas un jeu Pokémon officiel, et n'a donc pas de relevé : le
+// Pokédex HOME, qui n'a pas de clé, et Cobblemon, qui est un mod.
+//
+// Tout le reste doit être couvert. Depuis le passage à Pokébip, ça l'est —
+// Rubis Ω / Saphir α compris, que Pokékalos ne documentait que lieu par lieu.
+// Un jeu qui retomberait à zéro ligne voudrait dire qu'une page a changé de
+// forme sans que personne s'en aperçoive.
+const HORS_RELEVE = ['', 'cobblemon'];
+
+verifier('Les lieux',
+  'Le relevé des lieux se range, et n\'invente aucun jeu',
+  async function(){
+    let reserve;
+    try{ reserve = await chargerLieux(); }
+    catch(e){ return 'ignoré : réserve des lieux absente (py outils/relever-lieux.py)'; }
+
+    const fautes = [];
+    const cles = Object.keys(reserve.jeux);
+
+    const inconnus = cles.filter(function(k){ return !gameByKey[k]; });
+    if(inconnus.length) fautes.push('jeux inconnus de donnees.js : ' + inconnus.join(', '));
+
+    const attendus = Object.keys(gameByKey).filter(function(k){
+      return HORS_RELEVE.indexOf(k) === -1;
+    });
+    const manquants = attendus.filter(function(k){
+      const table = reserve.jeux[k];
+      return !table || !Object.keys(table).length;
+    });
+    if(manquants.length) fautes.push('jeux sans la moindre ligne : ' + manquants.join(', '));
+
+    const interdits = cles.filter(function(k){ return HORS_RELEVE.indexOf(k) !== -1; });
+    if(interdits.length) fautes.push('relevé pour ce qui n\'est pas un jeu : ' + interdits.join(', '));
+
+    // Une clef du relevé est soit une espèce, soit une FORME : Rattata est 19,
+    // Rattata d'Alola est 10091, et les deux ont leur ligne là où la source les
+    // distingue. Les deux jeux d'identifiants sont donc légitimes.
+    const especes = new Set();
+    allEntries.forEach(function(e){ especes.add(e.speciesId); especes.add(e.id); });
+    let lignes = 0, sauvages = 0, videCat = 0, videTexte = 0, horsReserve = 0;
+    cles.forEach(function(k){
+      const table = reserve.jeux[k];
+      Object.keys(table).forEach(function(id){
+        lignes++;
+        const ligne = table[id];
+        const texte = reserve.textes[ligne[0]];
+        const categorie = reserve.categories[ligne[1]];
+        if(!texte) videTexte++;
+        if(!categorie) videCat++;
+        if(!especes.has(parseInt(id, 10))) horsReserve++;
+        if(categorie === 'sauvage') sauvages++;
+      });
+    });
+    // Les mentions viennent des pages complémentaires : une mention inconnue
+    // veut dire qu'une page a été rattachée à un genre qui n'existe pas.
+    let mentions = 0;
+    cles.forEach(function(k){
+      const table = reserve.jeux[k];
+      Object.keys(table).forEach(function(id){
+        (table[id][2] || []).forEach(function(i){
+          mentions++;
+          if(!reserve.mentions || !reserve.mentions[i]) fautes.push('mention inconnue : ' + i);
+        });
+      });
+    });
+
+    if(videTexte) fautes.push(videTexte + ' ligne(s) sans texte');
+    if(videCat) fautes.push(videCat + ' ligne(s) sans catégorie');
+    if(horsReserve) fautes.push(horsReserve + ' ligne(s) sur une espèce absente de la réserve');
+
+    // Un jeu dont plus rien n'est capturable trahit une page mal lue : c'est
+    // exactement ce qui arrive quand la colonne « Localisation » se décale.
+    const muets = cles.filter(function(k){
+      const table = reserve.jeux[k];
+      return !Object.keys(table).some(function(id){ return table[id][1] === 0; });
+    });
+    if(muets.length) fautes.push('aucun Pokémon capturable dans : ' + muets.join(', '));
+
+    if(fautes.length) return 'échec : ' + fautes.join(' · ');
+    return cles.length + ' jeux, ' + lignes + ' lignes, ' + sauvages + ' capturables, '
+      + mentions + ' mentions, ' + reserve.textes.length + ' textes distincts';
+  });
+
+// ---------------------------------------------------------------------------
+
+verifier('Les lieux',
+  'Chaque mention du relevé a son libellé, et le filtre la connaît',
+  async function(){
+    let reserve;
+    try{ reserve = await chargerLieux(); }
+    catch(e){ return 'ignoré : réserve des lieux absente'; }
+
+    // Une mention sans libellé s'affiche par sa clé : la fiche montrait
+    // « poke-radar » et « parc » en toutes lettres, au milieu de puces
+    // rédigées. Rien ne cassait, et c'est bien le problème — seul l'œil
+    // l'attrapait, et seulement si l'on ouvrait la bonne fiche.
+    //
+    // Le filtre a la même dette : une mention absente de
+    // MENTIONS_DE_LA_CATEGORIE ne fait remonter sa carte sous aucune
+    // catégorie, et le Pokémon disparaît du tri sans prévenir.
+    const posees = new Set();
+    Object.keys(reserve.jeux).forEach(function(k){
+      const table = reserve.jeux[k];
+      Object.keys(table).forEach(function(id){
+        (table[id][2] || []).forEach(function(i){ posees.add(reserve.mentions[i]); });
+      });
+    });
+
+    const fautes = [];
+    const sansLibelle = [...posees].filter(function(m){ return !LIBELLES_MENTION[m]; });
+    if(sansLibelle.length) fautes.push('sans libellé : ' + sansLibelle.join(', '));
+
+    const connuesDuFiltre = new Set();
+    Object.keys(MENTIONS_DE_LA_CATEGORIE).forEach(function(c){
+      MENTIONS_DE_LA_CATEGORIE[c].forEach(function(m){ connuesDuFiltre.add(m); });
+    });
+    // Trois mentions qualifient sans dire comment on l'obtient : « shiny-lock »,
+    // qui est d'ailleurs un choix du filtre à lui seul, « exclusif », qui vaut
+    // pour un Pokémon sauvage comme pour un offert, et « nouveau ». Les ranger
+    // sous une catégorie ferait remonter n'importe quoi.
+    const SANS_CATEGORIE = ['shiny-lock', 'exclusif', 'nouveau'];
+    const horsFiltre = [...posees].filter(function(m){
+      return SANS_CATEGORIE.indexOf(m) === -1 && !connuesDuFiltre.has(m);
+    });
+    if(horsFiltre.length) fautes.push('inconnues du filtre : ' + horsFiltre.join(', '));
+
+    if(fautes.length) return 'échec : ' + fautes.join(' · ');
+    return posees.size + ' mentions posées, toutes libellées et filtrables';
+  });
+
+// ---------------------------------------------------------------------------
+
+verifier('Les lieux',
+  'Le filtre d\'obtention trouve ce que la fiche affiche',
+  async function(){
+    let reserve;
+    try{ reserve = await chargerLieux(); }
+    catch(e){ return 'ignoré : réserve des lieux absente'; }
+
+    // Diamant / Perle : huit Pokémon s'y obtiennent par échange interne, et
+    // tous sont catégorisés « sauvage » — ils se croisent aussi dans l'herbe.
+    // Le filtre ne lisait que la catégorie et ne rendait donc rien, alors que
+    // la fiche affichait bien « Échange interne ». C'est le genre de bug qu'on
+    // ne voit qu'en cliquant, et qui fait croire à une réserve vide.
+    const table = reserve.jeux['dp'];
+    if(!table) return 'ignoré : Diamant / Perle absent du relevé';
+    const attendus = new Set();
+    Object.keys(table).forEach(function(id){
+      const mentions = (table[id][2] || []).map(function(i){ return reserve.mentions[i]; });
+      if(mentions.indexOf('echange') !== -1) attendus.add(parseInt(id, 10));
+    });
+    if(!attendus.size) return 'ignoré : aucun échange interne relevé pour Diamant / Perle';
+
+    const departOnglet = currentTab, departFiltre = filterEl.value;
+    let trouves = 0;
+    try{
+      showPage('dp');
+      await attendre(1200);
+      filterEl.value = 'obt-echange';
+      renderList(true);
+      await attendre(300);
+      trouves = currentFiltered.filter(function(e){ return attendus.has(e.speciesId); }).length;
+    } finally {
+      filterEl.value = departFiltre;
+      showPage(departOnglet);
+      await attendre(400);
+    }
+    if(!trouves) return 'échec : ' + attendus.size + ' échanges relevés, aucun retenu par le filtre';
+    return trouves + ' des ' + attendus.size + ' échanges internes retrouvés par le filtre';
+  });
+
+// ---------------------------------------------------------------------------
+
+verifier('Les lieux',
+  'Une absence de source n\'est dite « ne se capture pas » que là où le Pokédex est relevé',
+  async function(){
+    let reserve;
+    try{ reserve = await chargerLieux(); }
+    catch(e){ return 'ignoré : réserve des lieux absente'; }
+    const releves = reserve.pokedexReleve || [];
+    if(!releves.length) return 'échec : la réserve ne dit pas quels Pokédex sont relevés';
+
+    // L'inférence a deux moitiés, et chacune peut mentir dans un sens.
+    //
+    // Là où aucun Pokédex n'est relevé, une espèce non documentée est absente
+    // de la SOURCE, pas du jeu : la dire « ne se capture pas » serait inventer.
+    // Depuis le passage à Pokébip il n'y a plus de jeu dans ce cas, mais la
+    // moitié se garde — une source qui se retirerait la ferait revivre.
+    //
+    // Là où le Pokédex EST relevé — les vingt-deux aujourd'hui — l'inférence
+    // doit au contraire jouer : une espèce sans ligne ne se capture pas, et
+    // c'est une réponse, pas un blanc. Ne pas la donner viderait la pastille
+    // sur les trois quarts d'un Pokédex national.
+    const sansPokedex = Object.keys(reserve.jeux).filter(function(k){
+      return releves.indexOf(k) === -1;
+    });
+
+    // On interroge la règle plutôt que d'attendre qu'un trou se présente : les
+    // Pokédex nationaux couvrent désormais toutes les espèces de leur onglet,
+    // et chercher une espèce sans ligne n'en trouvait aucune — la vérification
+    // passait sans rien éprouver. Une espèce inventée, hors de toute table,
+    // pose la question directement.
+    const absente = { speciesId: 99999 };
+    const depart = currentTab;
+    const fautes = [];
+    let muets = 0, parlants = 0;
+    try{
+      for(const cle of Object.keys(reserve.jeux)){
+        if(!gameByKey[cle]) continue;
+        showPage(cle);
+        await attendre(500);
+        const dit = obtentionDe(absente);
+        if(releves.indexOf(cle) === -1){
+          muets++;
+          if(dit) fautes.push(cle + ' : une espèce sans source est dite « ne se capture pas »');
+        } else {
+          parlants++;
+          if(!dit || !dit.sansLigne){
+            fautes.push(cle + ' : une espèce sans ligne reste muette alors que'
+                        + ' le Pokédex est relevé');
+          }
+        }
+      }
+    } finally {
+      showPage(depart);
+      await attendre(400);
+    }
+    if(fautes.length) return 'échec : ' + fautes.join(' · ');
+    return parlants + ' jeu(x) où l\'absence se dit, ' + muets + ' où elle se tait'
+      + (sansPokedex.length ? '' : ' — tous les Pokédex sont relevés');
+  });
+
+// ---------------------------------------------------------------------------
+
+verifier('Les sprites',
+  'Chaque jeu jusqu\'à la cinquième génération a son jeu de sprites, et pas les autres',
+  function(){
+    if(typeof spritesDuJeu !== 'function') return 'ignoré : sprites d\'époque absents';
+    const fautes = [];
+
+    // Ce que la table doit dire, jeu par jeu. Trois pièges valent d'être fixés
+    // ici : Jaune n'a pas les mêmes sprites que Rouge/Bleu, la première
+    // génération n'a pas de chromatiques du tout, et rien n'existe en 2D à
+    // partir de X/Y — le bouton doit alors disparaître plutôt que de proposer
+    // une bascule qui ne changerait rien.
+    const ATTENDU = {
+      rby: 'gen1rb', jaune: 'gen1', gsc: 'gen2g', cristal: 'gen2',
+      rse: 'gen3rs', emeraude: 'gen3', frlg: 'gen3frlg',
+      dp: 'gen4', pt: 'gen4', hgss: 'gen4', bw: 'gen5', b2w2: 'gen5'
+    };
+    Object.keys(ATTENDU).forEach(function(cle){
+      const jeu = spritesDuJeu(cle);
+      if(!jeu){ fautes.push(cle + ' : aucun jeu de sprites'); return; }
+      if(jeu.normal !== ATTENDU[cle]){
+        fautes.push(cle + ' : ' + jeu.normal + ' au lieu de ' + ATTENDU[cle]);
+      }
+      const url = spriteEpoqueUrl(cle, 'pikachu', false);
+      if(url.indexOf('play.pokemonshowdown.com/sprites/' + ATTENDU[cle] + '/') === -1){
+        fautes.push(cle + ' : adresse inattendue — ' + url);
+      }
+    });
+
+    // Pas de chromatiques en première génération : la vue shiny doit rendre le
+    // sprite normal, et non une adresse qui n'existe pas.
+    ['rby', 'jaune'].forEach(function(cle){
+      if(spriteEpoqueUrl(cle, 'pikachu', true) !== spriteEpoqueUrl(cle, 'pikachu', false)){
+        fautes.push(cle + ' : une vue shiny qui n\'existe pas en gen 1');
+      }
+    });
+
+    // Et rien au-delà de la cinquième génération.
+    ['xy', 'sm', 'swsh', 'sv', 'za', 'letsgo', 'bdsp', 'pla'].forEach(function(cle){
+      if(spritesDuJeu(cle)) fautes.push(cle + ' : des sprites 2D annoncés à tort');
+    });
+
+    if(fautes.length) return 'échec : ' + fautes.join(' · ');
+    return Object.keys(ATTENDU).length + ' jeux pourvus, 8 sans sprite 2D, gen 1 sans shiny';
+  });
+
+// ---------------------------------------------------------------------------
+
+verifier('Les noms',
+  'Un nom d\'aventure d\'une lettre est refusé côté client (le serveur impose 2)',
+  function(){
+    if(typeof validerNomProfil !== 'function') return 'échec : validerNomProfil n\'existe pas';
+    const cas = [['A', true], ['Ab', false], ['  A  ', true], ['__', true], ['Aventure 1', false]];
+    const ratés = cas.filter(function(c){ return !!validerNomProfil(c[0]) !== c[1]; });
+    if(ratés.length) return 'échec sur ' + JSON.stringify(ratés.map(function(c){ return c[0]; }));
+    return cas.length + ' cas conformes à la règle du serveur';
+  });
+
+verifier('Les noms',
+  'Le pseudo suit le nettoyage du serveur, souligné compris',
+  function(){
+    if(typeof nettoyerPseudoClient !== 'function') return 'échec : nettoyerPseudoClient absent';
+    const cas = [['Tennosei_', 'Tennosei'], ['Tenn_sei', 'Tenn_sei'],
+                 ['a  b', 'a b'], ['Tenn@sei', 'Tennsei']];
+    const ratés = cas.filter(function(c){ return nettoyerPseudoClient(c[0]) !== c[1]; });
+    if(ratés.length){
+      return 'échec : « ' + ratés[0][0] + ' » donne « ' + nettoyerPseudoClient(ratés[0][0])
+        + ' » au lieu de « ' + ratés[0][1] + ' »';
+    }
+    return cas.length + ' cas conformes';
+  });
+
+// ---------------------------------------------------------------------------
+
+verifier('Les talents',
+  'Un champ CSV entre guillemets peut contenir un saut de ligne',
+  function(){
+    // Le lecteur découpait le texte sur « \n » avant de le lire. Tant qu'on ne
+    // lisait que des noms, personne ne s'en apercevait ; ability_prose.csv en
+    // contient, et donnait 1441 lignes au lieu de 809 — 632 morceaux de phrase
+    // pris pour des enregistrements.
+    if(typeof csvLignes !== 'function') return 'échec : csvLignes n\'existe pas';
+    const lignes = csvLignes('a,b\n1,"deux\nlignes"\n2,"gui""llemet"\n');
+    if(lignes.length !== 3) return 'échec : ' + lignes.length + ' lignes au lieu de 3';
+    if(lignes[1][1] !== 'deux\nlignes') return 'échec : le saut de ligne cité a été perdu';
+    if(lignes[2][1] !== 'gui"llemet') return 'échec : le guillemet doublé n\'est pas déchiffré';
+    return '3 lignes, saut de ligne et guillemet doublé conservés';
+  });
+
+verifier('Les talents',
+  'Chaque talent porté par une entrée dit ce qu\'il fait',
+  function(){
+    // La fiche n'affichait que le nom : « Multiécaille » n'apprend rien à qui
+    // ne le connaît pas déjà. Les deux phrases viennent de fichiers que rien
+    // n'oblige à rester traduits — si PokeAPI cesse de les fournir, c'est ici
+    // qu'on le voit, et non sur une fiche muette.
+    const f = (typeof DONNEES_EMBARQUEES === 'undefined') ? null : DONNEES_EMBARQUEES.fiches;
+    if(!f || !f.dico || !f.dico.talents) return 'ignoré : réserve absente';
+    const dico = f.dico.talents;
+    const cles = Object.keys(dico);
+    if(!cles.some(function(k){ return dico[k].effet; })){
+      return 'ignoré : réserve antérieure à la collecte des talents '
+        + '(relancer generer-donnees.html)';
+    }
+
+    // Le dictionnaire est taillé sur ce que les entrées portent : un talent
+    // cité par une fiche et absent du dictionnaire serait un trou.
+    const cites = new Set();
+    Object.keys(f.especes).forEach(function(id){
+      (f.especes[id].talents || []).forEach(function(t){ cites.add(String(t[0])); });
+    });
+    const orphelins = Array.from(cites).filter(function(id){ return !dico[id]; });
+    if(orphelins.length){
+      return 'échec : ' + orphelins.length + ' talent(s) cités sans nom, dont le n° '
+        + orphelins[0];
+    }
+
+    const sansEffet = cles.filter(function(k){ return !dico[k].effet; });
+    const sansTexte = cles.filter(function(k){ return !dico[k].jeu; });
+    // Le saut de ligne s'écrit de deux façons dans le même fichier PokeAPI, et
+    // la seconde passait telle quelle : « ses PV\nsont au maximum ».
+    const abimes = cles.filter(function(k){
+      return /\\[nf]|[\n\r]/.test((dico[k].effet || '') + (dico[k].jeu || ''));
+    });
+    if(abimes.length){
+      return 'échec : ' + abimes.length + ' texte(s) portent un saut de ligne non résolu, '
+        + 'dont « ' + dico[abimes[0]].fr + ' »';
+    }
+    if(sansEffet.length > 12){
+      return 'échec : ' + sansEffet.length + ' talents sans effet, dont « '
+        + dico[sansEffet[0]].fr + ' »';
+    }
+    return cles.length + ' talents · ' + (cles.length - sansEffet.length) + ' avec effet, '
+      + (cles.length - sansTexte.length) + ' avec le texte du jeu';
+  });
+
+// ---------------------------------------------------------------------------
+
+verifier('Les dialogues',
+  'La tabulation reste dans la fenêtre de confirmation',
+  async function(){
+    const p = demanderConfirmation({ titre: 'Test', libelleAction: 'Oui' });
+    await attendre(120);
+    const valider = document.getElementById('confirmValider');
+    const annuler = document.getElementById('confirmAnnuler');
+    valider.focus();
+    document.getElementById('confirmOverlay').dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    await attendre(60);
+    const boucle = document.activeElement === annuler || document.activeElement === valider;
+    annuler.click();
+    await p;
+    return boucle ? 'le focus reste dans la fenêtre'
+                  : 'échec : le focus est parti sur ' + (document.activeElement.id || 'la page');
+  });
+
+verifier('Les dialogues',
+  'Le garde-fou de la dernière aventure existe sur les DEUX écrans',
+  async function(){
+    if(typeof confirmerSuppression !== 'function') return 'échec : confirmerSuppression absent';
+    // Les deux écrans passent désormais par cette seule fonction : si elle
+    // refuse, ils refusent tous les deux. C'est exactement ce qui manquait à la
+    // modale des aventures, qui faisait recopier le nom avant le refus.
+    const source = String(confirmerSuppression);
+    if(source.indexOf('profilsConnus.length') === -1){
+      return 'échec : plus de garde-fou dans confirmerSuppression';
+    }
+    const appels = ['supprimerAventure'].filter(function(f){
+      return typeof window[f] === 'function' && String(window[f]).indexOf('confirmerSuppression') === -1;
+    });
+    if(appels.length) return 'échec : ' + appels.join(', ') + ' ne passe plus par le helper';
+    return 'un seul point de refus, partagé';
+  });
+
+// ---------------------------------------------------------------------------
+
+verifier('L\'accueil',
+  'Les trois raccourcis arrivent au Pokédex avec leur préréglage',
+  async function(){
+    // Ce que chaque bouton promet : un filtre, et une vue.
+    const PROMESSES = { all:['all', false],
+                        missing:['uncaught', false],
+                        hunt:['normal-not-shiny', true] };
+    const rates = [];
+    for(const cle of Object.keys(PROMESSES)){
+      // On part de l'accueil à chaque fois : c'est de là que le dresseur clique,
+      // et c'est ce changement d'onglet qui remettait les filtres à zéro.
+      showPage('home');
+      const bouton = document.querySelector('[data-goto=\"' + cle + '\"]');
+      if(!bouton) return 'ignoré : pas de bouton « ' + cle + ' » dans la page';
+      bouton.click();
+      await attendre(80);
+      const promis = PROMESSES[cle];
+      if(filterEl.value !== promis[0] || shinyView !== promis[1]){
+        rates.push(cle + ' → filtre ' + filterEl.value + ', shiny ' + shinyView
+                   + ' au lieu de ' + promis[0] + ', ' + promis[1]);
+      }
+    }
+    showPage('home');
+    if(rates.length) return 'échec : ' + rates.join(' · ');
+    return Object.keys(PROMESSES).length + ' raccourcis, filtre et vue conformes';
+  });
+
+// ---------------------------------------------------------------------------
+
+// Les pages de generation (outils/generer-*.html) rejouent l'interface sans
+// compte.js ni app.js : elles n'ont ni session a tenir ni pont Tauri a nourrir.
+// Six appels visent pourtant ces deux fichiers — verifier.py les liste sous
+// « appels a une fonction que la page ne charge pas ». Le banc les retire tous
+// les six et rejoue les chemins qui y menent : ce qui n'est pas garde casse.
+//
+// Ils etaient sept le 22 aout 2026, et deux cassaient vraiment : gotoDex()
+// appelait setShinyView() a nu — d'ou vueShiny(), le garde d'accueil.js — et
+// dessinerChasses() appelait depuisQuand(), reste dans compte.js par accident
+// d'ecriture alors qu'il ne calcule qu'une date. Il vit dans noyau.js depuis,
+// et ne figure donc plus dans cette liste.
+const DEFINIS_AILLEURS = ['chargerDernieresCaptures', 'chargerDresseurs', 'chargerProfil',
+                          'enregistrerNiveauProfil', 'majAccueilAventure', 'setShinyView'];
+
+verifier('Les pages de génération',
+  'Sans compte.js ni app.js, aucun chemin de l\'interface ne casse',
+  async function(){
+    const chemins = [
+      { quoi:'showPage(dresseurs)', jouer: function(){ showPage('dresseurs'); } },
+      { quoi:'showPage(profil)',    jouer: function(){ showPage('profil'); } },
+      { quoi:'updateHome()',        jouer: function(){ updateHome(); } },
+      { quoi:'gotoDex(missing)',    jouer: function(){ gotoDex('missing'); } },
+      { quoi:'dessinerChasses()',   jouer: function(){
+          // La chasse est datée : c'est la ligne « commencée … » qui cassait,
+          // et le seul chemin de chasse.js à emprunter quoi que ce soit
+          // d'extérieur. On la garde pour que le déménagement tienne.
+          chasses.push({ dex:'swsh', espece:'pikachu', compteur:1,
+                         methode:'pleine', debut:new Date().toISOString() });
+          try{ dessinerChasses(); } finally { chasses.pop(); }
+        } },
+      { quoi:'le sélecteur 🧬', jouer: async function(){
+          // Le seul chemin asynchrone : l'écouteur de « change » est async, donc
+          // ce qu'il casse part en rejet non capturé et non en exception.
+          const sel = document.getElementById('niveauFormes');
+          const depart = sel.value;
+          sel.value = depart === '2' ? '3' : '2';
+          sel.dispatchEvent(new Event('change'));
+          await attendre(400);
+          sel.value = depart;
+          sel.dispatchEvent(new Event('change'));
+          await attendre(400);
+        } }
+    ];
+
+    const sauve = {};
+    DEFINIS_AILLEURS.forEach(function(n){ sauve[n] = window[n]; });
+    const fantomes = DEFINIS_AILLEURS.filter(function(n){ return typeof sauve[n] !== 'function'; });
+    if(fantomes.length) return 'ignoré : ' + fantomes.join(', ') + ' n\'existe déjà pas';
+
+    const filtres = [filterEl.value, genFilterEl.value, searchEl.value];
+    const casses = [], rejets = [];
+    const surRejet = function(e){
+      rejets.push(String((e.reason && e.reason.message) || e.reason));
+    };
+    window.addEventListener('unhandledrejection', surRejet);
+    try{
+      DEFINIS_AILLEURS.forEach(function(n){ window[n] = undefined; });
+      for(const c of chemins){
+        try{ await c.jouer(); }
+        catch(e){ casses.push(c.quoi + ' — ' + e.message); }
+        if(rejets.length) casses.push(c.quoi + ' — ' + rejets.shift());
+      }
+    } finally {
+      window.removeEventListener('unhandledrejection', surRejet);
+      DEFINIS_AILLEURS.forEach(function(n){ window[n] = sauve[n]; });
+      filterEl.value = filtres[0];
+      genFilterEl.value = filtres[1];
+      searchEl.value = filtres[2];
+      showPage('home');
+    }
+
+    if(casses.length) return 'échec : ' + casses.join(' · ');
+    return chemins.length + ' chemins rejoués sans les ' + DEFINIS_AILLEURS.length + ' fonctions';
+  });
+
+// ---------------------------------------------------------------------------
+
+verifier('Le réseau',
+  'Une suppression d\'aventure ne demande jamais deux fois la même chose',
+  async function(){
+    const cible = profilsConnus.find(function(p){ return p.id !== (profilCourant || {}).id; })
+      || profilsConnus[0];
+    if(profilsConnus.length < 2) return 'ignoré : il faut deux aventures';
+    window.__appels = [];
+    const p = supprimerAventure(cible, cible.id === (profilCourant || {}).id);
+    await attendre(300);
+    const champ = document.getElementById('confirmSaisie');
+    if(document.getElementById('confirmOverlay').style.display === 'flex'){
+      champ.value = cible.nom;
+      champ.dispatchEvent(new Event('input', { bubbles: true }));
+      await attendre(100);
+      document.getElementById('confirmValider').click();
+    }
+    await p;
+    await attendre(900);
+    const noms = window.__appels.map(function(a){ return a.cmd; });
+    const doublons = noms.filter(function(c, i){ return noms.indexOf(c) !== i; });
+    if(doublons.length) return 'échec : ' + noms.join(', ') + ' — ' + doublons.join(' et ') + ' en double';
+    return noms.length + ' appels : ' + noms.join(', ');
+  });
+
+// ---------------------------------------------------------------------------
+
+async function lancerBanc(){
+  const panneau = document.createElement('div');
+  panneau.id = 'bancRapport';
+  panneau.innerHTML = '<style>'
+    + '#bancRapport{position:fixed;inset:0 0 auto 0;z-index:99999;max-height:60vh;overflow:auto;'
+    + 'background:#12141c;color:#e6e8f0;font:13px/1.5 ui-monospace,Consolas,monospace;'
+    + 'padding:12px 16px;border-bottom:2px solid #3a4160;box-shadow:0 8px 24px rgba(0,0,0,.5)}'
+    + '#bancRapport h1{font-size:14px;margin:0 0 8px;letter-spacing:.06em;text-transform:uppercase;color:#9aa3c0}'
+    + '#bancRapport .g{margin:10px 0 4px;color:#7f88a8;font-size:11px;letter-spacing:.08em;text-transform:uppercase}'
+    + '#bancRapport .l{display:flex;gap:8px;padding:2px 0;align-items:baseline}'
+    + '#bancRapport .m{flex:none;width:9px;height:9px;border-radius:50%;margin-top:5px}'
+    + '#bancRapport .ok .m{background:#4ec9a0}#bancRapport .ko .m{background:#e4665a}'
+    + '#bancRapport .ko{color:#ffb4ab}#bancRapport .d{color:#8b93ab}'
+    + '#bancRapport button{position:absolute;top:10px;right:14px;background:#242a40;color:#c9d0e6;'
+    + 'border:1px solid #3a4160;border-radius:4px;padding:3px 10px;cursor:pointer;font:inherit}'
+    + '</style><h1>Banc d\'essai</h1><button type="button">Masquer</button><div id="bancCorps"></div>';
+  document.body.appendChild(panneau);
+  panneau.querySelector('button').addEventListener('click', function(){ panneau.remove(); });
+  const corps = panneau.querySelector('#bancCorps');
+
+  let groupe = '';
+  let echecs = 0;
+  for(const v of BANC){
+    if(v.titre !== groupe){
+      groupe = v.titre;
+      const g = document.createElement('div');
+      g.className = 'g';
+      g.textContent = groupe;
+      corps.appendChild(g);
+    }
+    let resultat;
+    try{
+      resultat = await v.fn();
+    }catch(e){
+      resultat = 'échec : ' + e;
+    }
+    const rate = String(resultat).indexOf('échec') === 0;
+    if(rate) echecs++;
+    const l = document.createElement('div');
+    l.className = 'l ' + (rate ? 'ko' : 'ok');
+    l.innerHTML = '<span class="m"></span><span>' + v.quoi
+      + '<br><span class="d">' + resultat + '</span></span>';
+    corps.appendChild(l);
+  }
+
+  const fin = document.createElement('div');
+  fin.className = 'g';
+  fin.textContent = echecs
+    ? echecs + ' échec(s) sur ' + BANC.length
+    : BANC.length + ' vérifications, aucun échec';
+  fin.style.color = echecs ? '#e4665a' : '#4ec9a0';
+  corps.appendChild(fin);
+  console.log('[banc] ' + fin.textContent);
+}
+
+// On attend que l'application ait fini de se dessiner : ses écrans se
+// construisent après plusieurs allers-retours simulés.
+window.addEventListener('load', function(){ setTimeout(lancerBanc, 2200); });

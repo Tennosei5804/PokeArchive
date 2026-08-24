@@ -1,0 +1,669 @@
+/* La fiche d'un Pokémon. Reprise de la maquette du 24 août 2026, à l'identique
+   pour la mise en page ; seuls les sélecteurs de conteneur changent, la fiche
+   vivant ici dans la modale #previewOverlay et non seule sur une page.
+
+   Deux jetons nouveaux, déclarés plus bas et non dans base.css : --fond n'a pas
+   d'emploi hors maquette, et --teinte se recalcule à chaque fiche depuis le
+   type principal — c'est fiche.js qui l'écrit sur l'élément.
+
+   Ce fichier est chargé APRÈS dex.css : là où les deux se marchent dessus, le
+   dessin de la fiche l'emporte. */
+
+.preview-card.fiche{
+  --teinte:#5269ac; --teinte-appui:#8fa8dd;
+  --teinte-voile:rgba(82,105,172,.10);
+  --ombre:0 30px 60px -20px rgba(28,30,41,.34);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .preview-card.fiche{
+    --teinte:#8fa8dd; --teinte-appui:#5269ac;
+    --teinte-voile:rgba(143,168,221,.13);
+    --ombre:0 30px 60px -20px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"] .preview-card.fiche{
+  --teinte:#8fa8dd; --teinte-appui:#5269ac;
+  --teinte-voile:rgba(143,168,221,.13);
+  --ombre:0 30px 60px -20px rgba(0,0,0,.6);
+}
+
+/* ---- La fiche -------------------------------------------------- */
+.preview-card.fiche{
+  position:relative;
+  overflow:hidden;
+}
+.fiche-fermer{
+  position:absolute; top:14px; right:16px; z-index:6;
+  width:34px; height:34px;
+  border:1px solid var(--card-border); border-radius:50%;
+  background:var(--card); color:var(--ink);
+  font-size:15px; line-height:1; cursor:pointer;
+}
+.fiche-fermer:hover{ background:var(--dex-red); border-color:var(--dex-red); color:#fff; }
+.fiche-fermer:focus-visible{ outline:2.5px solid var(--dex-red); outline-offset:2px; }
+
+/* ---- 1. La bande d'identite ------------------------------------
+   L'ancienne fiche empilait un carre de 320 px, puis le nom centre
+   dessous. On la couche : le portrait a gauche, l'identite a droite.
+   ---------------------------------------------------------------- */
+.identite{
+  display:grid;
+  grid-template-columns:264px 1fr;
+  gap:26px;
+  padding:26px 26px 22px;
+  background:linear-gradient(180deg, var(--teinte-voile), transparent 84%), var(--card);
+  border-bottom:1px solid var(--card-border);
+}
+.portrait{
+  position:relative;
+  aspect-ratio:1/1;
+  border-radius:14px;
+  background:radial-gradient(120% 120% at 50% 14%, var(--card) 0%, var(--screen) 68%);
+  box-shadow:inset 0 0 0 1px var(--card-border), inset 0 0 0 4px var(--teinte-voile);
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+}
+.portrait.chromatique{ box-shadow:inset 0 0 0 2px var(--gold); }
+.portrait img{
+  width:92%; height:92%; object-fit:contain;
+  filter:drop-shadow(0 12px 16px rgba(20,20,30,.24));
+}
+/* Les GIF de Showdown n'ont pas une taille unique. La maquette avait relevé
+   celle de Dracolosse — 85 x 98 — et en avait fait la regle : tous les sprites
+   etaient poses en 170 x 196. Mesure sur vingt especes, ils vont de 45 x 49
+   (Bulbizarre) a 234 x 55 (Kyogre) : ce cadre fixe gonflait Bulbizarre de
+   quatre fois et faisait passer Kyogre d'un rapport de 4,25:1 a 0,87:1, ecrase
+   sur toute sa longueur.
+
+   La taille est donc calculee par grille.js, d'apres celle du GIF : double
+   exact tant que le double tient dans le cadre, simple ajustement au-dela.
+   Le plus proche voisin ne vaut que pour le double exact — sur une reduction
+   il donne des pixels de tailles inegales, et c'est le lissage qui rend le
+   mieux. */
+.portrait.anime img{
+  width:auto; height:auto;
+  image-rendering:pixelated;
+  filter:drop-shadow(0 8px 10px rgba(20,20,30,.3));
+}
+.portrait.anime.ajuste img{ image-rendering:auto; }
+.portrait-source{
+  position:absolute; bottom:9px; left:50%; transform:translateX(-50%);
+  display:flex; gap:0;
+  border:1px solid var(--card-border); border-radius:999px;
+  background:var(--card); overflow:hidden;
+}
+.portrait-source button{
+  font-family:var(--font-data); font-size:8.5px; font-weight:600;
+  letter-spacing:.08em; text-transform:uppercase;
+  border:0; background:transparent; color:var(--ink-faint);
+  padding:5px 11px; cursor:pointer; line-height:1.2;
+}
+.portrait-source button.actif{ background:var(--teinte); color:var(--card); }
+.portrait-source button:focus-visible{ outline:2px solid var(--dex-red); outline-offset:-2px; }
+/* Le numero national, en police d'ecran. C'est le seul endroit de la
+   fiche ou elle sert : un Pokedex affiche un numero, pas du texte. */
+.portrait-no{
+  position:absolute; top:9px; left:10px;
+  font-family:var(--font-display); font-size:9px; line-height:1;
+  color:var(--ink-soft);
+  background:var(--card);
+  border:1px solid var(--card-border); border-radius:7px;
+  padding:5px 7px 4px;
+}
+.identite-corps{ display:flex; flex-direction:column; gap:11px; min-width:0; }
+.surtitre{
+  display:flex; align-items:center; gap:9px; flex-wrap:wrap;
+  font-family:var(--font-data); font-size:9.5px; font-weight:600;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint);
+}
+.gen-puce{
+  border:1px solid var(--teinte); color:var(--teinte);
+  border-radius:999px; padding:2px 9px; letter-spacing:.1em;
+}
+.nom{
+  font-size:38px; font-weight:800; line-height:1.05; margin:0;
+  letter-spacing:-.015em; text-wrap:balance;
+}
+.nom-autre{ font-size:13.5px; color:var(--ink-soft); margin:-4px 0 0; }
+.nom-autre span{ color:var(--ink-faint); }
+.types{ display:flex; gap:6px; flex-wrap:wrap; }
+.type-img{ display:inline-block; width:100px; height:22px; object-fit:contain; vertical-align:middle; }
+
+/* Le gabarit : cinq champs que l'ancienne fiche n'affichait pas. */
+.gabarit{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(102px, 1fr));
+  gap:1px; margin:3px 0 0;
+  background:var(--card-border);
+  border:1px solid var(--card-border); border-radius:10px; overflow:hidden;
+}
+.gabarit > div{ background:var(--screen); padding:7px 10px; }
+.gabarit dt{
+  font-family:var(--font-data); font-size:8.5px; font-weight:600;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint);
+  margin:0 0 2px;
+}
+.gabarit dd{
+  margin:0; font-family:var(--font-data); font-size:12.5px; font-weight:600;
+  color:var(--ink); font-variant-numeric:tabular-nums;
+}
+.gabarit dd small{ font-size:10px; color:var(--ink-faint); font-weight:500; }
+
+/* Les numeros regionaux, sous le gabarit. Le portrait porte le numero
+   national ; celui-ci ne dit pas a quel rang l'espece figure dans le jeu qu'on
+   a sous la main. Le Pokedex du jeu ouvert passe devant et se marque. */
+.dex-regionaux{ display:flex; gap:5px; flex-wrap:wrap; }
+.dex-regionaux:empty{ display:none; }
+.dex-reg{
+  display:inline-flex; align-items:baseline; gap:6px;
+  font-size:11px; color:var(--ink-soft);
+  background:var(--screen);
+  border:1px solid var(--card-border);
+  border-radius:7px; padding:2px 8px;
+}
+.dex-reg b{
+  font-family:var(--font-data); font-size:10.5px; font-weight:700;
+  color:var(--ink); font-variant-numeric:tabular-nums;
+}
+.dex-reg.ici{ border-color:var(--teinte); }
+.dex-reg.ici b{ color:var(--teinte); }
+/* Au-dela de six, les puces attendent repliees : Pikachu figure dans dix-sept
+   Pokedex regionaux, et la bande entiere pousserait les etats de capture hors
+   de l'ecran. Le bouton les deplie sur place — pas de bulle flottante, la
+   fiche est en overflow:hidden et son contenu defile. */
+.dex-reg.en-plus{ display:none; }
+.dex-regionaux.deplie .dex-reg.en-plus{ display:inline-flex; }
+.dex-reg-plus{
+  font-family:var(--font-data); font-size:10px; font-weight:600;
+  color:var(--ink-faint);
+  background:none; border:1px dashed var(--card-border);
+  border-radius:7px; padding:2px 8px;
+  align-self:center; cursor:pointer;
+  transition:border-color 120ms, color 120ms;
+}
+.dex-reg-plus:hover{ border-color:var(--teinte); color:var(--teinte); }
+.dex-reg-plus:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+
+.etats{ display:flex; gap:8px; flex-wrap:wrap; margin-top:2px; }
+.etat{
+  font-family:var(--font-body); font-size:11.5px; font-weight:700;
+  border-radius:999px; padding:6px 14px;
+  border:1.5px solid var(--card-border);
+  background:var(--screen); color:var(--ink-soft);
+  cursor:pointer;
+}
+.etat.actif{ box-shadow:0 0 0 2px var(--ink-soft); }
+.etat.on{ background:var(--caught); border-color:var(--caught); color:#fff; }
+.etat.on.or{
+  background:linear-gradient(180deg,#ffcf5c,var(--gold));
+  border-color:var(--gold-deep); color:#3a2405;
+}
+.etat:focus-visible{ outline:2.5px solid var(--dex-red); outline-offset:2px; }
+
+/* ---- Les blocs, tels quels dans PokeArchive --------------------- */
+.corps{ padding:18px 26px 26px; display:flex; flex-direction:column; gap:14px; }
+.bloc{
+  background:var(--screen);
+  border:1px solid var(--card-border);
+  border-radius:11px;
+  padding:13px 15px;
+}
+.bloc > h4{
+  font-family:var(--font-data);
+  font-size:9.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-faint); font-weight:600;
+  margin:0 0 9px;
+  display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;
+}
+.bloc > h4 em{
+  font-style:normal; letter-spacing:0; text-transform:none;
+  font-family:var(--font-body); font-size:11px; color:var(--ink-faint);
+}
+/* Deux colonnes en FLUX, et non deux piles assignees a la main.
+   ------------------------------------------------------------------
+   Avant : une grille de deux colonnes, a gauche ce que le Pokemon EST,
+   a droite ou on le TROUVE. Le classement se lisait bien, mais les deux
+   moities ne se valent pas — mesurees sur six especes, la gauche tenait
+   dans 30 px d'amplitude quand la droite allait de 596 a 1 034 px selon
+   le nombre de jeux ou l'espece se croise. Arbok laissait 344 px de vide
+   sous sa colonne droite.
+
+   Le multi-colonnes repartit les blocs lui-meme et sort deux colonnes de
+   meme hauteur, espece par espece. On y perd le classement ; on y gagne
+   qu'aucune fiche ne s'arrete a mi-hauteur d'un cote. L'ordre de lecture
+   ne bouge pas : il descend la premiere colonne, puis la seconde.
+
+   break-inside sur les blocs : sans lui, un bloc se couperait en deux au
+   changement de colonne — un tableau de statistiques a cheval, la moitie
+   d'une liste d'obtention en haut de la colonne suivante. */
+.colonnes{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:14px;
+}
+/* Le bloc des statistiques couvre les trois rangees que remplissent, en face,
+   la notice, la lignee et la reproduction. Sa hauteur devient donc EGALE a
+   leur somme — non par un reglage, mais parce que la grille ne sait pas faire
+   autrement. Les deux colonnes finissent au meme pixel, quelle que soit
+   l'espece, et il n'y a plus de vide sous la plus courte.
+
+   minmax(0,1fr) et non 1fr : le minimum automatique d'un element de grille
+   vaut la largeur minimale de son contenu, et la barre de raccourcis
+   d'obtention est une rangee qui ne passe pas a la ligne — trente puces, deux
+   mille six cents pixels. Sans ce minmax, elle ecrasait la colonne d'en face
+   a deux cents pixels et debordait de la carte. */
+.bloc-stats{ grid-row:span 3; }
+/* Sur l'onglet d'un jeu, « Disponible dans » n'a rien a dire et disparait : la
+   derniere rangee n'aurait plus qu'une case sur deux. La premiere apparition
+   prend alors toute la largeur. */
+.colonnes.sans-jeux #ficheBlocPremier{ grid-column:1 / -1; }
+
+/* ---- 2. Les talents : le bloc qui change vraiment ---------------
+   Avant : deux pastilles avec le nom, et l'effet cache dans un
+   title="". Ici, chaque talent devient une carte a part entiere.
+   ---------------------------------------------------------------- */
+.talents{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.talent{
+  background:var(--card);
+  border:1px solid var(--card-border);
+  border-left:3px solid var(--ink-faint);
+  border-radius:10px;
+  padding:12px 14px;
+  display:flex; flex-direction:column; gap:8px;
+}
+.talent.cache{ border-left-color:var(--gold); }
+.talent-rang{
+  font-family:var(--font-data); font-size:8.5px; font-weight:700;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint);
+}
+.talent.cache .talent-rang{ color:var(--gold); }
+.talent-nom{
+  font-size:19px; font-weight:800; line-height:1.15; margin:0;
+  letter-spacing:-.01em;
+}
+.talent-nom span{
+  display:block;
+  font-family:var(--font-data); font-size:10.5px; font-weight:500;
+  letter-spacing:.04em; color:var(--ink-faint); margin-top:2px;
+}
+/* Le texte du jeu, cite comme tel. */
+.talent-jeu{
+  margin:0; font-size:12.5px; line-height:1.5; color:var(--ink-soft);
+  border-left:2px solid var(--card-border); padding-left:10px;
+  font-style:italic;
+}
+.talent-jeu cite{ font-style:inherit; }
+.talent-jeu b{
+  display:block; font-style:normal; font-family:var(--font-data);
+  font-size:8.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink-faint); margin-bottom:3px;
+}
+/* Le chiffre derriere la phrase. C'est lui qu'on vient chercher. */
+.talent-effet{
+  margin:0; font-size:13px; line-height:1.5; color:var(--ink);
+  background:var(--screen); border-radius:8px; padding:9px 11px;
+}
+.talent-effet b{
+  display:block; font-family:var(--font-data);
+  font-size:8.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink-faint); margin-bottom:3px;
+}
+.talent-effet code{
+  font-family:var(--font-data); font-size:12.5px; font-weight:700;
+  color:var(--teinte);
+}
+.talent-notes{ display:flex; flex-direction:column; gap:5px; margin-top:auto; }
+.note-pastille{
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:var(--font-data); font-size:10px; font-weight:600;
+  line-height:1.4;
+  border-radius:7px; padding:4px 8px;
+  border:1px solid var(--card-border); color:var(--ink-faint);
+  background:var(--screen);
+}
+.note-pastille.compte{ color:var(--caught); border-color:var(--caught); background:var(--caught-soft); }
+.note-pastille.or{ color:var(--gold-deep); border-color:var(--gold); }
+.note-pastille.ailleurs{ color:var(--dex-red); border-color:var(--dex-red); }
+.note-pastille i{ font-style:normal; }
+
+/* Un talent seul ne laisse pas de case vide a cote de lui : il prend la ligne.
+   Une espece en porte un, deux ou trois, et la grille en compte deux. */
+.talents.impair .talent:last-child{ grid-column:1 / -1; }
+
+/* ---- 2 bis. La notice du Pokedex -------------------------------
+   Elle a son bloc, en bas de la colonne de gauche : c'est du Pokemon
+   qu'elle parle, et c'est cette colonne-la qui le decrit. Pas de
+   cadre a elle — le bloc en tient lieu, comme pour tout le reste de
+   la fiche ; la citation en italique et le filet a la teinte du type
+   suffisent a la distinguer d'un paragraphe ordinaire.
+   ---------------------------------------------------------------- */
+.notice{ display:flex; flex-direction:column; gap:5px; }
+.notice:empty{ display:none; }
+/* Le nom de la version, au-dessus de sa notice. Deux versions d'un meme jeu
+   n'ecrivent pas la meme chose — et quand elles ecrivent la meme, les nommer
+   toutes les deux repond quand meme a la question posee : on ouvre le Pokedex
+   de Rouge, pas celui de « Rouge et Bleu ». */
+.notice-version{
+  font-family:var(--font-data); font-size:8.5px; font-weight:700;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--teinte);
+  margin-top:4px;
+}
+.notice-version:first-child{ margin-top:0; }
+/* 13 px et non 14, interligne 1.5 et non 1.6 : deux notices tiennent la ou une
+   seule tenait, sans que le bloc double de hauteur. */
+.notice-texte{
+  margin:0 0 3px; font-size:13px; line-height:1.5; color:var(--ink);
+  font-style:italic;
+  border-left:2px solid var(--teinte-appui); padding-left:11px;
+}
+.notice-texte cite{ font-style:inherit; }
+.notice-pied{ display:flex; gap:5px; flex-wrap:wrap; margin-top:5px; }
+
+/* ---- 3. Statistiques ------------------------------------------- */
+.stats{ display:flex; flex-direction:column; gap:5px; }
+.stat{
+  display:grid; grid-template-columns:74px 1fr 34px 58px;
+  align-items:center; gap:9px;
+}
+.stat > span{ font-size:12px; color:var(--ink-soft); }
+.stat > b{
+  font-family:var(--font-data); font-size:12px; color:var(--ink);
+  text-align:right; font-variant-numeric:tabular-nums;
+}
+.stat > i{
+  display:block; height:7px; border-radius:4px;
+  background:var(--card); overflow:hidden;
+  box-shadow:inset 0 0 0 1px var(--card-border);
+}
+.stat > i em{ display:block; height:100%; border-radius:4px; background:var(--caught); }
+.stat.faible > i em{ background:#c9694f; }
+.stat.forte  > i em{ background:var(--gold); }
+/* Le rang : 134 en Attaque ne veut rien dire seul. 33e sur 1025, si. */
+.stat-rang{
+  font-family:var(--font-data); font-size:9.5px; color:var(--ink-faint);
+  text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.stat-rang.haut{ color:var(--gold-deep); font-weight:700; }
+.stat.total{ border-top:1px solid var(--card-border); padding-top:7px; margin-top:3px; }
+.stat.total > span{ color:var(--ink); font-weight:700; }
+.stat.capture{ border-top:1px solid var(--card-border); padding-top:7px; margin-top:3px; }
+.stat.capture > i em{ background:var(--dex-red); }
+
+/* Le tableau des valeurs reelles : la fiche donnait des bases nues. */
+.paliers{ margin-top:11px; padding-top:10px; border-top:1px solid var(--card-border); }
+.paliers-titre{
+  font-family:var(--font-data); font-size:8.5px; font-weight:600;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint);
+  margin:0 0 6px;
+}
+.paliers-titre span{ text-transform:none; letter-spacing:0; font-family:var(--font-body); }
+.tableau-defile{ overflow-x:auto; }
+table.paliers-table{
+  width:100%; border-collapse:collapse;
+  font-family:var(--font-data); font-size:11px;
+  font-variant-numeric:tabular-nums;
+}
+.paliers-table th, .paliers-table td{
+  text-align:right; padding:3px 6px; white-space:nowrap;
+}
+.paliers-table th:first-child, .paliers-table td:first-child{
+  text-align:left; font-family:var(--font-body); font-size:12px; color:var(--ink-soft);
+}
+.paliers-table thead th{
+  font-size:8.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-faint); border-bottom:1px solid var(--card-border); padding-bottom:5px;
+}
+.paliers-table td{ color:var(--ink); }
+.paliers-table td .min{ color:var(--ink-faint); }
+
+.effort{
+  display:flex; align-items:center; flex-wrap:wrap; gap:6px;
+  margin-top:10px; padding-top:9px; border-top:1px solid var(--card-border);
+}
+.effort-titre{
+  font-family:var(--font-data); font-size:8.5px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-faint); font-weight:600; width:100%;
+}
+.effort-puce{
+  padding:2px 9px; border-radius:999px;
+  background:var(--caught-soft); color:var(--caught);
+  font-family:var(--font-data); font-size:11px; font-weight:700;
+}
+
+/* ---- 4. Affinites ---------------------------------------------- */
+/* Meme hauteur sur toutes les fiches, pour que la carte soit pleine et que la
+   colonne ne change pas de taille d'une espece a l'autre.
+
+   Les deux hauteurs sont MESUREES, et non estimees :
+
+     · les affinites ont ete rendues pour les 171 combinaisons de types
+       possibles — dix-huit types seuls et cent cinquante-trois paires. Elles
+       vont de 249 a 310 px ; le maximum est Combat / Tenebres, six lignes.
+       310 px couvre donc toutes les especes qui existent et toutes celles qui
+       pourraient exister sans nouveau type ;
+
+     · la notice a ete rendue avec le plus long des 7 149 textes de la reserve
+       — 237 caracteres — le plus long nom de jeu (Diamant Etincelant / Perle
+       Scintillante) et ses DEUX pastilles, le cas ou l'espece ne figure pas
+       dans le jeu ouvert : 188 px.
+
+   Les deux hauteurs se mesurent en offsetHeight et NON en
+   getBoundingClientRect : la modale s'ouvre sur une animation scale(0.92), et
+   le rectangle rendu est celui de la boite transformee. Mesuree ainsi, la
+   pire combinaison donnait 285 px au lieu de 310 — un bloc trop court de
+   vingt-cinq pixels, et trois especes sur quatorze qui debordaient.
+
+   min-height et non height : sur un ecran etroit ou avec une police plus
+   grande, le texte doit pouvoir pousser plutot que d'etre coupe. La hauteur
+   n'est alors plus uniforme, mais rien ne disparait — et sous 860 px la fiche
+   passe de toute facon a une seule colonne. */
+.affinites{ display:flex; flex-direction:column; gap:6px; min-height:310px; }
+.affinite{ display:flex; align-items:flex-start; gap:9px; }
+.affinite-mult{
+  flex-shrink:0; min-width:58px;
+  padding:2px 8px; border-radius:7px;
+  font-family:var(--font-data); font-size:11px; font-weight:700;
+  text-align:center; line-height:1.5;
+  background:var(--card); border:1px solid var(--card-border); color:var(--ink-soft);
+}
+.affinite-types{ display:flex; flex-wrap:wrap; gap:4px; padding-top:1px; }
+.affinite.tres-faible .affinite-mult{ background:var(--dex-red); border-color:var(--dex-red); color:#fff; }
+.affinite.faible .affinite-mult{ color:var(--dex-red); border-color:var(--dex-red); }
+.affinite.resiste .affinite-mult{ color:var(--caught); border-color:var(--caught); }
+.affinite.tres-resiste .affinite-mult{ background:var(--caught); border-color:var(--caught); color:#fff; }
+.affinite.immunise .affinite-mult{ background:var(--ink); border-color:var(--ink); color:var(--screen); }
+/* Le neutre ne decide aucun combat : il est la pour completer la table, donc
+   il passe sous un filet et se tient plus bas que les cinq autres lignes. */
+.affinite.neutre{
+  margin-top:3px; padding-top:8px;
+  border-top:1px dashed var(--card-border);
+}
+.affinite.neutre .affinite-mult{ color:var(--ink-faint); border-style:dashed; }
+.affinite.neutre .affinite-types img{ opacity:.62; }
+.affinite-note{
+  margin:9px 0 0; padding-top:8px; border-top:1px solid var(--card-border);
+  font-size:11.5px; line-height:1.5; color:var(--ink-faint);
+}
+.affinite-note b{ color:var(--dex-red); font-family:var(--font-data); font-size:11px; }
+
+/* ---- 5. Lignee -------------------------------------------------- */
+.lignee{ display:flex; flex-direction:column; gap:0; }
+.evo{
+  display:flex; align-items:center; gap:10px;
+  padding:7px 9px; border-radius:8px;
+  background:var(--card); border:1px solid var(--card-border);
+}
+.evo.ici{ border-color:var(--teinte); box-shadow:inset 3px 0 0 var(--teinte); }
+.evo-no{
+  font-family:var(--font-data); font-size:10px; color:var(--ink-faint);
+  font-variant-numeric:tabular-nums;
+}
+.evo-nom{ font-size:13px; font-weight:600; }
+.evo.ici .evo-nom{ color:var(--teinte); }
+.evo-ici-note{
+  margin-left:auto; font-family:var(--font-data); font-size:9px;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--teinte);
+}
+.evo-lien{
+  display:flex; align-items:center; gap:8px;
+  padding:5px 9px 5px 22px;
+  font-size:11.5px; color:var(--ink-soft);
+}
+.evo-lien::before{
+  content:""; width:9px; height:9px; margin-left:-13px;
+  border-left:1.5px solid var(--card-border);
+  border-bottom:1.5px solid var(--card-border);
+  border-bottom-left-radius:4px;
+}
+.evo-cond{
+  font-family:var(--font-data); font-size:10.5px; font-weight:600;
+  color:var(--gold-deep);
+  background:var(--card); border:1px solid var(--card-border);
+  border-radius:6px; padding:1px 7px;
+}
+
+/* ---- 6. Reproduction -------------------------------------------- */
+.repro-puces{ display:flex; gap:6px; flex-wrap:wrap; }
+.repro-puce{
+  font-size:11px; font-weight:700; color:#fff;
+  border-radius:7px; padding:3px 10px;
+  text-shadow:0 1px 1px rgba(0,0,0,.3);
+}
+.repro-puce.g2{ background:#4d90d5; }
+.repro-puce.g14{ background:#0b6dc3; }
+/* Resserre : la reproduction partage sa colonne avec la notice et la lignee,
+   et c'est leur somme qui doit tomber sur la hauteur du bloc des statistiques.
+   Les marges y gagnent une quinzaine de pixels sans rien retirer. */
+.genre{ display:flex; align-items:center; gap:9px; margin-top:7px; flex-wrap:wrap; }
+.genre-barre{
+  display:flex; flex:1 1 130px; min-width:130px; height:7px;
+  border-radius:4px; overflow:hidden; background:var(--card);
+  box-shadow:inset 0 0 0 1px var(--card-border);
+}
+.genre-barre i{ display:block; height:100%; }
+.genre-barre i.male{ background:#4d90d5; }
+.genre-barre i.femelle{ background:#ec8fe6; }
+.genre-texte{
+  font-family:var(--font-data); font-size:11px; color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;
+}
+.repro-note{ margin:7px 0 0; font-size:11px; line-height:1.5; color:var(--ink-faint); }
+
+/* ---- 7. Ou l'obtenir -------------------------------------------- */
+.obtention{ display:flex; flex-direction:column; gap:8px; max-height:330px; overflow-y:auto; }
+.obt-ligne{
+  background:var(--card); border-radius:9px; padding:8px 11px;
+  border-left:3px solid var(--dex-red);
+  border-top:1px solid var(--card-border);
+  border-right:1px solid var(--card-border);
+  border-bottom:1px solid var(--card-border);
+}
+.obt-ligne.par-evolution{ border-left-color:var(--gold); }
+.obt-ligne.par-echange{ border-left-color:var(--ink-faint); }
+.obt-jeu{
+  font-size:12.5px; font-weight:700; color:var(--ink);
+  display:flex; align-items:center; gap:7px; flex-wrap:wrap;
+}
+.obt-cat{
+  font-family:var(--font-data); font-size:8.5px; font-weight:600;
+  letter-spacing:.1em; text-transform:uppercase;
+  border-radius:5px; padding:1px 6px;
+  color:var(--dex-red); border:1px solid var(--dex-red);
+}
+.obt-cat.evolution{ color:var(--gold-deep); border-color:var(--gold); }
+.obt-cat.echange{ color:var(--ink-faint); border-color:var(--card-border); }
+.obt-lieu{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
+.obt-lieu span{ display:block; }
+/* Le nom d'une espece citee dans une ligne d'obtention : « Faire evoluer
+   Kadabra » ouvre la fiche de Kadabra, sur l'onglet ou l'on est deja. Il se
+   lit comme du texte souligne et non comme un bouton — c'est un renvoi dans
+   une phrase, pas une commande. */
+.obt-espece{
+  font:inherit; color:var(--teinte);
+  background:none; border:0; padding:0;
+  text-decoration:underline; text-underline-offset:2px;
+  text-decoration-color:var(--teinte-appui);
+  cursor:pointer;
+}
+.obt-espece:hover{ color:var(--dex-red); text-decoration-color:var(--dex-red); }
+.obt-espece:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; border-radius:3px; }
+.obt-detail{
+  font-family:var(--font-data); font-size:10.5px; color:var(--ink-faint);
+  font-variant-numeric:tabular-nums;
+}
+.obt-plus{
+  font-family:var(--font-data); font-size:10px; color:var(--ink-faint);
+  padding:2px 0 0 2px;
+}
+
+.jeux-liste{ display:flex; gap:5px; flex-wrap:wrap; }
+.jeu-puce{
+  font-size:11px; font-weight:600; color:var(--ink-soft);
+  background:var(--card); border:1px solid var(--card-border);
+  border-radius:7px; padding:3px 9px;
+}
+.jeu-puce.premier{ background:var(--dex-red); border-color:var(--dex-red); color:#fff; }
+
+/* ---- 8. Attaques ------------------------------------------------ */
+.onglets{ display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px; }
+.onglet{
+  font-family:var(--font-body); font-size:11px; font-weight:600;
+  border:1px solid var(--card-border); border-radius:7px;
+  background:var(--card); color:var(--ink-soft);
+  padding:4px 10px; cursor:default;
+}
+.onglet.actif{ background:var(--dex-red); border-color:var(--dex-red); color:#fff; }
+table.attaques{
+  width:100%; border-collapse:collapse; font-size:12.5px;
+  font-variant-numeric:tabular-nums;
+}
+.attaques thead th{
+  font-family:var(--font-data); font-size:8.5px; font-weight:600;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint);
+  text-align:right; padding:0 7px 6px;
+  border-bottom:1px solid var(--card-border); white-space:nowrap;
+}
+.attaques thead th.g{ text-align:left; }
+.attaques tbody td{
+  padding:5px 7px; border-bottom:1px solid var(--card-border);
+  text-align:right; white-space:nowrap;
+}
+.attaques tbody tr:last-child td{ border-bottom:0; }
+.attaques td.nv{
+  font-family:var(--font-data); font-size:11.5px; color:var(--ink-faint);
+  text-align:left; width:44px;
+}
+.attaques td.nom{ text-align:left; font-weight:600; }
+.attaques td.type{ text-align:left; width:112px; }
+.attaques td.cat{ text-align:left; width:88px; }
+.attaques td.chiffre{ font-family:var(--font-data); font-size:11.5px; color:var(--ink); }
+.attaques td.chiffre.vide{ color:var(--ink-faint); }
+.cat-puce{
+  display:inline-block; font-size:9.5px; font-weight:700;
+  border-radius:5px; padding:2px 7px; color:#fff;
+}
+.cat-puce.physique{ background:#c9694f; }
+.cat-puce.speciale{ background:#5269ac; }
+.cat-puce.statut{ background:#9099a1; }
+
+
+/* --- responsive --- */
+/* ---- Etroit ------------------------------------------------------ */
+@media (max-width:860px){
+  .identite{ grid-template-columns:1fr; gap:18px; padding:20px 18px 18px; }
+  .portrait{ max-width:260px; margin:0 auto; }
+  .nom{ font-size:31px; }
+  .colonnes{ columns:1; }
+  .talents{ grid-template-columns:1fr; }
+  /* Une seule colonne : le talent isole n'a plus de case vide a combler. */
+  .talents.impair .talent:last-child{ grid-column:auto; }
+  .corps{ padding:14px 18px 20px; }
+  .obtention{ max-height:none; }
+}
+@media (max-width:560px){
+  .type-img{ width:78px; height:17px; }
+  .stat{ grid-template-columns:64px 1fr 30px; }
+  .stat-rang{ display:none; }
+}
+@media (prefers-reduced-motion:reduce){
+  *{ animation:none !important; transition:none !important; }
+}

@@ -1,0 +1,39 @@
+[package]
+name = "pokearchive"
+version = "0.1.0"
+description = "PokéArchive — suivi de collection Pokémon"
+authors = ["Tennosei_"]
+edition = "2021"
+
+[lib]
+name = "pokearchive_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# rustls plutôt que le TLS du système : un binaire distribuable qui ne dépend
+# d'aucune bibliothèque installée sur la machine du joueur.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+# Le minuscule serveur qui reçoit le retour de connexion Discord.
+tiny_http = "0.12"
+opener = "0.7"
+
+# L'échange PKCE : un vérifieur tiré au sort, son empreinte SHA-256 comme défi.
+# Ces trois-là sont déjà dans l'arbre (rustls, reqwest) — les déclarer ne coûte
+# aucune compilation supplémentaire.
+sha2 = "0.10"
+base64 = "0.21"
+getrandom = "0.2"
+
+[profile.release]
+opt-level = "s"    # on optimise la taille : c'est un installeur qu'on distribue
+lto = true
+codegen-units = 1
+strip = true

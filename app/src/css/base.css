@@ -1,0 +1,525 @@
+/* Palette, theme sombre, chassis du Pokedex, modales et apercu. */
+
+  :root{
+    /* ---- Palette ---- */
+    --dex-red:#ee3a3a;
+    --dex-red-deep:#b5211f;
+    --dex-red-darker:#7c1614;
+    --chrome-hi:#fbfcff;
+    --chrome-lo:#c9ced8;
+    --ink:#1c1e29;
+    --ink-soft:#6b7080;
+    --ink-faint:#9aa0b0;
+    --screen:#f6f5f0;
+    --screen-edge:#e7e5dc;
+    --card:#ffffff;
+    --card-border:#e7e6ef;
+    --gold:#f2a900;
+    --gold-deep:#c98600;
+    --caught:#2f9e63;
+    --caught-soft:#e5f6ec;
+    --danger:#c93a2e;
+    --font-display:"Press Start 2P", monospace;
+    --font-body:"Outfit", -apple-system, "Segoe UI", sans-serif;
+    --font-data:"JetBrains Mono", "SF Mono", Consolas, monospace;
+    /* Reprise du modèle de fiche du 24 août 2026 : une seule ombre pour
+       toutes les cartes de l'application. Quand chacune posait la sienne, une
+       modale et un panneau ne flottaient pas à la même hauteur sans que rien
+       ne dise pourquoi. */
+    --ombre:0 30px 60px -20px rgba(28,30,41,.34);
+  }
+
+  /* ---- L'échelle des cartes ------------------------------------------
+     Le modèle du 24 août 2026 ne pose que six arrondis. Toutes les cartes de
+     l'application s'y rangent, sans autre valeur intermédiaire :
+
+        18px   modale, fiche — ce qui recouvre l'écran
+        14px   grande carte et cadre d'image — la carte d'un Pokémon dans la
+               grille, celle d'un jeu, le portrait de la fiche
+        11px   bloc, panneau — ce qui regroupe
+        10px   ligne, carte intérieure, champ de saisie
+         7px   pastille, petite commande
+       999px   pilule ronde
+
+     Les bordures font 1 px. Le 1,5 px reste aux bascules d'état (.chip-check
+     et .etat) : elles doivent peser plus lourd que leur voisinage, c'est ce
+     qui les distingue d'un simple cadre.
+
+     Les sur-titres de bloc sont en --font-data 9,5 px / .14em, les
+     micro-étiquettes en 8,5 px / .12em, les deux en capitales et --ink-faint.
+     Tout chiffre qui peut changer sous les yeux porte tabular-nums, sinon la
+     colonne danse à chaque mise à jour. */
+
+  /* ---- Thème sombre ----------------------------------------------------
+     Seules les couleurs bougent : tout le reste de la feuille passe par ces
+     variables, donc rien d'autre n'a besoin d'être dupliqué. Le rouge du
+     boîtier est assombri pour ne pas éblouir sur fond noir. */
+  html[data-theme="dark"]{
+    --dex-red:#8e2b2b;
+    --dex-red-deep:#671b1b;
+    --dex-red-darker:#3f1010;
+    --chrome-hi:#2a2c36;
+    --chrome-lo:#3b3e4a;
+    --ink:#e8e9f0;
+    --ink-soft:#a0a4b4;
+    --ink-faint:#6e7385;
+    --screen:#1a1c24;
+    --screen-edge:#15171e;
+    --card:#232630;
+    --card-border:#343846;
+    --gold:#d99a12;
+    --gold-deep:#f0b53a;
+    --caught:#2f9e63;
+    --caught-soft:#1d3b2b;
+    --danger:#e4665a;
+    --ombre:0 30px 60px -20px rgba(0,0,0,.6);
+  }
+  html[data-theme="dark"] body{ background:#0e0f14; }
+  /* Huit rattrapages vivaient ici : le cadre d'un sprite, la barre d'une
+     génération, la case à cocher, l'onglet survolé, la glissière des portées,
+     la note de portée, le numéro et le témoin de forme. Chacun repeignait en
+     sombre une couleur que sa règle avait codée en dur. Ces règles passent
+     maintenant par les jetons de la palette, qui changent seuls avec le
+     thème — les rattrapages n'étaient plus redondants mais faux : plus
+     spécifiques, ils auraient écrasé le jeton et remis le gris fixe.
+     Seul celui de la jauge reste : son tracé est un attribut SVG. */
+  html[data-theme="dark"] .gauge .track{ stroke:#31343f; }
+  html[data-theme="dark"] .toolbar input,
+  html[data-theme="dark"] .toolbar select,
+  html[data-theme="dark"] .toggle-btn{ background:var(--card); color:var(--ink); }
+  html[data-theme="dark"] .modal-card input[type="text"]{ background:var(--screen); color:var(--ink); }
+
+  .theme-btn{
+    margin-left:10px;
+    width:34px; height:34px;
+    border-radius:50%;
+    border:1px solid rgba(255,255,255,.28);
+    background:rgba(0,0,0,.18);
+    color:#fff;
+    font-size:15px;
+    line-height:1;
+    cursor:pointer;
+    flex-shrink:0;
+    transition:background 120ms;
+  }
+  .theme-btn:hover{ background:rgba(0,0,0,.32); }
+  .theme-btn:focus-visible{ outline:2.5px solid #fff; outline-offset:2px; }
+
+  /* Langue des noms de Pokémon. Même famille que le bouton de thème, mais en
+     pilule : le libellé porte un mot, pas une icône, et doit rester lisible. */
+  .lang-btn{
+    margin-left:10px;
+    height:34px;
+    padding:0 13px;
+    border-radius:17px;
+    border:1px solid rgba(255,255,255,.28);
+    background:rgba(0,0,0,.18);
+    color:#fff;
+    font-family:var(--font-body);
+    font-size:12.5px;
+    font-weight:600;
+    line-height:1;
+    cursor:pointer;
+    flex-shrink:0;
+    transition:background 120ms;
+  }
+  .lang-btn:hover{ background:rgba(0,0,0,.32); }
+  .lang-btn:focus-visible{ outline:2.5px solid #fff; outline-offset:2px; }
+
+  /* ---- Actions groupées ---- */
+  .bulk-bar{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    margin:0 0 12px;
+    padding:8px 12px;
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:11px;
+  }
+  .bulk-label{
+    font-family:var(--font-data);
+    font-size:11px;
+    color:var(--ink-soft);
+    font-variant-numeric:tabular-nums;
+    flex:1; min-width:150px;
+  }
+  .bulk-label b{ color:var(--ink); font-weight:700; }
+  .bulk-btn{
+    font-family:var(--font-body);
+    font-size:11.5px; font-weight:700;
+    color:var(--ink-soft);
+    background:var(--screen);
+    border:1px solid var(--card-border);
+    border-radius:7px;
+    padding:6px 12px;
+    cursor:pointer;
+    transition:border-color 120ms, color 120ms;
+  }
+  .bulk-btn:hover:not(:disabled){ border-color:var(--chrome-lo); color:var(--ink); }
+  .bulk-btn:disabled{ opacity:.45; cursor:not-allowed; }
+  .bulk-btn:focus-visible{ outline:2.5px solid var(--dex-red); }
+
+  /* ---- Comparaison avec le Pokédex d'un ami ---- */
+  .compare-bar{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    margin:0 0 10px; padding:9px 13px;
+    background:color-mix(in srgb, #a06ee0 10%, var(--card));
+    border:1px solid color-mix(in srgb, #a06ee0 35%, var(--card-border));
+    border-left:3px solid #a06ee0;
+    border-radius:11px;
+  }
+  .compare-label{ flex:1; min-width:180px; font-size:12px; color:var(--ink-soft); line-height:1.5; }
+  .compare-label b{ color:var(--ink); font-weight:700; }
+
+  .card-compare{
+    display:block;
+    margin-top:6px;
+    font-family:var(--font-data);
+    font-size:8.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase;
+    text-align:center;
+    border-radius:7px;
+    padding:3px 5px;
+  }
+  .card-compare.deux  { background:var(--caught); color:#fff; }
+  .card-compare.lui   { background:#5a3a8c; color:#e6d8ff; }
+  .card-compare.moi   { background:#2b4a6b; color:#cfe6ff; }
+  .card-compare.aucun { background:transparent; color:var(--ink-faint); border:1px dashed var(--card-border); }
+
+  /* ---- Zone de code partagé ---- */
+  .code-box{
+    width:100%;
+    font-family:var(--font-data);
+    font-size:11px;
+    line-height:1.5;
+    color:var(--ink);
+    background:var(--screen);
+    border:1px solid var(--card-border);
+    border-radius:10px;
+    padding:10px 12px;
+    margin-bottom:12px;
+    resize:vertical;
+    word-break:break-all;
+  }
+  .code-box:focus-visible{ outline:2.5px solid var(--dex-red); }
+
+  /* ---- Ce que la fiche partage avec le reste de l'application ----
+     La mise en page de la fiche vit dans fiche.css depuis le modèle du 24 août
+     2026. Ne restent ici que le repli des logos de type et la liste des jeux,
+     que d'autres écrans emploient aussi. */
+  .type-chip{
+    font-family:var(--font-body);
+    font-size:11px; font-weight:700; letter-spacing:.03em;
+    color:#fff;
+    border-radius:999px;
+    padding:4px 13px;
+    text-shadow:0 1px 1px rgba(0,0,0,.3);
+  }
+  .jeux-liste{ display:flex; gap:5px; flex-wrap:wrap; }
+  .jeu-puce{
+    font-size:11px; font-weight:600;
+    color:var(--ink-soft);
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:7px;
+    padding:3px 9px;
+  }
+  .jeu-puce.premier{ background:var(--dex-red); border-color:var(--dex-red); color:#fff; }
+
+  /* ---- Shiny-lockés : aucun chromatique légitime n'existe ---- */
+  .card.shiny-locked .chip-check{ opacity:.5; }
+  .card-lock{
+    position:absolute; bottom:5px; right:5px;
+    font-size:11px; line-height:1;
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:7px;
+    padding:2px 5px;
+    cursor:help;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:transparent;}
+  body{
+    font-family:var(--font-body);
+    color:var(--ink);
+    display:flex;
+    justify-content:center;
+    padding:20px 14px 40px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
+  }
+
+  /* ===================== SHELL / CHASSIS ===================== */
+  .dex{
+    width:100%;
+    max-width:980px;
+    background:
+      radial-gradient(120% 160% at 15% -10%, rgba(255,255,255,0.22), rgba(255,255,255,0) 45%),
+      linear-gradient(155deg, var(--dex-red) 0%, var(--dex-red-deep) 62%, var(--dex-red-darker) 100%);
+    border-radius:26px;
+    padding:20px;
+    box-shadow:
+      0 30px 60px -20px rgba(90,10,10,0.55),
+      0 2px 0 rgba(255,255,255,0.25) inset,
+      0 -6px 18px rgba(0,0,0,0.25) inset;
+    position:relative;
+  }
+  .dex::before{
+    content:"";
+    position:absolute; inset:0;
+    border-radius:26px;
+    background:repeating-linear-gradient(115deg, rgba(255,255,255,0.05) 0 2px, transparent 2px 6px);
+    pointer-events:none;
+    opacity:0.5;
+  }
+
+  .dex-header{
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px 14px;
+    padding:2px 6px 18px;
+    position:relative;
+  }
+  .dex-lens{
+    width:38px;height:38px;border-radius:50%;
+    flex-shrink:0;
+    background:radial-gradient(circle at 32% 28%, #bfe9ff 0%, #57b9ee 28%, #1c74ad 62%, #0d3f5f 100%);
+    box-shadow:
+      0 0 0 4px var(--chrome-hi),
+      0 0 0 6px var(--dex-red-darker),
+      0 3px 6px rgba(0,0,0,0.35);
+  }
+  .dex-lens::after{
+    content:"";
+    position:absolute;
+    width:9px;height:9px;
+    margin:6px 0 0 8px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.85);
+    filter:blur(0.5px);
+  }
+  .dex-titleblock{display:flex; flex-direction:column; gap:2px;}
+  .dex-eyebrow{
+    font-family:var(--font-data);
+    font-size:10px;
+    letter-spacing:0.22em;
+    color:rgba(255,255,255,0.75);
+    text-transform:uppercase;
+  }
+  .dex-title{
+    font-family:var(--font-body);
+    font-weight:800;
+    font-size:26px;
+    color:#fff;
+    letter-spacing:-0.01em;
+    text-shadow:0 2px 0 rgba(0,0,0,0.15);
+  }
+  .dex-lights{margin-left:auto; display:flex; gap:8px;}
+  .dex-lights span{
+    width:10px;height:10px;border-radius:50%;
+    background:rgba(255,255,255,0.35);
+    box-shadow:0 0 0 2px rgba(0,0,0,0.15) inset;
+  }
+  .dex-lights span:nth-child(1){background:#ffd66b;}
+  .dex-lights span:nth-child(2){background:#8fe08a;}
+  .dex-lights span:nth-child(3){background:#88c6ff;}
+
+  .player-badge{
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:12.5px;
+    color:#fff;
+    background:rgba(0,0,0,0.18);
+    border:1px solid rgba(255,255,255,0.28);
+    border-radius:999px;
+    padding:6px 12px;
+    margin-left:10px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    white-space:nowrap;
+    transition:background 120ms;
+  }
+  .player-badge:hover{ background:rgba(0,0,0,0.3); }
+  .player-badge .pencil{ opacity:0.7; font-size:11px; }
+  .player-badge:focus-visible{ outline:2.5px solid #fff; outline-offset:2px; }
+
+  /* ===================== PLAYER NAME MODAL ===================== */
+  .modal-overlay{
+    position:fixed; inset:0;
+    background:rgba(20,16,20,0.55);
+    backdrop-filter:blur(3px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:50;
+  }
+  .modal-card{
+    width:100%;
+    max-width:360px;
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:18px;
+    padding:26px 24px 22px;
+    box-shadow:var(--ombre);
+    text-align:center;
+    animation:modal-pop 220ms cubic-bezier(.2,.9,.3,1.2);
+  }
+  @keyframes modal-pop{
+    0%{ opacity:0; transform:scale(0.92) translateY(6px); }
+    100%{ opacity:1; transform:scale(1) translateY(0); }
+  }
+  .modal-eyebrow{
+    font-family:var(--font-data);
+    font-size:10.5px;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:var(--dex-red);
+    font-weight:600;
+    margin-bottom:6px;
+  }
+  .modal-title{
+    font-family:var(--font-body);
+    font-weight:800;
+    font-size:19px;
+    color:var(--ink);
+    margin:0 0 6px;
+  }
+  .modal-sub{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin:0 0 16px;
+    line-height:1.4;
+  }
+  .modal-card input[type="text"]{
+    width:100%;
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:15px;
+    text-align:center;
+    color:var(--ink);
+    border:1px solid var(--card-border);
+    background:var(--screen);
+    padding:11px 12px;
+    border-radius:10px;
+    margin-bottom:16px;
+  }
+  .modal-card input[type="text"]:focus-visible{ outline:2.5px solid var(--dex-red); }
+
+  /* ---- Choix du profil ---- */
+  .profile-list{ display:flex; flex-direction:column; gap:6px; margin:0 0 14px; text-align:left; }
+  .profile-btn{
+    display:flex; align-items:center; gap:10px;
+    font-family:var(--font-body); font-size:13px; font-weight:600;
+    color:var(--ink);
+    background:var(--screen);
+    border:1px solid var(--card-border);
+    border-radius:10px;
+    padding:9px 12px;
+    cursor:pointer;
+    text-align:left;
+    transition:border-color 120ms, background 120ms;
+  }
+  .profile-btn:hover{ border-color:var(--dex-red); }
+  .profile-btn.current{ border-color:var(--caught); background:var(--caught-soft); }
+  .profile-btn:focus-visible{ outline:2.5px solid var(--dex-red); }
+  .profile-btn .pname{ flex:1; }
+  .profile-btn .pstats{
+    font-family:var(--font-data); font-size:10.5px; color:var(--ink-soft);
+    font-variant-numeric:tabular-nums;
+  }
+  /* ---- Aperçu d'un Pokémon (clic sur une carte) ---- */
+  /* La fiche porte maintenant stats, talents, évolution et lieux d'obtention :
+     420 px n'y suffisaient plus. Elle s'élargit et défile si la fenêtre est
+     courte, sans jamais déborder de l'écran. */
+  /* La carte ne defile plus elle-meme : c'est son contenu qui defile, dans un
+     conteneur a part. Sans ca, la croix partait vers le haut des qu'on
+     descendait dans la fiche, et se retrouvait collee a l'ascenseur. */
+  .preview-card{
+    width:100%; max-width:880px;
+    max-height:92vh;
+    display:flex; flex-direction:column;
+    overflow:hidden;
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:18px;
+    box-shadow:var(--ombre);
+    text-align:center;
+    animation:modal-pop 200ms cubic-bezier(.2,.9,.3,1.2);
+    position:relative;
+  }
+  .preview-defilant{
+    flex:1 1 auto; min-height:0;
+    overflow-y:auto;
+    padding:22px 22px 18px;
+    scrollbar-width:thin;
+    scrollbar-color:var(--card-border) transparent;
+  }
+  .preview-defilant::-webkit-scrollbar{ width:9px; }
+  .preview-defilant::-webkit-scrollbar-track{ background:transparent; }
+  .preview-defilant::-webkit-scrollbar-thumb{
+    background:var(--card-border); border-radius:999px;
+  }
+  .preview-defilant::-webkit-scrollbar-thumb:hover{ background:var(--ink-faint); }
+
+  /* Posee au-dessus du conteneur defilant, et decalee de la largeur de
+     l'ascenseur : elle reste visible du haut en bas de la fiche, sur un fond
+     plein — en transparent, elle disparaissait sur les sprites clairs. */
+  .preview-close{
+    position:absolute; top:12px; right:20px;
+    z-index:6;
+    width:34px; height:34px;
+    border:1px solid var(--card-border); border-radius:50%;
+    background:var(--card); color:var(--ink);
+    font-size:15px; line-height:1; cursor:pointer;
+    box-shadow:0 2px 10px rgba(0,0,0,.35);
+    transition:background 120ms, color 120ms, border-color 120ms;
+  }
+  .preview-close:hover{ background:var(--dex-red); border-color:var(--dex-red); color:#fff; }
+  .preview-close:focus-visible{ outline:2.5px solid var(--dex-red); outline-offset:2px; }
+  /* Le portrait, le nom, le numéro et les deux états de capture vivaient ici,
+     sous les noms de l'ancienne fiche. Le modèle du 24 août 2026 les redessine
+     dans fiche.css en .portrait, .nom, .portrait-no, .surtitre, .etats et
+     .etat : plus rien ne portait ces classes. */
+
+  .profile-sep{
+    font-family:var(--font-data); font-size:10px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--ink-faint); text-align:center; margin:2px 0 8px;
+  }
+  .modal-error{
+    display:none;
+    font-size:12px;
+    font-weight:600;
+    color:var(--danger);
+    margin:-8px 0 14px;
+    line-height:1.35;
+  }
+  .modal-error.visible{ display:block; }
+  .modal-card input.invalid{ border-color:var(--danger); }
+  .modal-sub strong{ color:var(--ink); font-weight:700; }
+  .modal-sub code{
+    font-family:var(--font-data);
+    font-size:11.5px;
+    background:var(--screen);
+    border:1px solid var(--card-border);
+    border-radius:5px;
+    padding:1px 5px;
+    white-space:nowrap;
+  }
+  /* Une marge au-dessus : sans elle, les boutons se collaient au dernier champ,
+     et l'anneau de focus d'un menu ouvert leur passait dessus. */
+  .modal-actions{ display:flex; gap:8px; margin-top:16px; align-items:stretch; }
+  .modal-actions .toggle-btn{
+    flex:1 1 0; min-width:0;
+    padding:10px; justify-content:center; text-align:center;
+  }
+  .modal-actions .toggle-btn.primary{
+    background:linear-gradient(180deg, #ff5a56, var(--dex-red));
+    color:#fff;
+    border-color:var(--dex-red-deep);
+  }
+
