@@ -55,6 +55,14 @@ const METHODES = {
   'reproduction':  { nom:'Reproduction ordinaire', tirages:0, jeux:AVEC_REPRODUCTION },
   'chaine':        { nom:'Combo Capture', taux:315, jeux:['letsgo'] },
   'peche':         { nom:'Pêche à la chaîne', taux:100, jeux:['xy'] },
+  // Cobblemon a ses propres machines, et leurs taux sont écrits dans la
+  // configuration du mod — fossilMachineShinyChance = 100,
+  // honeySlatherShinyChance = 4000. Ce sont des règles propres, pas des
+  // tirages : la machine tire son propre dé, le dé du monde ne s'y applique pas.
+  'fossile':       { nom:'Machine à fossiles', taux:100, jeux:['cobblemon'],
+                     aide:'Un Pokémon ressuscité d\'un fossile. De loin la meilleure chance du mod.' },
+  'miel':          { nom:'Rondin badigeonné de miel', taux:4000, jeux:['cobblemon'],
+                     aide:'Le miel appliqué sur un rondin attire, et améliore la chance.' },
   'autre':         { nom:'Autre méthode', tirages:0, jeux:'*' }
 };
 
@@ -71,8 +79,14 @@ const BONUS = {
 };
 
 // Le taux de base du jeu : c'est le dé, celui que les tirages relancent.
+//
+// Cobblemon vaut 8192, comme les cinq premières générations. Ce n'est pas une
+// approximation : le mod déclare « shinyRate = 8192F » dans sa configuration.
+// C'est en revanche un réglage SERVEUR — une partie peut l'avoir changé, et
+// l'écran de chasse le dit.
 function tauxDeBase(cle){
   if(SANS_CHROMATIQUES.indexOf(cle) !== -1) return null;
+  if(cle === 'cobblemon') return 8192;
   return TAUX_ANCIEN.indexOf(cle) !== -1 ? 8192 : 4096;
 }
 
@@ -387,13 +401,17 @@ function conclureChasse(c){
 let chasseSelection = null;   // l'entrée retenue, en attente de validation
 
 // Le choix du jeu : les Pokédex de la série, plus la collection d'ensemble.
-// Pokémon HOME n'est pas un lieu de rencontre : c'est une boîte de rangement.
-// On ne l'y propose donc pas — une chasse se mène dans un jeu.
-// Cobblemon est un mod dont les taux dependent du serveur : on ne peut rien en
-// affirmer. Rouge, Bleu et Jaune n'ont pas de chromatiques. Et Pokemon HOME est
-// une boite de rangement, pas un lieu de rencontre. Aucun des trois n'a sa
-// place dans une chasse.
-const JEUX_SANS_CHASSE = SANS_CHROMATIQUES.concat(['cobblemon']);
+// Rouge, Bleu et Jaune n'ont pas de chromatiques, et Pokémon HOME est une
+// boîte de rangement, pas un lieu de rencontre. Ni les uns ni l'autre n'ont
+// leur place dans une chasse.
+//
+// Cobblemon en était écarté au motif que « les taux dépendent du serveur : on
+// ne peut rien en affirmer ». Le motif était bon et il ne l'est plus qu'à
+// moitié : le taux est bien un réglage serveur, mais sa VALEUR PAR DÉFAUT est
+// écrite dans le mod — 8192 —, tout comme celles de la machine à fossiles
+// (100) et du miel (4000). On peut donc en affirmer quelque chose d'utile, à
+// condition de dire que c'est la valeur d'origine. L'écran s'en charge.
+const JEUX_SANS_CHASSE = SANS_CHROMATIQUES.slice();
 
 function jeuxChassables(){
   return GAMES.filter(function(g){ return JEUX_SANS_CHASSE.indexOf(g.key) === -1; });
@@ -567,6 +585,12 @@ function majTauxAffiche(){
     const n = tiragesDeChasse(methode, bonusCoches(), jeu);
     chasseTaux.textContent = 'Taux estimé : 1/' + Math.round(taux)
       + '  —  ' + n + ' tirage' + (n > 1 ? 's' : '') + ' sur 1/' + base;
+  }
+  // Sur un mod, un taux n'est jamais qu'une valeur par défaut : le serveur peut
+  // l'avoir changée, et rien dans l'application ne peut le savoir. Le dire ici
+  // vaut mieux que d'annoncer un chiffre comme s'il était acquis.
+  if(jeu === 'cobblemon'){
+    chasseTaux.textContent += '  —  valeurs d\'origine du mod ; un serveur peut les régler autrement.';
   }
 }
 
