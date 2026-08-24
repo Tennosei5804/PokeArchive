@@ -115,16 +115,12 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 .jeu-jaquette.vignette{ aspect-ratio:698 / 156; padding:6px; }
 .jeu-jaquette.vignette img{ width:auto; height:100%; object-fit:contain; }
 
-/* La bannière HOME est bien plus large que les autres (1841x156, soit un
-   rapport de 11,8 contre 4,5) : laissée à sa hauteur naturelle, sa carte
-   serait deux fois et demie plus plate que ses voisines. On lui impose donc le
-   format des autres jaquettes, et « cover » rogne les côtés — le logo occupe le
-   centre, les bords ne sont que du fond prolongé. */
-.jeu-home .jeu-jaquette{ aspect-ratio:698 / 156; }
-.jeu-home .jeu-jaquette img{
-  width:100%; height:100%;
-  object-fit:cover; object-position:center;
-}
+/* La bannière HOME n'a plus d'exception. Elle mesurait 1841x156 — un rapport
+   de 11,8 contre 4,5 pour les autres — et il fallait lui imposer le format
+   commun, « cover » rognant les côtés pour la faire entrer.
+   Elle a été recadrée à 698x156, exactement sur ce que « cover » montrait :
+   le logo au centre, le décor pastel de part et d'autre. Même format que les
+   vingt-trois autres, donc même règle, donc plus de règle du tout. */
 .jeu-secours{
   font-size:12.5px; font-weight:700; color:var(--ink-soft);
   text-align:center; line-height:1.35;
