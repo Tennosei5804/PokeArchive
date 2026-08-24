@@ -92,3 +92,31 @@ jobs:
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
+
+      # Une publication peut « réussir » en ne livrant rien. C'est arrivé à la
+      # v0.1.0 : le workflow au vert, et une release sans le moindre fichier —
+      # une release créée à la main sur le même tag avait pris la place de celle
+      # que l'action préparait. Un tag ne porte qu'une release ; la seconde ne
+      # remplace pas la première, elle l'empêche d'exister.
+      #
+      # Personne ne s'en aperçoit avant qu'un ami clique sur un lien mort. On
+      # vérifie donc que les deux fichiers sont bien là, et on échoue sinon.
+      - name: Vérifier que la release contient bien les deux fichiers
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          fichiers=$(gh release view "${GITHUB_REF_NAME}" --json assets --jq '.assets[].name')
+          echo "Fichiers de la release :"
+          echo "${fichiers:-  (aucun)}"
+
+          manque=0
+          echo "$fichiers" | grep -qi '\.exe$'      || { echo "::error::L'installeur .exe manque."; manque=1; }
+          echo "$fichiers" | grep -qi 'latest\.json' || { echo "::error::latest.json manque — aucune mise à jour ne partirait."; manque=1; }
+
+          if [ "$manque" = "1" ]; then
+            echo "::error::Une release existe peut-être déjà sur ce tag, créée à la main."
+            echo "::error::Supprimez-la ainsi que le tag, puis reposez le tag."
+            exit 1
+          fi
+          echo "Les deux fichiers sont présents."
