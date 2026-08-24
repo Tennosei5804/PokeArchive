@@ -15,6 +15,8 @@ use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{Manager, State};
 
+mod presence;
+
 /// Adresse de l'API. Fixée à la compilation pour la version distribuée :
 ///   set POKEARCHIVE_API=https://api.exemple.fr && cargo tauri build
 const API_DEFAUT: &str = "http://127.0.0.1:8787";
@@ -627,6 +629,8 @@ pub fn run() {
                 .and_then(|t| serde_json::from_str::<Session>(&t).ok())
                 .filter(|s| !s.jeton.is_empty());
 
+            app.manage(presence::Presence::new());
+
             app.manage(Etat {
                 session: Mutex::new(session),
                 fichier,
@@ -648,7 +652,9 @@ pub fn run() {
             dresseurs,
             profils_de,
             dex_de,
-            changer_pseudo
+            changer_pseudo,
+            presence::presence_maj,
+            presence::presence_effacer
         ])
         .run(tauri::generate_context!())
         .expect("erreur au lancement de PokéArchive");
