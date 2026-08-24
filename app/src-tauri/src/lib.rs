@@ -548,6 +548,74 @@ async fn historique(
     appeler(reqwest::Method::GET, &chemin, &jeton, None).await
 }
 
+/// Tout ce que le dresseur possède, en un objet. Le service tourne sur un
+/// hébergement gratuit : il ne doit pas retenir les collections en otage.
+#[tauri::command]
+async fn exporter(etat: State<'_, Etat>) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(reqwest::Method::GET, "/api/export", &jeton, None).await
+}
+
+/// Les connexions ouvertes. Une session dure quatre-vingt-dix jours, et rien
+/// ne les montrait — donc rien à faire après s'être connecté chez un ami.
+#[tauri::command]
+async fn sessions(etat: State<'_, Etat>) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(reqwest::Method::GET, "/api/sessions", &jeton, None).await
+}
+
+#[tauri::command]
+async fn fermer_session(etat: State<'_, Etat>, id: i64) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    let chemin = format!("/api/sessions/{id}");
+    appeler(reqwest::Method::DELETE, &chemin, &jeton, None).await
+}
+
+/// Tout couper sauf celle d'où vient la demande : le geste qu'on cherche après
+/// s'être connecté sur la machine de quelqu'un d'autre.
+#[tauri::command]
+async fn fermer_les_autres(etat: State<'_, Etat>) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(
+        reqwest::Method::POST,
+        "/api/sessions/fermer-les-autres",
+        &jeton,
+        Some(serde_json::json!({})),
+    )
+    .await
+}
+
+/// Le journal, toutes aventures confondues. Celui de la page Profil ne montre
+/// que l'aventure ouverte ; celui-ci les réunit.
+#[tauri::command]
+async fn journal(etat: State<'_, Etat>, avant: Option<i64>) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    let chemin = match avant {
+        Some(a) => format!("/api/journal?avant={a}"),
+        None => "/api/journal".to_string(),
+    };
+    appeler(reqwest::Method::GET, &chemin, &jeton, None).await
+}
+
+/// Renommer quelqu'un. L'API répond 404 à qui n'est pas l'administrateur : la
+/// vérification est là-bas, jamais ici — une application distribuée ne décide
+/// pas de ses propres droits.
+#[tauri::command]
+async fn renommer_dresseur(
+    etat: State<'_, Etat>,
+    pseudo: String,
+    nouveau: String,
+) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(
+        reqwest::Method::POST,
+        "/api/admin/renommer",
+        &jeton,
+        Some(serde_json::json!({ "pseudo": pseudo, "nouveau": nouveau })),
+    )
+    .await
+}
+
 #[tauri::command]
 async fn supprimer_profil(etat: State<'_, Etat>, id: i64) -> Result<serde_json::Value, String> {
     let jeton = etat.jeton()?;
@@ -653,6 +721,12 @@ pub fn run() {
             profils_de,
             dex_de,
             changer_pseudo,
+            exporter,
+            sessions,
+            fermer_session,
+            fermer_les_autres,
+            journal,
+            renommer_dresseur,
             presence::presence_maj,
             presence::presence_effacer
         ])
