@@ -4,7 +4,16 @@
 export const config = {
   apiUrl: (process.env.API_URL || 'http://127.0.0.1:8787').replace(/\/+$/, ''),
   port: Number(process.env.PORT || 8787),
-  hote: process.env.HOTE || '127.0.0.1',
+  // L'adresse d'écoute. En local, 127.0.0.1 suffit et protège : le service
+  // n'est joignable que depuis la machine. Hébergé, c'est la PLATEFORME qui
+  // impose l'adresse et le port, et il faut écouter exactement là — sinon le
+  // service démarre sans erreur et reste injoignable, ce qui est le pire cas :
+  // les journaux disent que tout va bien.
+  //
+  //   IP    alwaysdata
+  //   HOST  la plupart des autres
+  //   HOTE  pour forcer à la main
+  hote: process.env.HOTE || process.env.IP || process.env.HOST || '127.0.0.1',
 
   base: {
     hote: process.env.DB_HOTE || '',
@@ -12,6 +21,9 @@ export const config = {
     utilisateur: process.env.DB_UTILISATEUR || '',
     motdepasse: process.env.DB_MOTDEPASSE || '',
     nom: process.env.DB_NOM || '',
+    // Chiffrer la liaison avec la base. Inutile en local, exigé par la
+    // plupart des hébergeurs — la base y vit sur une autre machine.
+    ssl: /^(oui|1|true|yes)$/i.test(process.env.DB_SSL || ''),
   },
 
   discord: {

@@ -957,6 +957,95 @@ Le résultat sort dans
 >
 > Sans cela, l'application de tes amis cherchera l'API sur *leur* machine.
 
+## Héberger l'API
+
+Tant que l'API vit sur `127.0.0.1`, l'application ne fonctionne que sur la
+machine qui la développe. Distribuer l'installeur sans hébergement, c'est
+livrer un programme qui s'ouvre et où rien ne marche : ni connexion, ni
+Pokédex, ni comparaison entre dresseurs.
+
+L'hébergement retenu est **alwaysdata**, plan gratuit : Node, MySQL, HTTPS et
+un sous-domaine, sans carte bancaire. L'empreinte tient large — 5,7 Mo de
+dépendances et 13,4 Mo de dépôt, pour 100 Mo alloués.
+
+### Ce que le service attend de son hôte
+
+Trois variables décident de tout, et deux d'entre elles ne viennent pas de nous :
+
+| | |
+|---|---|
+| `PORT` et `IP` | **fournis par alwaysdata**. Le service écoute exactement dessus ; `config.js` les lit sans qu'on ait à les poser |
+| `API_URL` | l'adresse publique. Elle construit l'adresse de retour Discord, qui doit correspondre **au caractère près** |
+| `DB_*` | la base, avec `DB_SSL=oui` — elle est sur une autre machine que le service |
+
+> Écouter sur la mauvaise adresse est le piège de l'hébergement : le service
+> démarre, les journaux disent que tout va bien, et il reste injoignable.
+> `config.js` essaie `HOTE`, puis `IP` (alwaysdata), puis `HOST` (les autres),
+> et ne retombe sur `127.0.0.1` qu'en dernier recours.
+
+### La marche à suivre
+
+1. **Un compte** sur <https://www.alwaysdata.com>, plan gratuit 100 Mo. Le nom
+   du compte devient le sous-domaine : `pokearchive.alwaysdata.net`.
+
+2. **La base**, dans *Bases de données → MySQL → Ajouter*. Notez le serveur,
+   l'utilisateur, le mot de passe et le nom — ils vont dans les variables.
+   Le service crée ses tables tout seul au premier démarrage.
+
+3. **Le code**, en SSH (les identifiants sont dans *Accès distant → SSH*) :
+
+   ```
+   git clone https://github.com/Tennosei5804/PokeArchive.git
+   cd PokeArchive/api
+   npm install --omit=dev
+   ```
+
+4. **Le site**, dans *Web → Sites → Ajouter*, en type Node.js :
+
+   | | |
+   |---|---|
+   | Commande | `node --env-file-if-exists=.env src/serveur.js` |
+   | Répertoire de travail | `PokeArchive/api` |
+   | Adresse | `pokearchive.alwaysdata.net` |
+
+   Les variables d'environnement se posent dans la configuration du site —
+   surtout pas dans un `.env` versionné.
+
+5. **Discord**, sur <https://discord.com/developers/applications>, onglet
+   *OAuth2 → Redirects*. Ajoutez l'adresse de retour **exactement** :
+
+   ```
+   https://pokearchive.alwaysdata.net/auth/discord/retour
+   ```
+
+   Discord compare caractère par caractère : un `http` au lieu de `https`, une
+   barre oblique en trop, et la connexion échoue avec un message qui ne dit pas
+   pourquoi.
+
+6. **Le dépôt**, enfin : dans *Settings → Secrets and variables → Actions →
+   Variables*, posez `POKEARCHIVE_API` à `https://pokearchive.alwaysdata.net`.
+   Le workflow refuse de publier sans elle — un installeur compilé sans cette
+   adresse chercherait l'API sur la machine de chaque personne l'installant.
+
+### Vérifier que ça tourne
+
+```
+curl https://pokearchive.alwaysdata.net/api/etat
+```
+
+Doit répondre `{"service":"pokearchive","discord":true}`. Un `discord:false`
+signifie que `DISCORD_CLIENT_ID` ou `DISCORD_SECRET` manque à l'appel.
+
+### Mettre l'API à jour
+
+```
+ssh <compte>@ssh-<compte>.alwaysdata.net
+cd PokeArchive && git pull && cd api && npm install --omit=dev
+```
+
+Puis *redémarrer* le site depuis le panneau. Le service ne se recharge pas
+tout seul : sans redémarrage, il continue de servir l'ancien code.
+
 ## Publier une version
 
 Le dépôt est <https://github.com/Tennosei5804/PokeArchive>. Livrer une version

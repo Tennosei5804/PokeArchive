@@ -24,6 +24,12 @@ export function base() {
     // heures d'inactivité — sinon le service tombe après une nuit sans joueur.
     idleTimeout: 60_000,
     enableKeepAlive: true,
+    // En local, MySQL est sur la même machine et le chiffrement n'apporte rien.
+    // Hébergé, la base est ailleurs : les identifiants et les Pokédex traversent
+    // le réseau, et la plupart des hébergeurs REFUSENT une connexion en clair.
+    // DB_SSL=oui suffit — mysql2 se sert alors des autorités de certification du
+    // système, ce que tous les hébergeurs sérieux savent présenter.
+    ...(config.base.ssl ? { ssl: { minVersion: 'TLSv1.2' } } : {}),
   });
   return pool;
 }
