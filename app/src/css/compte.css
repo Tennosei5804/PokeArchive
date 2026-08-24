@@ -89,12 +89,14 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 .jeu-carte:hover{ border-color:var(--dex-red); transform:translateY(-2px); }
 .jeu-carte:focus-visible{ outline:2.5px solid var(--dex-red); outline-offset:2px; }
 
-/* Pokémon HOME est une carte comme les autres, à sa place dans la grille — mais
-   ce n'est pas un jeu, c'est le coffre où tout se retrouve : un liseré doré l'en
-   distingue. Posé APRÈS .jeu-carte, sans quoi la bordure grise de celle-ci,
-   de même spécificité mais plus bas dans la feuille, l'écrasait. */
-.jeu-home{ border-color:var(--gold); }
-.jeu-home:hover{ border-color:var(--gold-deep); }
+/* Pokémon HOME est une carte comme les autres, et elle le reste jusqu'au bout :
+   ni liseré doré, ni format d'image à part. Elle a porté les deux, au motif
+   que ce n'est pas un jeu mais le coffre où tout se retrouve — sa jaquette et
+   son compteur le disent déjà, et une grille de vingt-quatre cartes se lit
+   mieux quand une seule règle les gouverne toutes.
+
+   .jeu-home sert encore : accueil.js s'en sert pour reconnaître la carte et
+   la poser au bon rang. Elle n'a simplement plus de dessin propre. */
 
 /* Le cadre n'impose plus de hauteur : une bannière prend toute la largeur et
    sa hauteur suit son rapport. La colonne et l'écart servent aux jeux qui
