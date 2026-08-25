@@ -224,6 +224,17 @@ const APPARENCE_POSEES = APPARENCE_FAMILLES.reduce(function(a, f){
   return a.concat(f.proprietes);
 }, []);
 
+/** Retire nos réglages, sans rien relire. */
+function effacerNosProprietes(){
+  const racine = document.documentElement;
+  APPARENCE_POSEES.forEach(function(p){ racine.style.removeProperty(p); });
+}
+
+// Le thème pour lequel apparenceDefauts a été rempli. Relire coûte un
+// getComputedStyle, donc un calcul de mise en page forcé — supportable une fois,
+// pas soixante fois par seconde pendant qu'on tire le sélecteur.
+let apparenceDefautsTheme = null;
+
 /**
  * Relit la feuille de style pour connaître les couleurs d'origine du thème.
  *
@@ -232,13 +243,14 @@ const APPARENCE_POSEES = APPARENCE_FAMILLES.reduce(function(a, f){
  * précédent pour de bon.
  */
 function relireDefauts(){
-  const racine = document.documentElement;
-  APPARENCE_POSEES.forEach(function(p){ racine.style.removeProperty(p); });
-  const calcule = getComputedStyle(racine);
+  if(apparenceDefautsTheme === themeCourant()) return;
+  effacerNosProprietes();
+  const calcule = getComputedStyle(document.documentElement);
   apparenceDefauts = {};
   APPARENCE_POSEES.forEach(function(p){
     apparenceDefauts[p] = (calcule.getPropertyValue(p) || '').trim();
   });
+  apparenceDefautsTheme = themeCourant();
 }
 
 /** Les neuf valeurs, à partir des cinq choisies. */
@@ -268,10 +280,17 @@ function deriverCouleurs(choix){
  * En style en ligne sur <html> : c'est le seul endroit qui l'emporte à la fois
  * sur :root et sur html[data-theme="dark"], sans avoir à compter les points de
  * spécificité ni à semer des !important.
+ *
+ * « apercu » est un choix de plus, posé par-dessus les réglages rangés mais pas
+ * enregistré : c'est ce qui fait que l'application se repeint pendant qu'on
+ * tire le sélecteur, et qu'annuler ne laisse aucune trace.
  */
-function appliquerApparence(){
+function appliquerApparence(apercu){
   relireDefauts();
-  const choix = couleursRangees();
+  const choix = Object.assign({}, couleursRangees(), apercu || {});
+  // Toujours repartir des couleurs d'origine : sans cet effacement, retirer un
+  // réglage laisserait sa valeur en place, plus rien ne l'écrasant.
+  effacerNosProprietes();
   if(!Object.keys(choix).length) return;      // rien de choisi : le thème suffit
   const valeurs = deriverCouleurs(choix);
   const racine = document.documentElement;
@@ -280,6 +299,40 @@ function appliquerApparence(){
     if(!touchee) return;
     f.proprietes.forEach(function(p){ racine.style.setProperty(p, valeurs[p]); });
   });
+}
+
+/**
+ * Contre quoi la couleur choisie va se retrouver.
+ *
+ * Sert la ligne de contraste du sélecteur. Les valeurs sont lues en direct
+ * plutôt que déduites : c'est bien l'état de l'écran qui intéresse.
+ *
+ * LA PAIRE COMPTE PLUS QUE LE NOMBRE. Le premier jet comparait chaque couleur
+ * au fond des cartes, ce qui donnait des verdicts faux sur ses propres valeurs
+ * d'origine — relevé sur le thème sombre :
+ *
+ *   rouge du cadran contre la carte     1,82   « illisible »
+ *   bordure contre la carte             1,29   « illisible »
+ *
+ * Or le rouge ne se lit jamais sur une carte : partout où il sert de fond, la
+ * feuille écrit color:#fff par-dessus — dix endroits, vérifiés. La bonne paire
+ * est donc le blanc sur le rouge, et elle vaut 8,3. Quant à la bordure, c'est
+ * un trait et non du texte : la régle des 4,5 ne la concerne pas, et son 1,29
+ * est un choix délibéré de trait discret. On ne dit rien plutôt que de dire
+ * faux — un indicateur qui recale les valeurs livrées n'apprend qu'à s'ignorer.
+ */
+function surfacesDe(cle){
+  const lu = function(p){
+    return getComputedStyle(document.documentElement).getPropertyValue(p).trim();
+  };
+  if(cle === 'ecriture') return [
+    { couleur: lu('--card'),   nom: 'sur les cartes' },
+    { couleur: lu('--screen'), nom: 'sur le fond' },
+  ];
+  // Un fond se juge contre ce qu'on écrit dessus.
+  if(cle === 'fond' || cle === 'cartes') return [{ couleur: lu('--ink'), nom: 'avec l’écriture' }];
+  if(cle === 'rouge') return [{ couleur: '#ffffff', nom: 'sous le texte blanc' }];
+  return [];                      // bordures : aucun verdict n'aurait de sens
 }
 
 // ---- La page ----------------------------------------------------------------
@@ -335,20 +388,29 @@ function ligneApparence(cible){
     rangee.appendChild(pastille(c, c, actuelle, poser));
   });
 
-  // Le choix libre. Un input color natif ouvre la palette du système, qui a une
-  // pipette et l'historique des couleurs récentes — mieux que tout ce qu'on
-  // redessinerait ici.
-  const libre = document.createElement('label');
+  // Le choix libre, qui ouvre notre sélecteur — voir selecteur-couleur.js.
+  // L'input type="color" du navigateur faisait le travail, mais il ouvre la
+  // boîte du système : elle s'affiche dans son propre thème, elle ne sait pas à
+  // quoi la couleur sert, et elle ne dit pas si le résultat restera lisible.
+  const libre = document.createElement('button');
+  libre.type = 'button';
   libre.className = 'pastille libre';
   libre.title = 'Choisir une autre couleur';
-  const champ = document.createElement('input');
-  champ.type = 'color';
-  champ.value = versRvb(actuelle) ? versHex(versRvb(actuelle)) : '#000000';
-  champ.setAttribute('aria-label', 'Autre couleur pour ' + cible.nom.toLowerCase());
-  // « input » et non « change » : la couleur suit la palette en direct, on voit
-  // l'application changer sous la boîte de dialogue.
-  champ.addEventListener('input', function(){ poser(champ.value); });
-  libre.appendChild(champ);
+  libre.setAttribute('aria-label', 'Autre couleur pour ' + cible.nom.toLowerCase());
+  libre.addEventListener('click', function(){
+    const rvb = versRvb(actuelle);
+    ouvrirSelecteur({
+      ancre: libre,
+      couleur: rvb ? versHex(rvb) : '#000000',
+      surfaces: surfacesDe(cible.cle),
+      // Pendant qu'on tire : l'application se repeint, mais rien n'est rangé.
+      auChangement: function(hex){ appliquerApparence({ [cible.cle]: hex }); },
+      // À la fermeture seulement. Annuler rend la couleur de départ, et poser()
+      // la reconnaît comme celle d'origine s'il s'agit d'elle — le réglage
+      // disparaît alors au lieu d'être enregistré à l'identique.
+      aLaFin: function(hex){ poser(hex); },
+    });
+  });
   rangee.appendChild(libre);
 
   ligne.appendChild(tete);

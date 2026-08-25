@@ -577,3 +577,123 @@
     border-color:var(--dex-red-deep);
   }
 
+
+/* ---- Le selecteur de couleur -----------------------------------------
+   Panneau flottant, au rayon 11 px des blocs. Il se pose sur le corps de
+   la page et non dans le bloc Apparence : depuis une ligne du bas du
+   Profil, il doit pouvoir remonter au-dessus de sa pastille sans etre
+   coupe par le debordement d un parent. */
+.selecteur{
+  position:fixed; z-index:120;
+  width:236px; padding:12px;
+  display:flex; flex-direction:column; gap:10px;
+  background:var(--card);
+  border:1px solid var(--card-border); border-radius:11px;
+  box-shadow:var(--ombre);
+}
+.selecteur[hidden]{ display:none; }
+
+/* Trois fonds superposes, pas de canvas : le noir qui monte, le blanc qui
+   va vers la droite, la teinte pure dessous. Les transparents sont ecrits
+   en rgba et non en « transparent » — ce dernier vaut du noir transparent,
+   et grisait le degrade blanc sur sa moitie droite. */
+.selecteur-carre{
+  position:relative; height:132px; border-radius:10px;
+  cursor:crosshair; touch-action:none;
+  background:
+    linear-gradient(to top, #000 0%, rgba(0,0,0,0) 100%),
+    linear-gradient(to right, #fff 0%, rgba(255,255,255,0) 100%),
+    var(--teinte-pure, #ff0000);
+  box-shadow:inset 0 0 0 1px var(--card-border);
+}
+.selecteur-viseur,
+.selecteur-curseur{
+  position:absolute; width:14px; height:14px; border-radius:50%;
+  transform:translate(-50%, -50%); pointer-events:none;
+  border:2px solid #fff;
+  box-shadow:0 0 0 1px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.4);
+}
+.selecteur-curseur{ top:50%; }
+
+.selecteur-ruban{
+  position:relative; height:12px; border-radius:999px;
+  cursor:pointer; touch-action:none;
+  background:linear-gradient(to right,
+    #f00 0%, #ff0 16.66%, #0f0 33.33%, #0ff 50%, #00f 66.66%, #f0f 83.33%, #f00 100%);
+  box-shadow:inset 0 0 0 1px var(--card-border);
+}
+.selecteur-carre:focus-visible,
+.selecteur-ruban:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+
+.selecteur-bas{ display:flex; align-items:center; gap:7px; }
+.selecteur-pipette{
+  width:26px; height:26px; flex:none; padding:0;
+  display:flex; align-items:center; justify-content:center;
+  border:1px solid var(--card-border); border-radius:7px;
+  background:var(--screen); color:var(--ink-soft); cursor:pointer;
+}
+.selecteur-pipette:hover{ color:var(--ink); border-color:var(--ink-faint); }
+.selecteur-pipette[hidden]{ display:none; }
+
+/* Avant et apres colles l un a l autre : c est la comparaison qui informe,
+   pas chaque pastille prise a part. */
+.selecteur-avant-apres{
+  display:flex; flex:none; height:26px; width:44px;
+  border:1px solid var(--card-border); border-radius:7px; overflow:hidden;
+}
+.selecteur-avant, .selecteur-apres{ flex:1; }
+
+.selecteur-hex{
+  flex:1; display:flex; align-items:center; gap:2px; min-width:0;
+  height:26px; padding:0 7px;
+  border:1px solid var(--card-border); border-radius:7px;
+  background:var(--screen);
+}
+.selecteur-diese{ font-family:var(--font-data); font-size:11px; color:var(--ink-faint); }
+.selecteur-hex input{
+  width:100%; min-width:0; border:0; background:transparent; padding:0;
+  font-family:var(--font-data); font-size:11px; letter-spacing:.06em;
+  font-variant-numeric:tabular-nums; text-transform:uppercase; color:var(--ink);
+}
+.selecteur-hex input:focus, .selecteur-rvb input:focus{ outline:none; }
+.selecteur-hex:focus-within, .selecteur-rvb label:focus-within{
+  border-color:var(--dex-red);
+}
+
+.selecteur-rvb{ display:grid; grid-template-columns:repeat(3, 1fr); gap:7px; }
+.selecteur-rvb label{
+  display:flex; align-items:center; gap:5px; height:26px; padding:0 7px;
+  border:1px solid var(--card-border); border-radius:7px;
+  background:var(--screen);
+  font-family:var(--font-data); font-size:8.5px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-faint);
+}
+.selecteur-rvb input{
+  width:100%; min-width:0; border:0; background:transparent; padding:0;
+  font-family:var(--font-data); font-size:11px; font-variant-numeric:tabular-nums;
+  color:var(--ink);
+  -moz-appearance:textfield;
+}
+.selecteur-rvb input::-webkit-outer-spin-button,
+.selecteur-rvb input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+
+.selecteur-contraste{
+  margin:0; font-size:11px;
+  font-family:var(--font-data); font-variant-numeric:tabular-nums;
+}
+.selecteur-contraste.lisible{ color:var(--caught); }
+.selecteur-contraste.juste{ color:var(--gold); }
+.selecteur-contraste.illisible{ color:var(--danger); }
+.selecteur-contraste[hidden]{ display:none; }
+
+.selecteur-actions{ display:flex; gap:7px; }
+.selecteur-actions button{
+  flex:1; height:28px; padding:0 10px;
+  border:1px solid var(--card-border); border-radius:7px;
+  background:var(--screen); color:var(--ink);
+  font-family:var(--font-body); font-size:12px; cursor:pointer;
+}
+.selecteur-valider{
+  background:var(--dex-red); border-color:var(--dex-red); color:#fff;
+}
+.selecteur-actions button:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
