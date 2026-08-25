@@ -77,26 +77,6 @@
     text-transform:uppercase; color:var(--ink-faint);
     margin-top:2px;
   }
-  /* La glissière des deux portées : un creux dans lequel la portée active
-     remonte. --screen-edge est déjà le bord creusé de l'écran dans les deux
-     thèmes — le gris en dur qu'il remplace demandait un rattrapage en sombre. */
-  .scope-switch{
-    display:flex; gap:3px;
-    background:var(--screen-edge);
-    border-radius:999px;
-    padding:3px;
-  }
-  .scope-btn{
-    font-family:var(--font-body);
-    font-size:11.5px; font-weight:700;
-    color:var(--ink-soft);
-    background:transparent; border:none; border-radius:999px;
-    padding:6px 13px; cursor:pointer;
-    transition:background 120ms, color 120ms;
-  }
-  .scope-btn.active{ background:var(--card); color:var(--dex-red-deep); box-shadow:0 1px 3px rgba(20,20,30,0.18); }
-  .scope-btn:disabled{ opacity:0.4; cursor:not-allowed; }
-  .scope-btn:focus-visible{ outline:2.5px solid var(--dex-red); }
   .scope-note{
     font-size:11.5px;
     line-height:1.45;

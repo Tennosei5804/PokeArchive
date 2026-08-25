@@ -187,7 +187,12 @@ if(tableEre){
 let tableTypesEre = 6;
 
 const TABLE_ERE_NOTE = {
-  6: '',
+  // Elle avait droit au silence, les deux autres à une phrase — comme si
+  // « aujourd'hui » se passait d'être situé. Les jeux se nomment donc ici
+  // aussi. Légendes Arceus y figure malgré son numéro de génération : il suit
+  // la table moderne, ce que son rang seul ne dit pas.
+  6: 'X / Y à Écarlate / Violet, Légendes Arceus compris. Les dix-huit types, '
+   + 'depuis l’arrivée de la Fée.',
   2: 'Or / Argent à Noir 2 / Blanc 2. Le type Fée n’existe pas encore : '
    + 'Combat, Poison et Dragon s’en trouvent tout autres.',
   1: 'Rouge / Bleu / Jaune. Ni Acier, ni Ténèbres, ni Fée — quinze types '

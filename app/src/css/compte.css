@@ -1285,3 +1285,46 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   display:block; margin-top:4px;
   font-family:var(--font-data); font-size:9px; color:var(--ink-faint);
 }
+
+/* ---- La bascule a deux cotes ------------------------------------------
+   Le meme rail, mais avec un mot de chaque cote plutot qu un seul apres :
+   « Regional | National ». Ce n est plus oui/non, c est l un OU l autre, et
+   les deux meritent d etre nommes.
+
+   Le cote actif s eclaire par :has() sur le label — aucune regle CSS ne
+   remonte d un input vers le span qui le precede, et poser une classe en JS
+   ferait tenir en deux endroits ce que le navigateur sait deja. */
+/* Tout a droite de sa rangee. margin-left:auto pousse la bascule au bout
+   sans avoir a toucher aux voisins : c est le seul reglage qui tienne quand
+   la rangee change de contenu — et elle change, plusieurs de ses boutons
+   n apparaissent que sur certains jeux.
+
+   Elle n est pas une commande comme les autres : les autres modifient ce
+   qu on voit d une meme liste, celle-ci change de liste. La mettre a part
+   le dit sans un mot. */
+.bascule-cotes{ margin-bottom:0; margin-left:auto; gap:9px; }
+.bascule-cotes .bascule-cote{
+  font-family:var(--font-body); font-size:12px; font-weight:600;
+  color:var(--ink-faint); white-space:nowrap;
+  transition:color .16s ease;
+}
+.bascule-cotes:has(input:not(:checked)) .bascule-cote:first-child,
+.bascule-cotes:has(input:checked) .bascule-cote:last-child{
+  color:var(--ink);
+}
+/* Le rail garde sa teinte des deux cotes : ici aucune des deux positions n est
+   « allumee » plus que l autre — l une n est pas un reglage actif, juste
+   l autre choix. */
+.bascule-cotes input:checked + .bascule-piste{
+  background:var(--screen); border-color:var(--card-border);
+}
+.bascule-cotes input:checked + .bascule-piste .bascule-pouce{
+  background:var(--dex-red);
+}
+.bascule-cotes input:not(:checked) + .bascule-piste .bascule-pouce{
+  background:var(--dex-red);
+}
+.bascule-cotes[hidden]{ display:none; }
+@media (prefers-reduced-motion:reduce){
+  .bascule-cotes .bascule-cote{ transition:none; }
+}

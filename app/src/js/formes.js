@@ -534,17 +534,26 @@ async function applyScope(){
   scopeHead.style.display = '';
   scopeTitle.innerHTML = escapeHtml(game.title) + '<small>' + escapeHtml(game.machine) + '</small>';
 
-  // Pas de second Pokédex ? Le sélecteur disparaît complètement : un bouton
-  // grisé ne ferait qu'inviter à cliquer sur rien.
-  if(!game.second){
-    scopeSwitch.style.display = 'none';
-  } else {
-    scopeSwitch.style.display = '';
-    secondScopeBtn.textContent = game.second.kind === 'dlc' ? 'DLC' : 'National';
-    secondScopeBtn.title = game.second.label;
-    scopeSwitch.querySelectorAll('.scope-btn').forEach(function(btn){
-      btn.classList.toggle('active', btn.dataset.variant === currentVariant);
-    });
+  // Pas de second Pokédex ? Le sélecteur disparaît complètement : une option
+  // grisée ne ferait qu'inviter à choisir rien.
+  //
+  // Il vit dans la barre des modes, avec le tri et les filtres — c'est là qu'on
+  // va quand on veut changer ce qu'on regarde. Il y était auparavant en deux
+  // boutons, dans l'en-tête du jeu, où il se confondait avec le titre.
+  if(scopeBascule){
+    if(!game.second){
+      scopeBascule.hidden = true;
+    } else {
+      scopeBascule.hidden = false;
+      // « DLC » quand c'en est un : sur Épée/Bouclier, le second Pokédex n'est
+      // pas le National mais l'Île Solitaire et la Toundra.
+      scopeSecondNom.textContent =
+        game.second.kind === 'dlc' ? 'DLC' : 'National';
+      scopeBascule.title = game.second.label;
+      // Coché = le second. Le régional est la position de repos, à gauche :
+      // c'est le Pokédex du jeu, celui qu'on ouvre par défaut.
+      scopeVariant.checked = currentVariant === 'second';
+    }
   }
 
   // La note du régional vaut qu'un second Pokédex existe ou non : « Kalos se
@@ -673,10 +682,12 @@ function appliquerNiveauFormes(n, redessiner){
   if(n >= 1 && n <= 4) appliquerNiveauFormes(n, false);
 })();
 
-scopeSwitch.addEventListener('click', function(e){
-  const btn = e.target.closest('.scope-btn');
-  if(!btn || btn.disabled || btn.dataset.variant === currentVariant) return;
-  currentVariant = btn.dataset.variant;
-  applyScope();
-});
+if(scopeVariant){
+  scopeVariant.addEventListener('change', function(){
+    const voulu = scopeVariant.checked ? 'second' : 'regional';
+    if(voulu === currentVariant) return;
+    currentVariant = voulu;
+    applyScope();
+  });
+}
 
