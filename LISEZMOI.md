@@ -1208,9 +1208,13 @@ Le dépôt est <https://github.com/Tennosei5804/PokeArchive>. Livrer une version
 tient en trois gestes, et le dernier est le seul qui compte :
 
 ```
-# 1. monter le numéro AUX DEUX ENDROITS — ils doivent rester d'accord
+# 1. monter le numéro AUX TROIS ENDROITS — ils doivent rester d'accord
 #    app/src-tauri/tauri.conf.json   "version": "0.2.0"
 #    app/src-tauri/Cargo.toml        version = "0.2.0"
+#    app/src-tauri/Cargo.lock        version = "0.2.0"  (sous name = "pokearchive")
+#
+#    Le troisième s'oublie : cargo le remonte tout seul à la compilation
+#    suivante, ce qui salit le commit d'après plutôt que de casser celui-ci.
 
 # 2. commiter
 git commit -am "Version 0.2.0"
@@ -1226,7 +1230,7 @@ signe l'installeur, et crée la Release **en brouillon** avec l'installeur et le
 l'installeur se lance avant de publier. **Les mises à jour ne partent qu'une
 fois la Release publiée.**
 
-Les deux numéros de version doivent monter ensemble. S'ils divergent,
+Les numéros de version doivent monter ensemble. S'ils divergent,
 l'application compare le mauvais au numéro de la Release et se croit à jour :
 la mise à jour ne part jamais, et rien ne le signale.
 
