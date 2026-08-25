@@ -67,6 +67,10 @@ export async function identite(code) {
     id: String(profil.id),
     // global_name est le nom affiché moderne ; username reste le repli.
     pseudo: profil.global_name || profil.username || '',
+    // Le pseudo Discord proprement dit — celui qui ne change pas, et qui
+    // permet de reconnaître quelqu'un après qu'il se soit renommé ici.
+    // Gardé à part du précédent, qui n'est qu'une suggestion de départ.
+    nomDiscord: profil.username || '',
     avatar: profil.avatar || '',
   };
 }

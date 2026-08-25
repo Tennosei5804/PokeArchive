@@ -291,6 +291,7 @@ export async function creerSchema(journal = () => {}) {
   await migrerVersProfils(journal);
   await migrerIdSession(journal);
   await migrerVisibiliteDresseur(journal);
+  await migrerNomDiscord(journal);
 }
 
 /**
@@ -312,6 +313,28 @@ export async function creerSchema(journal = () => {}) {
  * pour tout le monde, y compris les comptes qui existaient avant elle. Se
  * retirer est un geste, y figurer n'en demande aucun.
  */
+/**
+ * Ajoute pa_dresseurs.discord_nom.
+ *
+ * Le pseudo PokeArchive se change ; le nom Discord, non — c'est ce qui permet
+ * de reconnaitre quelqu'un quand il se renomme ici. On ne le gardait pas : il
+ * ne servait que de suggestion au moment de l'inscription, puis etait oublie.
+ *
+ * La colonne reste vide pour les comptes existants jusqu'a leur prochaine
+ * connexion, ou depuisDiscord() la remplit. L'affichage doit donc supporter
+ * qu'elle manque, et pas seulement le jour du deploiement.
+ */
+async function migrerNomDiscord(journal) {
+  const deja = await une(
+    `SELECT COUNT(*) AS n FROM information_schema.columns
+      WHERE table_schema = DATABASE() AND table_name = 'pa_dresseurs'
+        AND column_name = 'discord_nom'`);
+  if (deja?.n) return;
+  await base().query(
+    'ALTER TABLE pa_dresseurs ADD COLUMN discord_nom VARCHAR(64) NULL');
+  journal('schema : colonne pa_dresseurs.discord_nom ajoutee');
+}
+
 async function migrerVisibiliteDresseur(journal) {
   const deja = await une(
     `SELECT COUNT(*) AS n FROM information_schema.columns

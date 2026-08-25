@@ -93,16 +93,19 @@ export async function depuisDiscord(profil) {
   if (nouveau) {
     const pseudo = (await pseudoLibre(pseudoHerite(profil.pseudo))).normalize('NFC');
     const r = await ecrire(
-      `INSERT INTO pa_dresseurs (discord_id, pseudo, pseudo_cle, avatar, cree_le)
-       VALUES (?, ?, ?, ?, ?)`,
-      [discordId, pseudo, normaliser(pseudo), profil.avatar || '', horodatage()]);
+      `INSERT INTO pa_dresseurs (discord_id, pseudo, pseudo_cle, avatar, discord_nom, cree_le)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [discordId, pseudo, normaliser(pseudo), profil.avatar || '',
+       profil.nomDiscord || null, horodatage()]);
     d = { id: r.insertId, pseudo, avatar: profil.avatar || '', cree_le: horodatage() };
   } else {
-    // L'avatar a pu changer chez Discord. Jamais le pseudo : une fois choisi,
-    // il appartient au dresseur, et se renommer sur Discord ne doit pas
-    // renommer son dex dans le dos de ses potes.
-    await ecrire('UPDATE pa_dresseurs SET avatar = ?, vu_le = ? WHERE id = ?',
-      [profil.avatar || '', horodatage(), d.id]);
+    // L'avatar et le nom Discord ont pu changer chez Discord, et se
+    // rafraîchissent donc à chaque connexion. Jamais le pseudo PokéArchive :
+    // une fois choisi, il appartient au dresseur, et se renommer sur Discord
+    // ne doit pas renommer son dex dans le dos de ses potes.
+    await ecrire(
+      'UPDATE pa_dresseurs SET avatar = ?, discord_nom = ?, vu_le = ? WHERE id = ?',
+      [profil.avatar || '', profil.nomDiscord || null, horodatage(), d.id]);
     d.avatar = profil.avatar || '';
   }
 
@@ -539,8 +542,9 @@ export async function classement() {
 
 /** Les aventures publiques d'un dresseur, pour aller voir chez lui. */
 export async function profilsPublics(pseudo) {
-  const d = await une('SELECT id, pseudo, avatar, discord_id FROM pa_dresseurs WHERE pseudo_cle = ?',
-    [normaliser(pseudo)]);
+  const d = await une(
+    `SELECT id, pseudo, avatar, discord_id, discord_nom FROM pa_dresseurs
+      WHERE pseudo_cle = ?`, [normaliser(pseudo)]);
   if (!d) return null;
   const profils = await lire(
     `SELECT p.id, p.nom, p.par_defaut, p.mode, p.niveau_formes, p.maj_le,
@@ -548,7 +552,8 @@ export async function profilsPublics(pseudo) {
        FROM pa_profils p LEFT JOIN pa_dex x ON x.profil_id = p.id
       WHERE p.dresseur_id = ? AND p.public = 1
       ORDER BY p.par_defaut DESC, p.id ASC`, [d.id]);
-  return { dresseur: { pseudo: d.pseudo, avatar: d.avatar, discordId: d.discord_id }, profils };
+  return { dresseur: { pseudo: d.pseudo, avatar: d.avatar, discordId: d.discord_id,
+                       nomDiscord: d.discord_nom || null }, profils };
 }
 
 /** Chercher un dresseur par son pseudo, même partiel. */

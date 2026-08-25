@@ -298,8 +298,21 @@ html[data-theme="light"] body{ background:#e9e7e0; }
    toute valeur qu'on mettrait a cet endroit. Cent quarante pixels suffisent
    — text-overflow s'applique des que le texte depasse la place disponible,
    pas seulement a zero. */
+/* Le pseudo Discord passe au-dessus et en retrait : il identifie, il ne
+   titre pas. En --font-data parce que c'est une reference exterieure, comme
+   un identifiant, et non un nom que la personne a choisi ici.
+
+   Le selecteur porte le parent : .visite-entete span vaut (0,1,1) et
+   l'emportait sur la seule classe, qui ne vaut que (0,1,0). La regle etait
+   ecrite mais sans effet — releve a l'essai, la ligne sortait a 11,5 px au
+   lieu de 10. */
+.visite-entete .visite-discord{
+  display:block; font-family:var(--font-data); font-size:10px;
+  letter-spacing:.06em; color:var(--ink-faint); margin-bottom:1px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
 .visite-entete strong{
-  display:block; font-size:16px; color:var(--ink);
+  display:block; font-size:16px; line-height:1.25; color:var(--ink);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .visite-entete span{

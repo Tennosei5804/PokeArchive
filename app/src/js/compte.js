@@ -579,12 +579,33 @@ async function visiterDresseur(pseudo){
   const img = document.createElement('img');
   img.src = avatarDiscord(chez.dresseur.discordId, chez.dresseur.avatar, 128);
   img.alt = '';
+  // Trois lignes, de la plus stable à la plus changeante :
+  //
+  //     Tennôsei      le pseudo Discord, qui ne se change pas ici
+  //     Tenno         le pseudo PokéArchive, qu'on choisit
+  //     Aventure 1    l'aventure qui le représente
+  //
+  // Le premier manque tant que la personne ne s'est pas reconnectée depuis que
+  // la colonne existe : la ligne se retire alors plutôt que de rester vide, et
+  // l'affichage retombe sur les deux lignes d'avant.
+  //
+  // « 1 aventure publique » ne figure plus nulle part : la liste juste en
+  // dessous les compte déjà, et ce qu'on veut savoir en arrivant est laquelle
+  // représente la personne. Les profils arrivent triés par défaut d'abord.
   const titre = document.createElement('div');
-  titre.innerHTML = '<strong>' + escapeHtml(chez.dresseur.pseudo) + '</strong>';
-  // Le nom de l'aventure, et non leur nombre. « 1 aventure publique »
-  // n'apprenait rien : la liste juste en dessous les compte déjà, et ce qu'on
-  // veut savoir en arrivant, c'est laquelle représente la personne. Les profils
-  // arrivent triés par défaut d'abord, donc le premier est le bon.
+
+  if(chez.dresseur.nomDiscord){
+    const discord = document.createElement('span');
+    discord.className = 'visite-discord';
+    discord.textContent = chez.dresseur.nomDiscord;
+    discord.title = 'Son pseudo Discord — il ne se change pas depuis PokéArchive';
+    titre.appendChild(discord);
+  }
+
+  const nom = document.createElement('strong');
+  nom.textContent = chez.dresseur.pseudo;
+  titre.appendChild(nom);
+
   const sous = document.createElement('span');
   const autres = chez.profils.length - 1;
   sous.textContent = chez.profils.length
