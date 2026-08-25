@@ -202,7 +202,13 @@ export function grouper(lignes) {
       });
       continue;
     }
-    const cle = l.pseudo + ' ' + l.dex + ' ' + l.ajoute_le;
+    // Separateur NUL et non espace : un pseudo peut contenir des espaces, et
+    // « A B » + « rby » donnerait alors la meme cle que « A » + « B rby ».
+    //
+    // Ecrit en echappement : un octet NUL pose tel quel dans le fichier fait
+    // passer tout le source pour du binaire aux yeux de git, qui cesse alors
+    // de le comparer — c'est ce qui venait d'arriver.
+    const cle = l.pseudo + '\u0000' + l.dex + '\u0000' + l.ajoute_le;
     let p = paquets.get(cle);
     if (!p) {
       p = { id: l.id, pseudo: l.pseudo, avatar: l.avatar, discord_id: l.discord_id, dex: l.dex,
