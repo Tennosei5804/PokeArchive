@@ -1002,3 +1002,59 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   font-family:var(--font-body); font-size:13.5px;
 }
 .admin-champs input:focus{ outline:2px solid var(--gold); outline-offset:1px; }
+
+
+/* ---- Apparence : les cinq couleurs -----------------------------------
+   Une ligne par couleur, au rayon 10 px des cartes interieures. Les
+   pastilles prennent le 7 px des petites commandes, et la valeur en
+   hexadecimal passe en --font-data avec tabular-nums : elle change sous
+   les yeux quand on tire la palette, et sans chasse fixe la ligne danse. */
+.apparence{ display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
+.apparence-ligne{
+  border:1px solid var(--card-border); border-radius:10px;
+  background:var(--screen);
+  padding:11px 13px 12px;
+}
+.apparence-tete{
+  display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+}
+.apparence-nom{ font-size:13px; font-weight:600; color:var(--ink); }
+.apparence-valeur{
+  font-family:var(--font-data); font-size:10px; font-variant-numeric:tabular-nums;
+  color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em;
+}
+.apparence-note{ margin:3px 0 9px; font-size:11.5px; color:var(--ink-soft); }
+.apparence-pastilles{ display:flex; flex-wrap:wrap; gap:7px; }
+
+.pastille{
+  width:26px; height:26px; padding:0; flex:none;
+  border:1px solid var(--card-border); border-radius:7px;
+  cursor:pointer; position:relative;
+}
+.pastille:hover{ transform:translateY(-1px); }
+.pastille.choisie{ border-color:var(--dex-red); border-width:1.5px; }
+.pastille.choisie::after{
+  content:''; position:absolute; inset:-4px;
+  border:1px solid var(--dex-red); border-radius:10px;
+}
+.pastille:focus-visible,
+.pastille:focus-within{ outline:2px solid var(--dex-red); outline-offset:2px; }
+
+/* Le choix libre. La roue en fond dit ce que le bouton fait sans un mot ;
+   l'input natif vit dessous, invisible mais bien present — c'est lui qui
+   ouvre la palette du systeme, avec sa pipette et ses couleurs recentes. */
+.pastille.libre{
+  display:block; overflow:hidden;
+  background:conic-gradient(#ee3a3a, #f2a900, #2f9e63, #3a7aee, #8e4ad6, #ee3a3a);
+}
+.pastille.libre input{
+  width:100%; height:100%; opacity:0; border:0; padding:0;
+  cursor:pointer; display:block;
+}
+
+.apparence-alerte{
+  margin:2px 0 0; font-size:11.5px; color:var(--danger);
+}
+@media (prefers-reduced-motion:reduce){
+  .pastille:hover{ transform:none; }
+}

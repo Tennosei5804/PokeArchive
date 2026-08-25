@@ -340,6 +340,15 @@
         <div class="journal" id="journalListe"></div>
         <button class="load-more" id="journalPlus" type="button" style="display:none;">Afficher plus</button>
 
+        <div class="home-section-title">Apparence</div>
+        <div class="profil-bloc">
+          <p class="profil-bloc-note">Cinq couleurs, et le reste s’en déduit — les
+            teintes sombres du cadran, les gris des notes, le bord du fond. Le choix
+            appartient au thème en cours : ce que tu poses ici en sombre ne suit pas
+            en clair, et inversement.</p>
+          <div class="apparence" id="apparenceListe"></div>
+          <button class="toggle-btn" id="apparenceRaz" type="button">Remettre les couleurs d’origine</button>
+        </div>
         <div class="home-section-title">Mes données</div>
         <div class="profil-bloc">
           <p class="profil-bloc-note">Tes aventures, tes Pokédex et ton journal, dans un
@@ -787,8 +796,13 @@
         <div class="portrait" id="previewFrame">
           <span class="portrait-no" id="previewNo"></span>
           <img id="previewImg" alt="">
-          <button class="portrait-cri" id="portraitCri" type="button" hidden
-                  title="Écouter son cri">🔊</button>
+          <div class="portrait-son" id="portraitSon" hidden>
+            <button class="portrait-cri" id="portraitCri" type="button"
+                    title="Écouter son cri" aria-label="Écouter son cri"></button>
+            <input class="portrait-volume" id="portraitVolume" type="range"
+                   min="0" max="100" step="5" value="70"
+                   aria-label="Volume du cri" title="Volume du cri">
+          </div>
           <div class="portrait-source" id="portraitSource" role="group" aria-label="Source de l'image">
             <button type="button" data-source="anime">Sprite animé</button>
             <button type="button" class="actif" data-source="rendu">Rendu HOME</button>
@@ -973,5 +987,6 @@
 <script src="js/donnees-perso.js"></script>
 <script src="js/presence.js"></script>
 <script src="js/app.js"></script>
+<script src="js/apparence.js"></script>
 </body>
 </html>

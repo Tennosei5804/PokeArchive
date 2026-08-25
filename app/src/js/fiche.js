@@ -3086,9 +3086,17 @@ async function remplirFiche(entry){
 
 const CRI_BASE = 'https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon';
 
+// Le volume vit dans localStorage, comme le thème et la langue : c'est une
+// préférence d'appareil, pas une donnée de progression. Sept dixièmes par
+// défaut — les cris de PokeAPI sont normalisés fort, et à plein volume dans un
+// casque le premier clic fait sursauter.
+const CRI_VOLUME_KEY = 'pokearchive-cri-volume';
+const CRI_VOLUME_DEFAUT = 70;
+
 let criAudio = null;      // une seule balise, réutilisée
 let criEntree = null;     // l'entrée dont le cri est prêt
 let criJeton = 0;         // même garde que noticeJeton : deux clics rapides
+let criVolume = CRI_VOLUME_DEFAUT;
 
 /**
  * Les adresses à tenter, dans l'ordre.
@@ -3115,13 +3123,72 @@ function adressesDuCri(entry, ere){
   return liste;
 }
 
+// ---- L'icône ----------------------------------------------------------------
+//
+// L'émoji 🔊 rendait la police du système : un haut-parleur bleu et brillant au
+// milieu d'une interface qui n'a aucune autre couleur d'origine, et qui ne
+// changeait pas avec le thème. Un tracé, lui, prend currentColor et suit la
+// teinte du type comme le reste de la fiche.
+//
+// Il dit aussi le niveau, ce qu'un émoji fixe ne faisait pas : pas d'onde quand
+// le son est coupé, une onde jusqu'à la moitié, deux au-delà. On sait où on en
+// est sans ouvrir le curseur.
+const CRI_TRACES = {
+  cone:  'M1.7 6.1h2.5l3.4-3v9.8l-3.4-3H1.7z',
+  onde1: 'M9.7 6.3a2.4 2.4 0 0 1 0 3.4',
+  onde2: 'M11.5 4.6a4.9 4.9 0 0 1 0 6.8',
+  croix: 'M10.3 6.4l3.3 3.2M13.6 6.4l-3.3 3.2',
+};
+
+function iconeSon(niveau){
+  const traits = 'fill="none" stroke="currentColor" stroke-width="1.3" '
+               + 'stroke-linecap="round"';
+  const parts = ['<path d="' + CRI_TRACES.cone + '" fill="currentColor"/>'];
+  if(niveau <= 0){
+    parts.push('<path d="' + CRI_TRACES.croix + '" ' + traits + '/>');
+  } else {
+    parts.push('<path d="' + CRI_TRACES.onde1 + '" ' + traits + '/>');
+    if(niveau >= 55) parts.push('<path d="' + CRI_TRACES.onde2 + '" ' + traits + '/>');
+  }
+  return '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" '
+       + 'focusable="false">' + parts.join('') + '</svg>';
+}
+
+// ---- Le volume --------------------------------------------------------------
+
+function appliquerVolume(niveau, enregistrer){
+  criVolume = Math.max(0, Math.min(100, Math.round(niveau)));
+  if(criAudio) criAudio.volume = criVolume / 100;
+  if(portraitVolume) portraitVolume.value = String(criVolume);
+  if(portraitCri){
+    portraitCri.innerHTML = iconeSon(criVolume);
+    // L'infobulle porte le niveau : c'est ce qui fait découvrir le curseur à
+    // quelqu'un qui n'a pas encore survolé le coin du portrait.
+    portraitCri.title = criVolume === 0
+      ? 'Écouter son cri — son coupé'
+      : 'Écouter son cri — volume ' + criVolume + ' %';
+  }
+  if(enregistrer){
+    try{ localStorage.setItem(CRI_VOLUME_KEY, String(criVolume)); }catch(e){ /* stockage refusé */ }
+  }
+}
+
+function initVolumeCri(){
+  let garde = null;
+  try{ garde = localStorage.getItem(CRI_VOLUME_KEY); }catch(e){ /* stockage refusé */ }
+  const n = parseInt(garde, 10);
+  appliquerVolume(isNaN(n) ? CRI_VOLUME_DEFAUT : n, false);
+}
+
+// ---- La lecture -------------------------------------------------------------
+
 function preparerCri(entry){
-  if(!portraitCri) return;
+  if(!portraitSon) return;
   criJeton++;                       // la fiche a changé : ce qui jouait est caduc
   arreterCri();
   criEntree = entry || null;
-  portraitCri.hidden = !entry;
-  portraitCri.disabled = false;
+  portraitSon.hidden = !entry;
+  if(portraitCri) portraitCri.disabled = false;
   // Le bouton ne promet rien : on ne va pas chercher le fichier avant qu'on le
   // demande. Vérifier à l'ouverture de chaque fiche ferait une requête réseau
   // pour un bouton que personne ne clique la plupart du temps.
@@ -3137,6 +3204,7 @@ async function jouerCri(){
     criAudio = new Audio();
     criAudio.preload = 'none';
   }
+  criAudio.volume = criVolume / 100;
   criAudio.pause();
   portraitCri.disabled = true;
 
@@ -3154,10 +3222,10 @@ async function jouerCri(){
   }
 
   // Aucune des adresses. Le relevé dit que cela n'arrive pas — mais hors ligne,
-  // si : le bouton se retire plutôt que de rester inerte, un bouton qui ne fait
+  // si : le groupe se retire plutôt que de rester inerte, un bouton qui ne fait
   // rien deux fois de suite passe pour cassé.
   portraitCri.disabled = false;
-  portraitCri.hidden = true;
+  portraitSon.hidden = true;
 }
 
 /** Couper le cri. Appelée par closePreview() : fermer la fiche coupe le son. */
@@ -3166,3 +3234,15 @@ function arreterCri(){
 }
 
 if(portraitCri) portraitCri.addEventListener('click', jouerCri);
+if(portraitVolume){
+  // « input » et non « change » : le niveau suit le doigt, et l'icône avec.
+  portraitVolume.addEventListener('input', function(){
+    appliquerVolume(parseInt(portraitVolume.value, 10), true);
+  });
+  // Bouger le curseur sans écouter ne dit rien du résultat. Au relâchement, on
+  // rejoue au nouveau volume — mais seulement si une fiche est ouverte.
+  portraitVolume.addEventListener('change', function(){
+    if(criEntree && criVolume > 0) jouerCri();
+  });
+}
+initVolumeCri();

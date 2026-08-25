@@ -1519,8 +1519,9 @@ async function chargerProfil(dejaAJour){
   dessinerAventures();
   journalListe.dataset.dernierJour = '';
   chargerJournal(false);
-  // Les trois blocs du bas — donnees, connexions, administration — vivent
-  // dans donnees-perso.js, charge apres celui-ci.
+  // Les blocs du bas — apparence, donnees, connexions, administration —
+  // vivent dans apparence.js et donnees-perso.js, charges apres celui-ci.
+  if(typeof chargerApparence === 'function') chargerApparence();
   if(typeof chargerDonneesPerso === 'function') chargerDonneesPerso();
 }
 
