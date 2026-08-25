@@ -20,6 +20,15 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.13.0', date: '2026-08-25', titre: 'Le nom Discord, pas l’identifiant',
+    points: [
+      'C’est ton **nom affiché** sur Discord qui s’affiche — « Tennôsei » — et non '
+      + 'le pseudo technique « tennosei5804 ».',
+      'Il se met à jour à chaque connexion, donc si tu changes de nom sur Discord, '
+      + 'il suivra.',
+    ],
+  },
+  {
     version: '0.12.0', date: '2026-08-25', titre: 'Reconnaître quelqu’un sans cliquer',
     points: [
       'Le pseudo Discord apparaît aussi dans **le classement, la recherche et ta '
@@ -34,8 +43,8 @@ const NOUVEAUTES = [
     points: [
       'Le profil d’un dresseur montre maintenant **trois lignes** : son pseudo '
       + 'Discord, son pseudo PokéArchive, puis son aventure.',
-      'Le pseudo Discord ne se change pas depuis l’application — c’est ce qui '
-      + 'permet de reconnaître quelqu’un qui s’est renommé ici.',
+      'Ce nom ne se change pas depuis l’application — c’est ce qui permet de '
+      + 'reconnaître quelqu’un qui s’est renommé ici.',
       'Il n’apparaît qu’après une reconnexion : on ne le gardait pas jusqu’ici.',
     ],
   },

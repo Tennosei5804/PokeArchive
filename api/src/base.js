@@ -316,9 +316,14 @@ export async function creerSchema(journal = () => {}) {
 /**
  * Ajoute pa_dresseurs.discord_nom.
  *
- * Le pseudo PokeArchive se change ; le nom Discord, non — c'est ce qui permet
- * de reconnaitre quelqu'un quand il se renomme ici. On ne le gardait pas : il
- * ne servait que de suggestion au moment de l'inscription, puis etait oublie.
+ * Le nom affiche sur Discord — « Tennosei », pas le pseudo technique
+ * « tennosei5804 ». C'est sous celui-la que les gens se reconnaissent, et il
+ * ne se change pas depuis PokeArchive : voila ce qui permet de retrouver
+ * quelqu'un qui s'est renomme ici.
+ *
+ * On ne le gardait pas : il ne servait que de suggestion au moment de
+ * l'inscription, puis etait oublie. Il se rafraichit desormais a chaque
+ * connexion, puisqu'il peut changer chez Discord.
  *
  * La colonne reste vide pour les comptes existants jusqu'a leur prochaine
  * connexion, ou depuisDiscord() la remplit. L'affichage doit donc supporter

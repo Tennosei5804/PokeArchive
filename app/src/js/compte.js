@@ -481,7 +481,7 @@ function ligneDresseur(p, rang, maxCaptures){
   }
   infos.appendChild(nom);
 
-  // Le pseudo Discord sous le nom choisi : c'est lui qui identifie quand
+  // Le nom Discord sous le nom choisi : c'est lui qui identifie quand
   // quelqu'un s'est renommé ici. Même taille, mais sans la graisse et en
   // --ink-faint — ce qui distingue les deux sans en rapetisser un.
   // Absent tant que la personne ne s'est pas reconnectée depuis que la
@@ -597,7 +597,7 @@ async function visiterDresseur(pseudo){
   img.alt = '';
   // Trois lignes, de la plus stable à la plus changeante :
   //
-  //     Tennôsei      le pseudo Discord, qui ne se change pas ici
+  //     Tennôsei      son nom affiché sur Discord, qu'on ne change pas ici
   //     Tenno         le pseudo PokéArchive, qu'on choisit
   //     Aventure 1    l'aventure qui le représente
   //
@@ -618,7 +618,7 @@ async function visiterDresseur(pseudo){
     const discord = document.createElement('span');
     discord.className = 'visite-discord';
     discord.textContent = chez.dresseur.nomDiscord;
-    discord.title = 'Son pseudo Discord — il ne se change pas depuis PokéArchive';
+    discord.title = 'Son nom sur Discord — il ne se change pas depuis PokéArchive';
     titre.appendChild(discord);
   }
 

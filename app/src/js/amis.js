@@ -232,7 +232,7 @@ function ligneAmi(a){
   const qui = document.createElement('strong');
   qui.textContent = a.pseudo;
   nom.appendChild(qui);
-  // Le pseudo Discord sous le nom choisi : c'est lui qui identifie quand
+  // Le nom Discord sous le nom choisi : c'est lui qui identifie quand
   // quelqu'un s'est renommé ici. Absent tant qu'il ne s'est pas reconnecté
   // depuis que la colonne existe.
   if(a.discord_nom){

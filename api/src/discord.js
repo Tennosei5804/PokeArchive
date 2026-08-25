@@ -67,10 +67,18 @@ export async function identite(code) {
     id: String(profil.id),
     // global_name est le nom affiché moderne ; username reste le repli.
     pseudo: profil.global_name || profil.username || '',
-    // Le pseudo Discord proprement dit — celui qui ne change pas, et qui
-    // permet de reconnaître quelqu'un après qu'il se soit renommé ici.
-    // Gardé à part du précédent, qui n'est qu'une suggestion de départ.
-    nomDiscord: profil.username || '',
+    // Le nom affiché sur Discord — « Tennôsei », et non le pseudo technique
+    // « tennosei5804 ». C'est celui sous lequel les gens se reconnaissent,
+    // et donc celui qui sert à retrouver quelqu'un qui s'est renommé ici.
+    //
+    // Il PEUT changer, contrairement au pseudo : on le rafraîchit donc à
+    // chaque connexion. Le repli sur username couvre les comptes qui n'ont
+    // pas de nom affiché.
+    //
+    // Gardé à part du champ « pseudo » ci-dessus, qui a la même valeur mais
+    // un autre rôle : celui-là n'est qu'une suggestion à l'inscription, et
+    // n'est plus jamais relu ensuite.
+    nomDiscord: profil.global_name || profil.username || '',
     avatar: profil.avatar || '',
   };
 }
