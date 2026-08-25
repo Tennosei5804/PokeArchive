@@ -703,9 +703,14 @@
    Une modale qui se lit : la liste peut etre longue, elle defile dans sa
    carte plutot que d etirer la page derriere. */
 .nouveautes-card{ max-width:560px; width:min(560px, 92vw); }
+/* A gauche, explicitement : .modal-card porte text-align:center — ce qui
+   convient a un titre et a deux boutons, mais pas a une liste a puces, dont
+   chaque ligne partait alors d'un endroit different. Le titre et le
+   sur-titre de la modale gardent leur centrage, eux. */
 .nouveautes{
   display:flex; flex-direction:column; gap:16px;
   max-height:58vh; overflow-y:auto; padding-right:4px; margin-top:4px;
+  text-align:left;
 }
 .nouv-version{
   border-left:2px solid var(--card-border);
