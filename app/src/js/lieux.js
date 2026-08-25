@@ -40,6 +40,42 @@ function decouperLieu(morceau){
 }
 
 /**
+ * Cobblemon : ses biomes tiennent lieu de routes.
+ *
+ * Ce n'est pas un jeu Pokémon et il n'a pas de relevé de lieux — mais il a
+ * mieux adapté à lui : soixante biomes Minecraft, avec qui s'y trouve. La
+ * question « où aller » y a exactement le même sens.
+ *
+ * La dimension prend la place de la sous-zone : savoir qu'un Pokémon est dans
+ * le Nether change tout au trajet.
+ *
+ * CE QUI N'Y FIGURE PAS. Cent deux espèces sur 874 n'ont aucun biome vanille —
+ * elles n'apparaissent que dans des familles de biomes apportées par des mods,
+ * ou dans des structures. Les faire figurer sous un nom de mod que la personne
+ * n'a peut-être pas installé induirait en erreur ; leur fiche, elle, le dit en
+ * détail.
+ */
+function indexerCobblemon(){
+  const d = DONNEES_COBBLEMON;
+  const parBiome = new Map();
+  Object.keys(d.especes).forEach(function(sid){
+    const id = parseInt(sid, 10);
+    const vus = new Set();
+    d.especes[sid].forEach(function(a){
+      const dimension = DIMENSION_PUCE[a[15]] || '';
+      (a[0] || []).forEach(function(ib){
+        const nom = d.biomes[ib];
+        if(!nom || vus.has(nom)) return;
+        vus.add(nom);
+        if(!parBiome.has(nom)) parBiome.set(nom, { nom: nom, especes: [] });
+        parBiome.get(nom).especes.push({ id: id, sous: dimension });
+      });
+    });
+  });
+  return [...parBiome.values()];
+}
+
+/**
  * L'index d'un jeu : ses lieux, et qui s'y trouve.
  *
  * Construit une fois par jeu et gardé — parcourir sept cents espèces à chaque
@@ -49,6 +85,11 @@ function decouperLieu(morceau){
 function indexerLieux(cleJeu){
   if(!lieuxIndex) lieuxIndex = {};
   if(lieuxIndex[cleJeu]) return lieuxIndex[cleJeu];
+
+  if(cleJeu === 'cobblemon'){
+    lieuxIndex[cleJeu] = indexerCobblemon();
+    return lieuxIndex[cleJeu];
+  }
 
   const table = DONNEES_LIEUX.jeux[cleJeu];
   const parLieu = new Map();
@@ -230,8 +271,9 @@ function remplirJeuxLieux(){
   const releves = DONNEES_LIEUX.pokedexReleve || [];
   // « key » et non « tab » : le premier est l'identifiant du jeu — celui que le
   // relevé emploie —, le second son libellé avec son émoji.
+  // Cobblemon n'est pas dans le relevé — il a sa propre réserve de biomes.
   const liste = (typeof GAMES !== 'undefined' ? GAMES : [])
-    .filter(function(j){ return releves.indexOf(j.key) !== -1; });
+    .filter(function(j){ return releves.indexOf(j.key) !== -1 || j.key === 'cobblemon'; });
 
   lieuxJeu.innerHTML = '';
   liste.forEach(function(j){
@@ -266,7 +308,10 @@ async function chargerPageLieux(){
   if(!lieuxListe) return;
   lieuxListe.innerHTML = '<div class="state-msg">Chargement du relevé…</div>';
   try{
-    await chargerLieux();
+    // Les deux réserves : celle des lieux pour les jeux, celle des spawns
+    // pour Cobblemon. Toutes deux se chargent à la demande, et une seule
+    // fois — c'est le menu qui a besoin des deux dès l'ouverture.
+    await Promise.all([chargerLieux(), chargerCobblemon()]);
   }catch(e){
     lieuxListe.innerHTML = '<div class="state-msg">Le relevé des lieux n’a pas pu être lu.</div>';
     return;
