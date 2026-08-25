@@ -20,6 +20,21 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.9.0', date: '2026-08-25', titre: 'Les visages, et des pseudos plus courts',
+    points: [
+      'Les **photos de profil Discord** s’affichent enfin dans la liste d’amis et '
+      + 'dans le fil — elles étaient cassées.',
+      'Chaque ami montre **son aventure** à côté de son pseudo : « Tennosei — '
+      + 'Chasse shiny ».',
+      'Les pseudos passent à **douze caractères**. Les plus longs restent valides, '
+      + 'mais l’affichage les raccourcit au lieu de déborder.',
+      'Les époques de la table des types se lisent dans l’ordre : 1ʳᵉ génération, '
+      + 'puis 2ᵉ à 5ᵉ, puis 6ᵉ à 9ᵉ.',
+      'La case « apparaître dans la liste des dresseurs » devient un vrai '
+      + 'interrupteur.',
+    ],
+  },
+  {
     version: '0.8.0', date: '2026-08-25', titre: 'Les amis',
     points: [
       'Une page **Amis** : suis qui tu veux, et vois passer ce qu’ils attrapent. '
