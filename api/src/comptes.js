@@ -535,10 +535,26 @@ export async function ecrireDex(dresseurId, donnees, profilId = null) {
  * dont deux à zéro : le classement se remplirait de doublons vides. Les
  * aventures privées en sont exclues, et restent visibles de leur seul auteur.
  */
+/**
+ * Le classement.
+ *
+ * LE MODE ET LE NIVEAU DE FORMES PARTENT AVEC LE SCORE, et c'est le point.
+ * Une aventure « vu » compte les Pokemon rencontres, une « living » exige un
+ * exemplaire de chacun en meme temps, et niveau_formes decide combien de formes
+ * alternatives entrent dans le total. Trois cent captures ne veulent donc pas
+ * dire la meme chose d'une ligne a l'autre, et les classer ensemble sans le
+ * dire presentait comme une performance ce qui n'est qu'une regle differente.
+ *
+ * On ne filtre pas ici : retirer les autres modes ferait disparaitre des gens
+ * de la liste sans qu'ils sachent pourquoi. C'est l'application qui affiche la
+ * base de chaque score, et qui offre de s'en tenir a un seul mode.
+ */
 export async function classement() {
   return await lire(
     `SELECT d.pseudo, d.discord_id, d.avatar, d.discord_nom,
             p.nom                   AS profil,
+            p.mode                  AS mode,
+            p.niveau_formes         AS niveau_formes,
             COALESCE(x.captures, 0) AS captures,
             COALESCE(x.shiny, 0)    AS shiny,
             x.maj_le
@@ -827,6 +843,32 @@ export async function retrospective(dresseurId) {
  *
  * Les aventures privées restent dehors, comme partout ailleurs.
  */
+/**
+ * Le dex d'un visite, dans la forme qu'attendent les succes.
+ *
+ * PAR JEU, et pas seulement l'ensemble. Arpenter Rouge / Bleu, c'est y etre
+ * alle : le mesurer sur le dex d'ensemble rendait le succes plus facile chez
+ * les autres que chez soi, et le meme intitule ne disait pas la meme chose
+ * selon qui le regardait. Le detail existe dans la sauvegarde depuis toujours
+ * — c'est succesDe() qui le jetait.
+ *
+ * La racine reste : « captures » est le format historique de HOME, « caught »
+ * le recent, et les deux se rencontrent encore dans la base.
+ */
+function dexPourSucces(dex) {
+  const vide = { caught: [], shiny: [], jeux: {} };
+  if (!dex) return vide;
+  const jeux = {};
+  const parJeu = dex.dex || {};
+  for (const cle of Object.keys(parJeu)) {
+    jeux[String(cle).slice(0, 32)] = {
+      caught: parJeu[cle]?.caught || [],
+      shiny: parJeu[cle]?.shiny || [],
+    };
+  }
+  return { caught: dex.captures || dex.caught || [], shiny: dex.shiny || [], jeux };
+}
+
 export async function succesDe(pseudo) {
   const d = await une(
     'SELECT id, pseudo FROM pa_dresseurs WHERE pseudo_cle = ? AND visible = 1',
@@ -865,7 +907,11 @@ export async function succesDe(pseudo) {
   const av = await une(
     'SELECT COUNT(*) AS n FROM pa_profils WHERE dresseur_id = ? AND public = 1', [d.id]);
 
-  const dex = await dexDe(pseudo);
+  // dexDe rend une ENVELOPPE { pseudo, profil, dex } et non le dex : lire
+  // .caught dessus donnait undefined, et tous les succes par Pokedex d'un
+  // visite tombaient a zero sans que rien ne le signale.
+  const enveloppe = await dexDe(pseudo);
+  const dex = enveloppe ? enveloppe.dex : null;
 
   return {
     pseudo: d.pseudo,
@@ -882,7 +928,7 @@ export async function succesDe(pseudo) {
     // Un nombre, pas la liste : qui suit qui ne regarde pas les succès.
     amis: Number(amis && amis.n) || 0,
     aventures: Number(av && av.n) || 0,
-    dex: dex ? { caught: dex.caught || [], shiny: dex.shiny || [] } : { caught: [], shiny: [] },
+    dex: dexPourSucces(dex),
   };
 }
 

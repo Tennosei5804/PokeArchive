@@ -483,6 +483,12 @@
           <input type="search" id="dresseurQ" placeholder="Chercher un dresseur par son pseudo…"
                  aria-label="Chercher un dresseur" autocomplete="off">
           <button class="toggle-btn" id="dresseurRetour" type="button" style="display:none;">← Classement</button>
+          <select id="dresseurMode" aria-label="Comparer les aventures du même type">
+            <option value="tous">Tous les types d’aventure</option>
+            <option value="capture">Pokédex de capture</option>
+            <option value="vu">Pokédex des vus</option>
+            <option value="living">Living dex</option>
+          </select>
         </div>
         <div class="dresseurs" id="listeDresseurs"></div>
         <div class="dresseur-visite" id="dresseurVisite" style="display:none;"></div>

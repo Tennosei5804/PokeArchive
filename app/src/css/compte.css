@@ -23,7 +23,7 @@ body{
 .screen-frame{ flex:1; min-height:0; display:flex; }
 .screen{ flex:1; min-height:0; overflow-y:auto; }
 .screen::-webkit-scrollbar{ width:10px; }
-.screen::-webkit-scrollbar-thumb{ background:var(--card-border); border-radius:5px; }
+.screen::-webkit-scrollbar-thumb{ background:var(--ink-soft); border-radius:5px; }
 html[data-theme="light"] body{ background:#e9e7e0; }
 
 /* ---- Bouton Discord ---- */
@@ -389,6 +389,21 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   text-transform:uppercase; letter-spacing:.12em;
   color:var(--dex-red); border:1px solid var(--dex-red);
   border-radius:999px; padding:1px 6px;
+}
+/* Ce qu'une aventure compte, quand ce n'est pas l'ordinaire. Une etiquette
+   plutot qu'une couleur : « Vus » se lit, un liseré se devine. */
+.dr-base{
+  font-style:normal; font-family:var(--font-data); font-size:9px;
+  letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink-faint); border:1px solid var(--card-border);
+  border-radius:999px; padding:1px 6px; margin-left:6px;
+  white-space:nowrap;
+}
+/* Ce que le filtre met de cote. En retrait, mais lisible : une liste
+   raccourcie qui ne le dit pas ressemble a une liste complete. */
+.dr-note{
+  padding:10px 4px 2px; text-align:center;
+  font-size:11px; color:var(--ink-faint);
 }
 .dr-aventure{
   font-family:var(--font-data); font-size:10.5px; color:var(--ink-faint);

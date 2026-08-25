@@ -29,6 +29,7 @@ let succesPour = null;        // le pseudo regardé, ou null pour soi
 // dessiner nos propres chiffres. Y poser les siens ferait dire à notre page
 // ce qui est vrai de lui.
 let succesVisite = null;      // { jours, jeux, total, aventures } d'un visité
+let succesVisiteJeux = null;  // { cleJeu: {caught, shiny} } d'un visité
 let succesRares = { legendaires: 0, fabuleux: 0, legendairesChromatiques: 0 };
 let succesLieux = null;       // { couverts, total, arpentes, jeux }
 let succesTypes = null;       // { combien, total }
@@ -350,6 +351,13 @@ function compterRares(collection){
  * comme les succès par Pokédex le font déjà.
  */
 function prisesPourSucces(cleJeu, collection){
+  // Chez quelqu'un d'autre, le serveur envoie son relevé jeu par jeu : on
+  // mesure donc sur les mêmes bases que chez soi. Un jeu auquel il n'a pas
+  // touché n'y figure pas, et c'est bien « rien de pris ».
+  if(succesVisiteJeux){
+    const j = succesVisiteJeux[cleJeu];
+    return new Set((j && j.caught) || []);
+  }
   if(collection) return collection.caught;
   if(typeof prisesDe === 'function') return prisesDe(cleJeu);
   return new Set();
@@ -645,6 +653,7 @@ async function ouvrirSucces(pseudo){
       const r = await invoke('succes_de', { pseudo: pseudo });
       succesVisite = r.resume || { jours: [], jeux: [], total: 0 };
       succesVisite.aventures = r.aventures || 0;
+      succesVisiteJeux = (r.dex && r.dex.jeux) || null;
       succesAmis = new Array(r.amis || 0).fill({ depuis: '' });
       const col = collectionDepuisDex(r.dex);
       succesRares = compterRares(col);
@@ -678,7 +687,8 @@ function fermerSucces(){
   // Ce qui a été chargé pour quelqu'un d'autre ne doit pas rester : la
   // prochaine ouverture parlerait de lui sous notre nom.
   if(succesPour){
-    succesVisite = null; succesAmis = null; succesDex = null; succesPour = null;
+    succesVisite = null; succesVisiteJeux = null;
+    succesAmis = null; succesDex = null; succesPour = null;
     succesLieux = null; succesTypes = null;
     succesRares = { legendaires: 0, fabuleux: 0, legendairesChromatiques: 0 };
   }

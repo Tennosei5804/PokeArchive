@@ -441,6 +441,34 @@ document.getElementById('quitter').addEventListener('click', async function(e){
 const dresseurQ = document.getElementById('dresseurQ');
 const dresseurRetour = document.getElementById('dresseurRetour');
 const dresseurVisite = document.getElementById('dresseurVisite');
+const dresseurModeEl = document.getElementById('dresseurMode');
+
+// Ce qu'une aventure compte, et sur quel dénominateur.
+//
+// Trois cents captures ne veulent pas dire la même chose d'une ligne à
+// l'autre : « vu » compte les Pokémon rencontrés, « living » exige un
+// exemplaire de chacun en même temps, et le niveau de formes décide combien de
+// formes alternatives entrent dans le total. Les classer ensemble sans le dire
+// présentait comme une performance ce qui n'est qu'une règle différente.
+const MODES_AVENTURE = {
+  capture: '',                       // l'ordinaire : rien à signaler
+  vu: 'Vus',
+  living: 'Living dex',
+};
+
+// Le niveau 3 est celui par défaut, et de loin le plus répandu : le nommer sur
+// chaque ligne noierait le signal. On ne montre que ce qui s'en écarte.
+const NIVEAUX_FORMES = { 1: 'Formes 1', 2: 'Formes 2', 4: 'Formes 4' };
+
+/** Les étiquettes qui disent sur quelle base un score est calculé. */
+function basesDuScore(p){
+  const out = [];
+  const m = MODES_AVENTURE[p.mode];
+  if(m) out.push(m);
+  const n = NIVEAUX_FORMES[Number(p.niveau_formes)];
+  if(n) out.push(n);
+  return out;
+}
 
 // Une carte par dresseur. Le rang, l'avatar, le nom et l'aventure qui le
 // représente, puis une barre qui situe son avancement par rapport au meilleur —
@@ -503,6 +531,16 @@ function ligneDresseur(p, rang, maxCaptures){
   // Le classement retient une aventure par dresseur : la nommer évite de
   // croire qu'il s'agit de tout ce qu'il possède.
   sous.textContent = p.profil || (p.captures === undefined ? 'Dresseur' : 'Aucune aventure publique');
+  basesDuScore(p).forEach(function(b){
+    const puce = document.createElement('em');
+    puce.className = 'dr-base';
+    puce.textContent = b;
+    sous.appendChild(puce);
+  });
+  if(p.mode && p.mode !== 'capture'){
+    sous.title = 'Cette aventure ne compte pas comme un Pokédex de capture : '
+      + 'son score ne se compare pas directement aux autres.';
+  }
   infos.appendChild(sous);
 
   if(p.captures !== undefined && maxCaptures > 0){
@@ -558,6 +596,13 @@ async function chargerDresseurs(recherche){
     return;
   }
 
+  // Ne comparer que ce qui se compare. Le filtre est facultatif et « Tous »
+  // reste le defaut : masquer d'office les autres modes ferait disparaitre des
+  // gens de la liste sans qu'ils sachent pourquoi.
+  const mode = dresseurModeEl ? dresseurModeEl.value : 'tous';
+  const montres = (mode === 'tous') ? dresseurs
+    : dresseurs.filter(function(p){ return (p.mode || 'capture') === mode; });
+
   liste.innerHTML = '';
   if(!dresseurs.length){
     liste.innerHTML = '<div class="state-msg">'
@@ -566,15 +611,33 @@ async function chargerDresseurs(recherche){
     return;
   }
 
+  if(!montres.length){
+    liste.innerHTML = '<div class="state-msg">Personne ne mène ce type d’aventure '
+      + 'pour l’instant.</div>';
+    return;
+  }
+
   // L'échelle des barres : le meilleur occupe toute la largeur, les autres se
-  // situent par rapport à lui.
-  const maxCaptures = dresseurs.reduce(function(m, p){
+  // situent par rapport à lui. Elle se recalcule sur la liste MONTRÉE, sinon le
+  // premier d'un mode minoritaire aurait une barre au tiers sans raison visible.
+  const maxCaptures = montres.reduce(function(m, p){
     return Math.max(m, p.captures || 0);
   }, 0);
 
-  dresseurs.forEach(function(p, i){
+  montres.forEach(function(p, i){
     liste.appendChild(ligneDresseur(p, recherche ? null : i + 1, maxCaptures));
   });
+
+  // Ce que le filtre met de côté, dit plutôt que taire : sans cette ligne, une
+  // liste raccourcie ressemble à une liste complète.
+  const caches = dresseurs.length - montres.length;
+  if(caches > 0){
+    const note = document.createElement('div');
+    note.className = 'dr-note';
+    note.textContent = caches + (caches > 1 ? ' dresseurs mènent' : ' dresseur mène')
+      + ' un autre type d’aventure, et n’apparaissent pas ici.';
+    liste.appendChild(note);
+  }
 }
 
 // ---- Chez un autre dresseur -------------------------------------------------
@@ -744,6 +807,15 @@ dresseurRetour.addEventListener('click', function(){
   dresseurQ.value = '';
   chargerDresseurs(null);
 });
+
+if(dresseurModeEl){
+  // Le filtre porte sur la liste déjà rapatriée : rien à redemander au serveur,
+  // qui renvoie de toute façon les deux cents premiers tous modes confondus.
+  dresseurModeEl.addEventListener('change', function(){
+    const q = dresseurQ.value.trim();
+    chargerDresseurs(q.length >= 2 ? q : null);
+  });
+}
 
 // ---- La modale des aventures -----------------------------------------------
 // Elle sert au lancement comme en cours de partie : c'est le même écran, et il
