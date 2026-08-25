@@ -28,7 +28,16 @@ import { config } from '../src/config.js';
 
 // L'ordre compte pour une restauration : les dresseurs avant ce qui les
 // référence, sans quoi les clés étrangères refusent la réinsertion.
-const TABLES = ['pa_dresseurs', 'pa_profils', 'pa_dex', 'pa_historique'];
+//
+// pa_amis vient en dernier : elle référence pa_dresseurs DEUX fois — celui
+// qui suit et celui qui est suivi — et ne peut donc se réinsérer qu'une fois
+// tout le monde revenu.
+//
+// QUAND ON AJOUTE UNE TABLE, C'EST ICI QU'ON L'OUBLIE. pa_amis est née le
+// 25 août 2026 et n'a rejoint cette liste que le soir même, en répondant à
+// « la sauvegarde, ça sert à quoi ». Une table absente d'ici ne manque à
+// personne tant qu'on n'a pas besoin de restaurer.
+const TABLES = ['pa_dresseurs', 'pa_profils', 'pa_dex', 'pa_historique', 'pa_amis'];
 
 // pa_sessions est délibérément absente. Ce sont des jetons de connexion, ils
 // expirent seuls, et les restaurer reconnecterait des gens à leur insu — sans

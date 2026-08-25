@@ -16,7 +16,7 @@ import { base, lire, ecrire, description } from '../src/base.js';
 
 // L'ordre d'insertion : les dresseurs d'abord, ce qui les référence ensuite.
 // Pour le vidage, l'inverse — on ne supprime pas une ligne dont une autre dépend.
-const TABLES = ['pa_dresseurs', 'pa_profils', 'pa_dex', 'pa_historique'];
+const TABLES = ['pa_dresseurs', 'pa_profils', 'pa_dex', 'pa_historique', 'pa_amis'];
 
 async function main() {
   const fichier = process.argv[2];
