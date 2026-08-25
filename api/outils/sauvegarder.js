@@ -43,6 +43,39 @@ const TABLES = ['pa_dresseurs', 'pa_profils', 'pa_dex', 'pa_historique', 'pa_ami
 // expirent seuls, et les restaurer reconnecterait des gens à leur insu — sans
 // compter qu'une sauvegarde qui contient des jetons vivants est un secret de
 // plus à garder.
+const IGNOREES = ['pa_sessions'];
+
+/**
+ * Les tables à écrire, dans l'ordre où une restauration doit les relire.
+ *
+ * ON NE SE FIE PAS À LA LISTE SEULE. Elle a déjà manqué une table — pa_amis,
+ * née le 25 août 2026 et ajoutée le soir même —, et une table absente ne
+ * manque à personne tant qu'on n'a pas besoin de restaurer. On demande donc
+ * à la base ce qu'elle contient vraiment.
+ *
+ * Une table inconnue est sauvegardée quand même, et annoncée. La sauvegarder
+ * sans rien dire cacherait le problème ; refuser de sauvegarder ferait perdre
+ * la nuit entière pour un ajout anodin. Elle passe en dernier, faute de savoir
+ * ce qu'elle référence — c'est à la restauration qu'il faudra trancher, et
+ * l'avertissement est là pour qu'on y pense avant.
+ */
+async function tablesASauvegarder() {
+  const presentes = (await lire(
+    `SELECT table_name AS n FROM information_schema.tables
+      WHERE table_schema = DATABASE() AND table_name LIKE 'pa\_%'`))
+    .map((r) => String(r.n));
+
+  const connues = new Set([...TABLES, ...IGNOREES]);
+  const inconnues = presentes.filter((n) => !connues.has(n));
+
+  // Une table de la liste qui n'existe pas encore : la base est plus ancienne
+  // que le code. On la saute plutôt que de faire échouer la sauvegarde.
+  const vues = new Set(presentes);
+  const attendues = TABLES.filter((n) => vues.has(n));
+  const manquantes = TABLES.filter((n) => !vues.has(n));
+
+  return { ordre: [...attendues, ...inconnues], inconnues, manquantes };
+}
 
 // Combien de sauvegardes on garde. Au-delà, la plus ancienne s'en va : un
 // quota de 100 Mo se remplit vite, et une sauvegarde qui remplit le disque
@@ -60,10 +93,16 @@ async function main() {
 
   await fs.mkdir(dossier, { recursive: true });
 
+  const { ordre, inconnues, manquantes } = await tablesASauvegarder();
+
+  if (manquantes.length) {
+    console.log(`  (absentes de cette base, ignorées : ${manquantes.join(', ')})`);
+  }
+
   const contenu = { faiteLe: new Date().toISOString(), base: description(), tables: {} };
   let total = 0;
 
-  for (const table of TABLES) {
+  for (const table of ordre) {
     const lignes = await lire(`SELECT * FROM ${table}`);
     contenu.tables[table] = lignes;
     total += lignes.length;
@@ -87,6 +126,15 @@ async function main() {
     console.log(`  jetée : ${f}`);
   }
   console.log(`${anciennes.length - aJeter.length} sauvegarde(s) conservée(s).`);
+
+  // Le dernier mot, pour qu'il ne se perde pas dans le reste du journal.
+  if (inconnues.length) {
+    console.log(`\nATTENTION — ${inconnues.length} table(s) absente(s) de la liste `
+      + `TABLES : ${inconnues.join(', ')}.`);
+    console.log('Elles ONT ÉTÉ sauvegardées, mais en dernier et sans que leur ordre '
+      + 'de restauration soit connu. Ajoute-les à TABLES, à la bonne place selon '
+      + "ce qu'elles référencent.");
+  }
 }
 
 main()
