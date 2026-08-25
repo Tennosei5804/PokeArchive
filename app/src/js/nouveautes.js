@@ -20,6 +20,15 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.10.0', date: '2026-08-25', titre: 'L’aventure d’un dresseur, nommée',
+    points: [
+      'Quand tu ouvres le profil de quelqu’un, tu vois **le nom de son aventure** '
+      + 'au lieu de « 1 aventure publique » — qui n’apprenait rien, puisque la '
+      + 'liste juste en dessous les compte déjà.',
+      'Un pseudo trop long ne déborde plus de la carte.',
+    ],
+  },
+  {
     version: '0.9.0', date: '2026-08-25', titre: 'Les visages, et des pseudos plus courts',
     points: [
       'Les **photos de profil Discord** s’affichent enfin dans la liste d’amis et '
