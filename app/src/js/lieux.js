@@ -352,6 +352,18 @@ function blocLieu(lieu, pris){
   // Ce qui manque d'abord : c'est la raison d'ouvrir. Ce qui est pris reste
   // visible en retrait — savoir qu'on a tout ratissé vaut ce qui reste.
   compte.manque.forEach(function(x){ corps.appendChild(puceEspece(x, false)); });
+
+  // Un trait entre les deux. La pastille barrée et pâle disait déjà « pris »,
+  // mais rien ne disait OÙ la bascule se faisait : sur trente espèces qui se
+  // suivent, l'œil ne trouve pas la frontière. Le trait ne paraît que s'il y a
+  // bien deux groupes à séparer.
+  if(compte.manque.length && compte.deja.length){
+    const sep = document.createElement('span');
+    sep.className = 'lieu-separateur';
+    sep.textContent = 'déjà pris';
+    corps.appendChild(sep);
+  }
+
   compte.deja.forEach(function(x){ corps.appendChild(puceEspece(x, true)); });
   bloc.appendChild(corps);
 
@@ -360,6 +372,36 @@ function blocLieu(lieu, pris){
     dessinerLieux();
   });
   return bloc;
+}
+
+/**
+ * Replie une chaîne pour la comparer : sans accent, sans casse.
+ *
+ * « Foret » doit trouver « Forêt de Jade », et « pikachu » « Pikachu ». Sans ce
+ * repli, il faudrait taper les accents pour chercher un lieu français — ce que
+ * personne ne fait dans un champ de recherche.
+ */
+function replierLieu(s){
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
+/**
+ * Le lieu répond-il à la recherche ?
+ *
+ * Sur son nom, OU sur celui d'un Pokémon qu'on y croise. Les deux dans le même
+ * champ : on cherche « Route 25 » ou « Chenipan » sans avoir à dire lequel des
+ * deux on tape, et le résultat est le même — la liste des lieux où aller.
+ *
+ * Le nom d'espèce passe par nomAffiche(), donc suit la langue choisie : qui
+ * joue en anglais cherche « Caterpie », pas « Chenipan ».
+ */
+function lieuRepond(lieu, q){
+  if(!q) return true;
+  if(replierLieu(lieu.nom).indexOf(q) !== -1) return true;
+  return lieu.especes.some(function(e){
+    const entry = entreeParId(e.id);
+    return entry && replierLieu(nomAffiche(entry)).indexOf(q) !== -1;
+  });
 }
 
 function dessinerLieux(){
@@ -379,15 +421,20 @@ function dessinerLieux(){
   });
 
   const utiles = avec.filter(function(x){ return x.manque > 0; });
-  const garder = (lieuxRestants && lieuxRestants.checked) ? utiles : avec;
+  const q = replierLieu(lieuxQ ? lieuxQ.value.trim() : '');
+  const garder = ((lieuxRestants && lieuxRestants.checked) ? utiles : avec)
+    .filter(function(x){ return lieuRepond(x.lieu, q); });
   const montres = garder.slice(0, LIEUX_MONTRES);
 
   lieuxListe.innerHTML = '';
   if(!lieux.length){
     lieuxListe.innerHTML = '<div class="state-msg">Les lieux de ce jeu ne sont pas relevés.</div>';
   } else if(!garder.length){
-    lieuxListe.innerHTML = '<div class="state-msg">Plus rien à attraper à l’état '
-      + 'sauvage ici. Décoche le filtre pour revoir tous les lieux.</div>';
+    lieuxListe.innerHTML = q
+      ? '<div class="state-msg">Aucun lieu ni Pokémon ne correspond à cette '
+        + 'recherche dans ce jeu.</div>'
+      : '<div class="state-msg">Plus rien à attraper à l’état sauvage ici. '
+        + 'Décoche le filtre pour revoir tous les lieux.</div>';
   } else {
     montres.forEach(function(x){ lieuxListe.appendChild(blocLieu(x.lieu, pris)); });
     if(garder.length > montres.length){
@@ -442,6 +489,18 @@ document.addEventListener('DOMContentLoaded', function(){
   if(lieuxRestants) lieuxRestants.addEventListener('change', function(){
     lieuxOuvert = null;
     dessinerLieux();
+  });
+  // « input » et non « change » : la liste se resserre pendant qu'on tape.
+  if(lieuxQ) lieuxQ.addEventListener('input', function(){
+    // Chercher un Pokémon n'a de sens que si l'on voit où il est : le
+    // premier lieu trouvé s'ouvre donc de lui-même.
+    lieuxOuvert = null;
+    dessinerLieux();
+    const premier = lieuxListe.querySelector('.lieu-nom');
+    if(lieuxQ.value.trim() && premier){
+      lieuxOuvert = premier.textContent;
+      dessinerLieux();
+    }
   });
 });
 

@@ -68,6 +68,7 @@ const nouveautesFermer = document.getElementById('nouveautesFermer');
 const pageLieuxEl = document.getElementById('page-lieux');
 const lieuxJeu = document.getElementById('lieuxJeu');
 const lieuxRestants = document.getElementById('lieuxRestants');
+const lieuxQ = document.getElementById('lieuxQ');
 const lieuxResume = document.getElementById('lieuxResume');
 const lieuxListe = document.getElementById('lieuxListe');
 const pageProfilEl = document.getElementById('page-profil');

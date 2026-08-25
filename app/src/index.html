@@ -425,6 +425,9 @@
 
         <div class="lieux-barre">
           <select id="lieuxJeu" aria-label="Jeu"></select>
+          <input type="search" id="lieuxQ" autocomplete="off"
+                 placeholder="Un lieu, ou un Pokémon…"
+                 aria-label="Chercher un lieu ou un Pokémon">
           <label class="bascule">
             <input type="checkbox" id="lieuxRestants" checked>
             <span class="bascule-piste" aria-hidden="true"><span class="bascule-pouce"></span></span>
@@ -516,8 +519,8 @@
                neuf générations : à toi de dire depuis quels jeux tu la lis.</p>
             <div class="table-ere" id="tableEre" role="group" aria-label="Époque de la table">
               <button type="button" data-ere="1">1<sup>re</sup> génération</button>
-              <button type="button" data-ere="2">2<sup>e</sup> à 5<sup>e</sup></button>
-              <button type="button" data-ere="6" class="actif">6<sup>e</sup> à 9<sup>e</sup></button>
+              <button type="button" data-ere="2">2<sup>e</sup> à 5<sup>e</sup> génération</button>
+              <button type="button" data-ere="6" class="actif">6<sup>e</sup> à 9<sup>e</sup> génération</button>
             </div>
             <p class="strat-aide table-ere-note" id="tableEreNote"></p>
             <div class="table-types-cadre" id="tableTypes"></div>

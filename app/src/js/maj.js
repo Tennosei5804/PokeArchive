@@ -29,6 +29,24 @@ function pontMaj(){
 }
 
 /**
+ * Le numéro de la version installée.
+ *
+ * Il vient de Tauri, qui le tient de tauri.conf.json — la même source que celle
+ * comparée aux Releases. L'écrire en dur ici en ferait un quatrième endroit à
+ * tenir d'accord avec les trois autres, et c'est exactement ce qui finit périmé.
+ *
+ * Absent hors de l'application : le banc et les pages de génération n'ont pas de
+ * Tauri. On rend alors une chaîne vide, et l'appelant se tait plutôt que
+ * d'annoncer une version qu'il ne connaît pas.
+ */
+async function versionInstallee(){
+  const t = window.__TAURI__;
+  if(!t || !t.app || typeof t.app.getVersion !== 'function') return '';
+  try{ return await t.app.getVersion(); }
+  catch(e){ return ''; }
+}
+
+/**
  * Regarde s'il existe une version plus récente.
  *
  * `discret` : au lancement, on ne dit rien quand il n'y a rien — et on ne dit
@@ -58,9 +76,10 @@ async function verifierMaj(discret){
       return maj;
     }
     if(!discret){
+      const v = await versionInstallee();
       prevenir({
         eyebrow: 'Mises à jour',
-        titre: 'Vous êtes à jour',
+        titre: v ? 'Tu es en ' + v : 'Vous êtes à jour',
         note: 'Aucune version plus récente n\'est publiée.',
         genre: 'succes'
       });

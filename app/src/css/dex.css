@@ -929,7 +929,14 @@
    Une liste de blocs depliants. Le rayon des lignes est 10 px, celui des
    pastilles 7 px — le meme modele que partout ailleurs. */
 .lieux-barre{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:8px; }
-.lieux-barre select{ min-width:220px; }
+.lieux-barre select{ min-width:200px; }
+.lieux-barre input[type=search]{
+  flex:1; min-width:200px; height:36px; padding:0 12px;
+  border:1px solid var(--card-border); border-radius:10px;
+  background:var(--card); color:var(--ink);
+  font-family:var(--font-body); font-size:13px;
+}
+.lieux-barre input[type=search]:focus{ outline:none; border-color:var(--dex-red); }
 /* La bascule est definie dans compte.css : c est un composant, pas un
    detail de cette page. Elle sert deja au reglage de visibilite du Profil. */
 .lieux-barre .bascule{ margin-bottom:0; }
@@ -998,6 +1005,21 @@
 .lieu-espece:focus-visible{ outline:2px solid var(--dex-red); outline-offset:1px; }
 /* Ce qui est deja pris : barre, et en retrait. La barre dit « fait » sans avoir
    a l ecrire, et laisse la place lisible pour le reste. */
+/* Le trait qui separe ce qui manque de ce qui est pris. flex-basis:100 %
+   force le passage a la ligne dans un conteneur en flex-wrap, et les deux
+   traits de part et d autre du mot se font avec un pseudo-element de chaque
+   cote plutot qu avec un fieldset. */
+.lieu-separateur{
+  flex-basis:100%; display:flex; align-items:center; gap:9px;
+  margin:5px 0 1px;
+  font-family:var(--font-data); font-size:8.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-faint);
+}
+.lieu-separateur::before, .lieu-separateur::after{
+  content:''; height:1px; background:var(--card-border);
+}
+.lieu-separateur::before{ width:14px; flex:none; }
+.lieu-separateur::after{ flex:1; }
 .lieu-espece.pris{ opacity:.45; }
 .lieu-espece.pris .lieu-espece-nom{ text-decoration:line-through; }
 .lieu-sous{ font-family:var(--font-data); font-size:9px; color:var(--ink-faint); }
