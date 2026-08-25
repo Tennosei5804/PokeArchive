@@ -60,6 +60,7 @@ const amisNotif = document.getElementById('amisNotif');
 const visibleDresseurs = document.getElementById('visibleDresseurs');
 const visibleEtat = document.getElementById('visibleEtat');
 const retroBloc = document.getElementById('retroBloc');
+const succesBloc = document.getElementById('succesBloc');
 const tableEre = document.getElementById('tableEre');
 const tableEreNote = document.getElementById('tableEreNote');
 const nouveautesBtn = document.getElementById('nouveautesBtn');

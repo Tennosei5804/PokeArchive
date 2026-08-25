@@ -1328,3 +1328,57 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 @media (prefers-reduced-motion:reduce){
   .bascule-cotes .bascule-cote{ transition:none; }
 }
+
+/* ---- Les succes -------------------------------------------------------
+   Une grille de cartes, groupees par famille. L acquis se distingue par
+   l etoile pleine et par sa bordure ; le reste porte une barre de
+   progression, que l acquis n a justement plus — une barre pleine
+   n apprend rien. */
+.succes-bloc{ margin-bottom:14px; }
+.succes-compte{
+  margin:0 0 10px;
+  font-family:var(--font-data); font-size:11px; color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;
+}
+.succes-groupe{
+  font-family:var(--font-data); font-size:9.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-faint);
+  margin:12px 0 6px;
+}
+.succes-grille{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(228px, 1fr));
+  gap:7px;
+}
+.succes{
+  display:grid; grid-template-columns:20px 1fr; gap:9px; align-items:start;
+  padding:10px 12px;
+  border:1px solid var(--card-border); border-radius:10px;
+  background:var(--card);
+}
+/* Un succes non acquis n est pas grise au point de disparaitre : c est ce qui
+   reste a faire, et donc ce qu on vient lire. */
+.succes:not(.acquis){ opacity:.72; }
+.succes.acquis{ border-color:var(--gold); }
+.succes-marque{
+  display:flex; align-items:center; justify-content:center;
+  height:17px; color:var(--ink-faint);
+}
+.succes.acquis .succes-marque{ color:var(--gold); }
+.succes-corps{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.succes-nom{
+  font-size:12.5px; font-weight:600; color:var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.succes-quoi{ font-size:11px; color:var(--ink-soft); }
+.succes-pied{
+  font-family:var(--font-data); font-size:9px; color:var(--ink-faint);
+  font-variant-numeric:tabular-nums; margin-top:2px;
+}
+.succes.acquis .succes-pied{ color:var(--gold); }
+.succes-barre{
+  display:block; height:3px; margin-top:5px;
+  background:var(--screen); border-radius:999px; overflow:hidden;
+}
+.succes-barre i{
+  display:block; height:100%; background:var(--dex-red); border-radius:999px;
+}

@@ -200,4 +200,7 @@ async function chargerRetrospective(){
     return;
   }
   dessinerRetrospective();
+  // Les succès se déduisent des mêmes chiffres : on les dessine ici plutôt
+  // que de les laisser courir après une rétrospective pas encore arrivée.
+  if(typeof chargerSucces === 'function') chargerSucces();
 }
