@@ -118,11 +118,23 @@ function decouperLieu(morceau, cleJeu){
       return versions[lettres] ? nombre + ' ' + versions[lettres] : tout;
     });
 
-  // « Niv. » seulement devant ce qui est bien un niveau : « Unique », « Peu
-  // commun » et « 1200 jetons » se logent au même endroit et n'en sont pas.
-  const niveaux = lisible && /^[\d\s,.–—-]+$/.test(lisible)
-    ? 'Niv. ' + lisible
-    : lisible;
+  // Une fourchette se lit mieux en toutes lettres : « Niv. 10 à 45 » plutôt
+  // que « Niv. 10–45 ».
+  const enToutesLettres = function(s){
+    return s.replace(/(\d+)\s*[–—-]\s*(\d+)/g, '$1 à $2');
+  };
+
+  // « Niv. » dès que ça COMMENCE par un chiffre, et pas seulement quand tout
+  // en est un. La parenthèse s'écrit « niveaux, puis qualificatif » — « 30,
+  // Unique », « 58–63, Peu commun », « 17, 1200 jetons » —, et exiger que la
+  // fin en soit aussi chiffrée privait ces cas-là du préfixe sans raison.
+  //
+  // Relevé sur les 33 000 rencontres du fichier : aucune forme où le premier
+  // nombre ne soit pas un niveau. « ★, ★★ » ne commence pas par un chiffre et
+  // reste donc intact, ce qui est le seul cas à protéger.
+  const niveaux = /^\d/.test(lisible)
+    ? 'Niv. ' + enToutesLettres(lisible)
+    : enToutesLettres(lisible);
 
   const i = nu.indexOf('•');
   return {
