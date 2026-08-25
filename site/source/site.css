@@ -1,0 +1,164 @@
+/* Ce qui n'a de sens que sur le web.
+ *
+ * Chargee APRES les feuilles de l'application : a specificite egale, c'est
+ * elle qui l'emporte. On n'y met que ce qui distingue un site d'une fenetre de
+ * bureau — tout ce qui ressemble a du theme appartient a app/src/css, sans quoi
+ * les deux divergeront.
+ *
+ * Aucune couleur en dur : les jetons de l'application suivent le theme choisi
+ * et les couleurs personnalisees du Profil. Un #hex ici serait le seul point de
+ * la page a ne pas obeir.
+ */
+
+/* ---- Le bandeau ---------------------------------------------------------
+   Il dit ou vivent les donnees, et ce n'est pas un ornement : une page qui
+   ressemble en tout point a l'application de bureau laisse croire que la
+   collection est sauvegardee en ligne. Elle ne l'est pas.
+
+   Il vit DANS .dex et non apres <body> : body est une rangee flex qui centre
+   le boitier, et un frere pose la se retrouvait large de 80 px et haut de 784. */
+.site-bandeau {
+  /* Dans le flux, pas en surimpression : un bandeau flottant recouvre le
+     contenu ou se fait oublier des qu'on defile. Celui-ci se lit une fois puis
+     laisse la place. */
+  margin: 0 0 12px;
+  padding: 9px 14px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+}
+.site-bandeau b { color: var(--ink); font-weight: 700; }
+
+/* ==========================================================================
+   S'ADAPTER A LA FENETRE
+   ==========================================================================
+
+   L'application de bureau vit dans une fenetre dont on choisit la taille ; un
+   site est ouvert sur ce qu'on a sous la main. L'application etait deja a
+   moitie adaptee — ses feuilles portent des ruptures a 820, 720, 640, 600 et
+   560 px. Ce qui n'avait jamais ete traite, c'est le DECOR DU BOITIER.
+
+   Mesure sur un ecran de 375 px, avant : sur les 375, l'ecran utile n'en
+   recevait que 253. Les 122 autres partaient en marges empilees —
+   14 (body) + 18 (.dex) + 8 (.screen-frame) + 16 (.screen), doubles, plus la
+   barre de defilement. Un tiers de l'ecran pour de la coque.
+
+   ON RETRECIT LE DECOR, PAS LE CONTENU. Le boitier rouge fait l'identite de
+   l'application et on le garde ; il n'a simplement pas besoin de vingt pixels
+   de bourrage quand l'ecran en fait trois cent soixante-quinze.
+
+   clamp() PLUTOT QU'UNE RUPTURE, parce que la demande est de suivre la taille
+   et non de sauter d'un etat a l'autre. Une rupture a 720 px laisse un ecran de
+   721 px avec le decor du grand et un de 719 avec celui du petit ; clamp() rend
+   le passage continu, et la fenetre qu'on redimensionne a la souris suit sans
+   a-coup. Les trois nombres se lisent : jamais moins que, proportionnel a,
+   jamais plus que. */
+
+body {
+  padding: clamp(0px, 2.5vw, 20px) clamp(0px, 2vw, 14px) clamp(18px, 5vw, 40px);
+}
+
+.dex {
+  padding: clamp(9px, 2.4vw, 20px);
+  /* Les angles suivent : un rayon de 26 px sur un boitier colle aux bords de
+     l'ecran laisse voir quatre coins de fond, ce qui ressemble a un defaut. A
+     bord perdu, on va jusqu'au carre. */
+  border-radius: clamp(0px, 3.4vw, 26px);
+}
+/* La rayure decorative est posee en ::before avec son propre rayon : sans ca
+   elle deborderait des angles adoucis. */
+.dex::before { border-radius: inherit; }
+
+.screen-frame { padding: clamp(4px, 1.1vw, 8px); }
+.screen { padding: clamp(11px, 2.8vw, 16px); }
+
+/* Mesure apres : 321 px utiles sur 375 au lieu de 253. La grille du Pokedex
+   passe de une colonne a deux, puisqu'elle demande minmax(148px, 1fr). */
+
+/* ---- Le doigt -------------------------------------------------------------
+   pointer: coarse ET NON une largeur. Les deux ne disent pas la meme chose :
+   une fenetre de bureau retrecie a 400 px se pilote toujours a la souris et n'a
+   aucun besoin de cibles de 44 px, tandis qu'une tablette de 1024 px se touche.
+   C'est le moyen de pointage qu'on interroge, parce que c'est lui qui decide.
+
+   44 px est le seuil courant pour une cible tactile. Releve avant : les dix
+   onglets faisaient 32 px de haut, les bascules 35 a 37, les boutons d'en-tete
+   34. Rien d'inatteignable, mais tout demandait de viser. */
+@media (pointer: coarse) {
+  .page-tab,
+  .toggle-btn,
+  .lang-btn,
+  .theme-btn,
+  .maj-btn,
+  .discord-btn,
+  .dex select,
+  .dex button {
+    min-height: 44px;
+  }
+  /* Un bouton plus haut sans plus d'air autour reste difficile a viser : c'est
+     l'espace entre deux cibles qui evite d'appuyer sur la voisine. */
+  .page-nav { gap: 7px; }
+
+  /* Les champs a 16 px au moins : en dessous, iOS agrandit la page a la mise au
+     point et ne la reduit jamais. On corrige la cause plutot que d'interdire le
+     zoom, qui rendrait la page inutilisable a qui en a besoin. */
+  input, select, textarea { font-size: 16px; }
+}
+
+/* ---- L'etroit -------------------------------------------------------------
+   Ce qui reste vrai quel que soit le moyen de pointage : sur un ecran etroit,
+   certains ornements coutent plus qu'ils ne rapportent. */
+@media (max-width: 560px) {
+  /* La lentille bleue est l'element le plus reconnaissable du boitier : on la
+     garde, mais elle n'a pas besoin de sa taille de bureau. */
+  .dex-lens { width: 34px; height: 34px; }
+  .dex-title { font-size: 19px; }
+  .dex-eyebrow { font-size: 8.5px; letter-spacing: .16em; }
+  .site-bandeau { font-size: 11px; padding: 8px 11px; margin-bottom: 10px; }
+
+  /* Une ombre portee de soixante pixels sous un boitier a bord perdu ne se voit
+     pas — elle sort de l'ecran. Autant ne pas la faire calculer. */
+  .dex { box-shadow: 0 2px 0 rgba(255,255,255,0.22) inset; }
+}
+
+/* Le dernier recours, pour les ecrans les plus etroits encore en service.
+   En dessous, on ne cherche plus a preserver la mise en page : on empeche le
+   debordement horizontal, qui est ce qui rend une page vraiment impraticable. */
+@media (max-width: 360px) {
+  body { overflow-x: hidden; }
+  .page-tab { font-size: 10.5px; }
+}
+
+/* ---- La page defile vraiment ---------------------------------------------
+   L'application tient dans sa fenetre ; un site defile. Meme traitement que les
+   blocs internes : pouce en --ink-soft, mesure au-dessus de 3:1 sur les deux
+   fonds et dans les deux themes, la ou --card-border tombe a 1.13. Pas de
+   scrollbar-width : la notation standard l'emporterait sur ces regles et
+   dessinerait deux chevrons qu'elle ne permet pas de retirer. */
+body::-webkit-scrollbar { width: 11px; }
+body::-webkit-scrollbar-track { background: transparent; }
+body::-webkit-scrollbar-thumb {
+  background: var(--ink-soft);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+body::-webkit-scrollbar-thumb:hover { background: var(--ink); }
+
+/* ---- Le clavier -----------------------------------------------------------
+   Sur le bureau on clique ; sur le web on tabule aussi. L'anneau de focus
+   n'existait pas partout — il coute peu et rend la page utilisable sans souris.
+   :focus-visible et non :focus, pour qu'il ne paraisse pas au clic. */
+a:focus-visible,
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--dex-red);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
