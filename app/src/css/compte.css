@@ -1339,9 +1339,39 @@ html[data-theme="light"] body{ background:#e9e7e0; }
    longue colonne. */
 .succes-card{ max-width:640px; width:min(640px, 94vw); }
 .succes-card .succes-bloc{
-  max-height:62vh; overflow-y:auto; padding-right:4px;
+  max-height:62vh; overflow-y:auto;
   text-align:left; margin-bottom:0;
+  /* Assez de marge pour que le pouce ne chevauche pas les cartes, et que
+     l ascenseur ne colle pas au bord arrondi de la modale. */
+  padding-right:12px;
+  /* Fin, sans fleches, rail transparent : celui du systeme arrivait en clair
+     avec ses deux boutons, un rail gris en travers d une carte sombre.
+
+     Le pouce est en --ink-soft et NON en --card-border comme ailleurs, parce
+     qu ici il repose sur --card et non sur --screen. Mesure du contraste sur
+     le fond de carte : --card-border tombe a 1.29 en sombre et 1.24 en clair,
+     soit un pouce invisible tant qu on ne le survole pas. --ink-soft donne
+     6.08 et 4.94, au-dessus du 3:1 attendu d un element d interface dans les
+     deux themes — et il suit les couleurs choisies dans le Profil, puisqu il
+     appartient a la meme famille que le texte de la carte.
+
+     PAS de scrollbar-width ni scrollbar-color ici, volontairement : quand les
+     deux notations sont comprises, la standard l emporte et les regles -webkit
+     ci-dessous sont ignorees. Or scrollbar-width:thin dessine encore ses deux
+     chevrons dans ce moteur, et rien dans la notation standard ne permet de
+     les retirer. Verifie : en retirant les proprietes standard, la largeur
+     passe de 10px a 9px — celle demandee plus bas — et les chevrons s en vont. */
 }
+.succes-card .succes-bloc::-webkit-scrollbar{ width:9px; }
+.succes-card .succes-bloc::-webkit-scrollbar-track{ background:transparent; }
+/* Un pouce de 5px dans une gouttiere de 9 : la bordure transparente et le
+   background-clip creusent la marge, plutot qu un ascenseur etroit colle au
+   texte. */
+.succes-card .succes-bloc::-webkit-scrollbar-thumb{
+  background:var(--ink-soft); border-radius:999px;
+  border:2px solid transparent; background-clip:content-box;
+}
+.succes-card .succes-bloc::-webkit-scrollbar-thumb:hover{ background:var(--ink); }
 .succes-bloc{ margin-bottom:14px; }
 .succes-compte{
   margin:0 0 10px;
