@@ -20,6 +20,19 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.14.0', date: '2026-08-25', titre: 'Où aller, et ce que tu as fait',
+    points: [
+      'Un onglet **Lieux** : choisis un jeu, et chaque route dit ce qu’il te reste '
+      + 'à y prendre — avec le taux d’apparition, le niveau, l’heure et la météo.',
+      'Les 23 jeux y sont, Cobblemon compris par ses biomes.',
+      'Dans le Profil, **ta rétrospective** : tes captures de la semaine, ton '
+      + 'meilleur jour, ta plus longue série, et les trente derniers jours en un '
+      + 'coup d’œil.',
+      'Un **carnet de bord** par aventure : ta règle de Nuzlocke, tes surnoms, où '
+      + 'tu en es.',
+    ],
+  },
+  {
     version: '0.13.0', date: '2026-08-25', titre: 'Le nom Discord, pas l’identifiant',
     points: [
       'C’est ton **nom affiché** sur Discord qui s’affiche — « Tennôsei » — et non '
