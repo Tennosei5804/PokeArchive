@@ -125,6 +125,31 @@ body {
   .dex { box-shadow: 0 2px 0 rgba(255,255,255,0.22) inset; }
 }
 
+/* ---- La bascule d'epoque de la table des types ---------------------------
+   Mesure a 375 px : .table-ere fait 376 px dans un parent de 302, en
+   flex-wrap:nowrap et overflow-x:hidden. Le troisieme bouton — « 6e a 9e
+   generation » — s'etend de 263 a 396 et se fait couper de vingt-et-un pixels.
+   Il reste cliquable, son centre etant visible, mais son libelle est ampute.
+
+   On enroule plutot qu'on ne retrecit : trois epoques empilees se lisent, trois
+   epoques en corps de huit non. La table elle-meme n'a pas ce probleme — son
+   cadre .table-types-cadre defile deja en overflow-x:auto, verifie. */
+@media (max-width: 560px) {
+  .table-ere {
+    /* max-width EN PLUS de flex-wrap, et c'est lui qui fait le travail :
+       mesure, .table-ere se dimensionne sur son contenu — 388 px dans un parent
+       de 302 — et un conteneur flex n'enroule que lorsque sa PROPRE largeur le
+       contraint. Avec le seul flex-wrap, les trois boutons restaient sur une
+       ligne et le troisieme se faisait couper par le overflow:hidden de
+       .screen. Verifie : 388 -> 266 px, et deux lignes au lieu d'une. */
+    max-width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+}
+
 /* Le dernier recours, pour les ecrans les plus etroits encore en service.
    En dessous, on ne cherche plus a preserver la mise en page : on empeche le
    debordement horizontal, qui est ce qui rend une page vraiment impraticable. */

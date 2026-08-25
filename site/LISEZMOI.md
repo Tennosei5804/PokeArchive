@@ -139,6 +139,34 @@ largeur**. Les deux ne disent pas la même chose : une fenêtre de bureau
 rétrécie à 400 px se pilote toujours à la souris, tandis qu'une tablette de
 1024 px se touche. C'est le moyen de pointage qui décide.
 
+## Le poids, et la compression
+
+Mesuré : le premier chargement demande **41 fichiers**, dont `donnees-embarquees.js`
+à lui seul pour 1 642 Ko. Ce sont du JSON dans du JS, et cela se compresse très
+bien.
+
+| | sans compression | avec gzip |
+|---|---:|---:|
+| premier chargement | 2 653 Ko | **642 Ko** |
+| en 4G | 1,7 s | 0,4 s |
+| en 3G | 6,6 s | 1,6 s |
+
+Soit **4,1 fois plus léger**. `servir.py` compresse donc en local, alors que le
+serveur de la bibliothèque standard ne le fait pas : sans cela on met au point
+sur une page qui pèse quatre fois ce qu'elle pèsera, et l'on ne sait pas ce
+qu'on livre.
+
+**Le jour où le site sera hébergé, la compression doit être active.** C'est le
+réglage qui change le plus la première visite sur un téléphone, et il ne coûte
+rien — tout hébergeur sérieux la propose.
+
+Les `.png` et `.woff2` sont exclus : ils sont déjà compressés dans leur format,
+et les repasser au gzip coûterait du temps pour quelques octets.
+
+Ce qui pèse mais n'est **pas** chargé d'emblée : `donnees-lieux.js` (1,9 Mo),
+`donnees-attaques.js` (1,9 Mo) et `donnees-descriptions.js` (1,5 Mo). Ils
+descendent à la demande, quand on ouvre la page ou la fiche qui les réclame.
+
 ## Les commandes
 
 ```
