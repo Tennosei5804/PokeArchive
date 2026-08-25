@@ -20,6 +20,15 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.16.0', date: '2026-08-25', titre: 'Ta présence Discord s’efface quand tu pars',
+    points: [
+      'En te déconnectant, ta présence Discord continuait d’afficher ton pseudo '
+      + 'et ton aventure à toute ta liste d’amis. Elle s’efface désormais — que '
+      + 'tu partes toi-même ou que ta session expire.',
+      'Du ménage sous le capot : 123 lignes de styles qui ne servaient plus.',
+    ],
+  },
+  {
     version: '0.15.0', date: '2026-08-25', titre: 'Chercher un lieu, ou un Pokémon',
     points: [
       'Une **barre de recherche** sur la page Lieux : tape le nom d’une route ou '
