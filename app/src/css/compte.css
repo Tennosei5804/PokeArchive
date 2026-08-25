@@ -1232,3 +1232,79 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 @media (prefers-reduced-motion:reduce){
   .bascule-piste, .bascule-pouce{ transition:none; }
 }
+
+/* ---- La retrospective ------------------------------------------------
+   Quatre chiffres, puis trente traits pour le dernier mois. Les chiffres
+   passent en --font-data avec tabular-nums : ils changent d une session a
+   l autre, et sans chasse fixe la rangee danse. */
+.retro{ margin-bottom:14px; }
+.retro-chiffres{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(132px, 1fr));
+  gap:8px; margin-bottom:12px;
+}
+.retro-carte{
+  display:flex; flex-direction:column; gap:1px;
+  padding:11px 13px;
+  border:1px solid var(--card-border); border-radius:10px;
+  background:var(--card);
+}
+.retro-valeur{
+  font-family:var(--font-data); font-size:22px; font-weight:600; line-height:1.1;
+  font-variant-numeric:tabular-nums; color:var(--ink);
+}
+.retro-quoi{ font-size:12px; color:var(--ink-soft); }
+.retro-detail{
+  font-family:var(--font-data); font-size:9px; color:var(--ink-faint);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
+/* Les traits du dernier mois. align-items:flex-end pour qu ils poussent du
+   bas, comme un histogramme se lit. */
+.retro-barres{
+  display:flex; align-items:flex-end; gap:3px;
+  height:56px; padding:8px 11px;
+  border:1px solid var(--card-border); border-radius:10px;
+  background:var(--screen);
+}
+.retro-barre{
+  flex:1; min-width:0; border-radius:2px 2px 0 0;
+  background:var(--dex-red);
+}
+/* Un jour sans capture garde son trait, a deux pixels : sans lui, trente
+   traits serres donneraient l illusion d une regularite qui n existe pas. */
+.retro-barre.vide{ background:var(--card-border); }
+/* Un jour ou un chromatique est tombe se distingue : c est l evenement rare
+   de ce journal, et le noyer dans la masse serait le gacher. */
+.retro-barre.chromatique{ background:var(--gold); }
+
+.retro-pied{
+  margin:8px 0 0; font-size:11.5px; color:var(--ink-faint);
+}
+
+/* ---- Le carnet de bord d une aventure ---------------------------------
+   Un <details> : replie quand il est vide, ouvert quand il est ecrit. Le
+   navigateur fournit le pliage, le clavier et l etat — rien a reecrire. */
+.av-carnet{
+  margin-top:10px; padding-top:10px;
+  border-top:1px solid var(--card-border);
+}
+.av-carnet summary{
+  cursor:pointer; list-style:none;
+  font-family:var(--font-data); font-size:9px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-faint);
+}
+.av-carnet summary::-webkit-details-marker{ display:none; }
+.av-carnet summary:hover{ color:var(--ink-soft); }
+.av-carnet summary:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+.av-carnet-champ{
+  display:block; width:100%; margin-top:8px; padding:9px 11px;
+  border:1px solid var(--card-border); border-radius:10px;
+  background:var(--screen); color:var(--ink);
+  font-family:var(--font-body); font-size:12.5px; line-height:1.5;
+  resize:vertical; min-height:70px;
+}
+.av-carnet-champ:focus{ outline:none; border-color:var(--dex-red); }
+.av-carnet-etat{
+  display:block; margin-top:4px;
+  font-family:var(--font-data); font-size:9px; color:var(--ink-faint);
+}

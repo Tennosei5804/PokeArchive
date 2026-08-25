@@ -292,6 +292,7 @@ export async function creerSchema(journal = () => {}) {
   await migrerIdSession(journal);
   await migrerVisibiliteDresseur(journal);
   await migrerNomDiscord(journal);
+  await migrerNotesProfil(journal);
 }
 
 /**
@@ -329,6 +330,26 @@ export async function creerSchema(journal = () => {}) {
  * connexion, ou depuisDiscord() la remplit. L'affichage doit donc supporter
  * qu'elle manque, et pas seulement le jour du deploiement.
  */
+/**
+ * Ajoute pa_profils.notes — le carnet de bord d'une aventure.
+ *
+ * Sa regle de Nuzlocke, ses surnoms, ou elle en est. Les gens tiennent ca dans
+ * un fichier texte a cote ; autant que ce soit dedans.
+ *
+ * TEXT et non VARCHAR : un carnet n'a pas de longueur previsible, et 64 Ko est
+ * large pour du texte tape a la main. NULL par defaut — une aventure sans
+ * carnet n'en a pas, ce qui n'est pas la meme chose qu'un carnet vide.
+ */
+async function migrerNotesProfil(journal) {
+  const deja = await une(
+    `SELECT COUNT(*) AS n FROM information_schema.columns
+      WHERE table_schema = DATABASE() AND table_name = 'pa_profils'
+        AND column_name = 'notes'`);
+  if (deja?.n) return;
+  await base().query('ALTER TABLE pa_profils ADD COLUMN notes TEXT NULL');
+  journal('schema : colonne pa_profils.notes ajoutee');
+}
+
 async function migrerNomDiscord(journal) {
   const deja = await une(
     `SELECT COUNT(*) AS n FROM information_schema.columns

@@ -501,11 +501,17 @@ async fn modifier_profil(
     par_defaut: Option<bool>,
     mode: Option<String>,
     niveau_formes: Option<i64>,
+    notes: Option<String>,
 ) -> Result<serde_json::Value, String> {
     let jeton = etat.jeton()?;
     let mut corps = serde_json::Map::new();
     if let Some(n) = nom {
         corps.insert("nom".into(), serde_json::Value::String(n));
+    }
+    // Une chaine vide est un effacement voulu, pas une absence : elle doit
+    // donc passer, la ou None veut dire « ne touche pas au carnet ».
+    if let Some(c) = notes {
+        corps.insert("notes".into(), serde_json::Value::String(c));
     }
     if let Some(p) = public {
         corps.insert("public".into(), serde_json::Value::Bool(p));
@@ -679,6 +685,13 @@ fn urlencode(s: &str) -> String {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// Ce que le journal raconte une fois compté.
+#[tauri::command]
+async fn retrospective(etat: State<'_, Etat>) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(reqwest::Method::GET, "/api/retrospective", &jeton, None).await
+}
+
 /// Figurer ou non dans la liste des dresseurs.
 #[tauri::command]
 async fn changer_visibilite(etat: State<'_, Etat>, visible: bool) -> Result<serde_json::Value, String> {
@@ -805,6 +818,7 @@ pub fn run() {
             fermer_les_autres,
             journal,
             renommer_dresseur,
+            retrospective,
             changer_visibilite,
             amis,
             suivre,

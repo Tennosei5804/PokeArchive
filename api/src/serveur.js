@@ -266,6 +266,7 @@ app.patch('/api/profils/:id', route(async (req, res) => {
     public: req.body?.public,
     parDefaut: req.body?.parDefaut,
     mode: req.body?.mode,
+    notes: req.body?.notes,
     niveauFormes: req.body?.niveauFormes,
   });
   res.json({ ok: true, profil });
@@ -328,6 +329,12 @@ app.get('/api/dex/:pseudo', route(async (req, res) => {
   res.json(autre);
 }));
 
+
+// Ce que le journal raconte une fois compte : jours, jeux, total.
+app.get('/api/retrospective', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json(await comptes.retrospective(d.id));
+}));
 
 // Figurer ou non dans la liste des dresseurs. Voir changerVisibilite().
 app.post('/api/visibilite', route(async (req, res) => {

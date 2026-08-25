@@ -18,6 +18,10 @@ const PSEUDO_MIN = 3;
 const PSEUDO_MAX = 12;
 const TAILLE_MAX_DEX = 2_000_000;
 
+// Un carnet de bord tape a la main. Large, mais borne : un copier-coller
+// malheureux ne doit pas remplir la base a lui seul.
+const MAX_NOTES = 8000;
+
 // Les accents sont admis : « Zoé », « Tennôsei » ou « Björn » sont des pseudos
 // légitimes, et les refuser reviendrait à demander à quelqu'un d'écorcher son
 // propre nom. \p{L} couvre toutes les lettres Unicode ; les emoji, qui ne sont
@@ -234,7 +238,7 @@ export async function listerProfils(dresseurId) {
   // nulle part où enregistrer, et l'interface n'a alors rien à proposer.
   await profilParDefaut(dresseurId);
   return await lire(
-    `SELECT p.id, p.nom, p.public, p.par_defaut, p.mode, p.niveau_formes, p.cree_le, p.maj_le,
+    `SELECT p.id, p.nom, p.public, p.par_defaut, p.mode, p.niveau_formes, p.notes, p.cree_le, p.maj_le,
             COALESCE(x.captures, 0) AS captures, COALESCE(x.shiny, 0) AS shiny
        FROM pa_profils p LEFT JOIN pa_dex x ON x.profil_id = p.id
       WHERE p.dresseur_id = ?
@@ -310,6 +314,15 @@ export async function modifierProfil(dresseurId, profilId, champs) {
     await ecrire('UPDATE pa_profils SET mode = ? WHERE id = ?', [modeValide(champs.mode), id]);
   }
 
+  if (champs.notes !== undefined) {
+    // Le carnet appartient a son auteur : on ne nettoie ni ne reformate. On
+    // borne seulement, pour qu'un copier-coller malheureux ne remplisse pas la
+    // base — et une chaine vide efface, ce qui est le geste attendu.
+    const texte = String(champs.notes || '').slice(0, MAX_NOTES);
+    await ecrire('UPDATE pa_profils SET notes = ? WHERE id = ?',
+      [texte.trim() ? texte : null, id]);
+  }
+
   if (champs.parDefaut) {
     // Une seule aventure par défaut : on retire la distinction aux autres
     // avant de la donner, sinon deux profils la porteraient.
@@ -318,7 +331,7 @@ export async function modifierProfil(dresseurId, profilId, champs) {
   }
 
   return await une(
-    `SELECT id, nom, public, par_defaut, mode, niveau_formes, cree_le, maj_le
+    `SELECT id, nom, public, par_defaut, mode, niveau_formes, notes, cree_le, maj_le
        FROM pa_profils WHERE id = ?`, [id]);
 }
 
@@ -731,6 +744,71 @@ export async function journal(dresseurId, avant = null, limite = 50) {
   // avoir à compter la table entière à chaque page.
   const encore = l.length > borne;
   return { lignes: l.slice(0, borne), encore };
+}
+
+// Deux ans de jours, et dix jeux : au-dela, la retrospective ne raconte plus
+// rien de plus, elle pese seulement davantage.
+const RETRO_JOURS = 730;
+const RETRO_JEUX = 10;
+
+/**
+ * La rétrospective : ce que le journal raconte, une fois compté.
+ *
+ * pa_historique garde chaque capture avec sa date depuis le premier jour, et
+ * personne ne s'en servait pour raconter quoi que ce soit. Le journal montre
+ * les lignes une à une ; celle-ci les additionne.
+ *
+ * DEUX AGRÉGATS ET NON MILLE LIGNES. On pourrait tout renvoyer et compter dans
+ * l'application, mais un journal de plusieurs milliers d'entrées traverserait
+ * le réseau à chaque ouverture du Profil pour en tirer six chiffres. La base
+ * sait grouper ; c'est son métier.
+ *
+ * `ajoute_le` est un horodatage ISO en VARCHAR — « 2026-08-25T01:00:00Z ». Ses
+ * dix premiers caractères sont donc la date, et le tri lexicographique y est le
+ * tri chronologique : c'est tout l'intérêt de ce format, et la raison pour
+ * laquelle la colonne n'a jamais eu besoin d'être un DATETIME.
+ *
+ * La limite de jours est interpolée et non passée en paramètre : MySQL refuse
+ * un marqueur dans un LIMIT de requête préparée. Elle est sûre parce qu'elle
+ * est écrite en dur ici, jamais reçue de l'extérieur.
+ */
+export async function retrospective(dresseurId) {
+  const jours = await lire(
+    `SELECT LEFT(h.ajoute_le, 10) AS jour,
+            COUNT(*)              AS combien,
+            SUM(h.chromatique)    AS chromatiques
+       FROM pa_historique h JOIN pa_profils p ON p.id = h.profil_id
+      WHERE p.dresseur_id = ?
+      GROUP BY jour
+      ORDER BY jour DESC
+      LIMIT ${RETRO_JOURS}`, [dresseurId]);
+
+  const jeux = await lire(
+    `SELECT h.dex, COUNT(*) AS combien
+       FROM pa_historique h JOIN pa_profils p ON p.id = h.profil_id
+      WHERE p.dresseur_id = ?
+      GROUP BY h.dex
+      ORDER BY combien DESC
+      LIMIT ${RETRO_JEUX}`, [dresseurId]);
+
+  // Le total et le premier jour ne se déduisent pas des lignes ci-dessus : la
+  // première est plafonnée à deux ans, et quelqu'un qui joue depuis plus
+  // longtemps verrait son total rétréci sans que rien ne le dise.
+  const tout = await une(
+    `SELECT COUNT(*) AS total, MIN(h.ajoute_le) AS premier
+       FROM pa_historique h JOIN pa_profils p ON p.id = h.profil_id
+      WHERE p.dresseur_id = ?`, [dresseurId]);
+
+  return {
+    jours: jours.map((j) => ({
+      jour: j.jour,
+      combien: Number(j.combien) || 0,
+      chromatiques: Number(j.chromatiques) || 0,
+    })),
+    jeux: jeux.map((g) => ({ dex: g.dex, combien: Number(g.combien) || 0 })),
+    total: Number(tout && tout.total) || 0,
+    premier: (tout && tout.premier) || null,
+  };
 }
 
 // --- Administration ---------------------------------------------------------

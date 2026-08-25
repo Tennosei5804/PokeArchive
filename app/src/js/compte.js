@@ -1319,8 +1319,65 @@ function dessinerAventures(){
       function(){ supprimerAventure(p, courante); }));
 
     carte.appendChild(actions);
+    carte.appendChild(carnetDe(p));
     profilAventures.appendChild(carte);
   });
+}
+
+/**
+ * Le carnet de bord d'une aventure.
+ *
+ * Sa règle de Nuzlocke, ses surnoms, où elle en est. Les gens tiennent ça dans
+ * un fichier texte à côté ; autant que ce soit dedans, et rattaché à l'aventure
+ * dont il parle.
+ *
+ * REPLIÉ PAR DÉFAUT, SAUF S'IL EST ÉCRIT. Une aventure sans carnet ne doit pas
+ * étaler une zone de saisie vide au milieu de la liste ; une aventure qui en a
+ * un doit le montrer, sinon on oublie qu'il existe.
+ *
+ * ENREGISTRÉ À LA SORTIE DU CHAMP, pas à chaque frappe : une requête par touche
+ * serait absurde, et un bouton « Enregistrer » de plus dans une carte qui en
+ * compte déjà six ne servirait qu'à être oublié. Le mot « Enregistré » le dit
+ * quand c'est fait — sans lui, on ne saurait pas si ça a pris.
+ */
+function carnetDe(p){
+  const bloc = document.createElement('details');
+  bloc.className = 'av-carnet';
+  bloc.open = !!(p.notes && p.notes.trim());
+
+  const titre = document.createElement('summary');
+  titre.textContent = (p.notes && p.notes.trim()) ? '📓 Carnet de bord' : '📓 Ouvrir un carnet';
+  bloc.appendChild(titre);
+
+  const champ = document.createElement('textarea');
+  champ.className = 'av-carnet-champ';
+  champ.rows = 4;
+  champ.maxLength = 8000;
+  champ.placeholder = 'Ta règle de Nuzlocke, tes surnoms, où tu en es…';
+  champ.value = p.notes || '';
+  champ.setAttribute('aria-label', 'Carnet de bord de ' + p.nom);
+
+  const etat = document.createElement('span');
+  etat.className = 'av-carnet-etat';
+
+  champ.addEventListener('blur', async function(){
+    const texte = champ.value;
+    if(texte === (p.notes || '')) return;         // rien n'a bougé
+    etat.textContent = 'Enregistrement…';
+    try{
+      await invoke('modifier_profil', { id: p.id, notes: texte });
+      p.notes = texte.trim() ? texte : '';
+      etat.textContent = texte.trim() ? 'Enregistré.' : 'Carnet vidé.';
+      titre.textContent = texte.trim() ? '📓 Carnet de bord' : '📓 Ouvrir un carnet';
+    }catch(e){
+      if(String(e) === 'SESSION_INVALIDE'){ await perdreSession(); return; }
+      etat.textContent = String(e);
+    }
+  });
+
+  bloc.appendChild(champ);
+  bloc.appendChild(etat);
+  return bloc;
 }
 
 async function agirSurPage(promesse){
@@ -1564,6 +1621,7 @@ async function chargerProfil(dejaAJour){
   chargerJournal(false);
   // Les blocs du bas — apparence, donnees, connexions, administration —
   // vivent dans apparence.js et donnees-perso.js, charges apres celui-ci.
+  if(typeof chargerRetrospective === 'function') chargerRetrospective();
   if(typeof chargerApparence === 'function') chargerApparence();
   if(typeof chargerDonneesPerso === 'function') chargerDonneesPerso();
 }
