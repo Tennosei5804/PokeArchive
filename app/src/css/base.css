@@ -471,15 +471,21 @@
     flex:1 1 auto; min-height:0;
     overflow-y:auto;
     padding:22px 22px 18px;
-    scrollbar-width:thin;
-    scrollbar-color:var(--card-border) transparent;
   }
+  /* Pouce en --ink-soft : mesure du contraste, --card-border tombe a 1.29 sur
+     --card et 1.13 sur --screen, soit un ascenseur invisible au repos. --ink-soft
+     donne 4.5 a 6.9 selon le fond et le theme, au-dessus du 3:1 attendu d un
+     element d interface.
+     Pas de scrollbar-width : la ou la notation standard est comprise elle
+     l emporte sur les regles -webkit, et dessine deux chevrons qu elle ne permet
+     pas de retirer. */
   .preview-defilant::-webkit-scrollbar{ width:9px; }
   .preview-defilant::-webkit-scrollbar-track{ background:transparent; }
   .preview-defilant::-webkit-scrollbar-thumb{
-    background:var(--card-border); border-radius:999px;
+    background:var(--ink-soft); border-radius:999px;
+    border:2px solid transparent; background-clip:content-box;
   }
-  .preview-defilant::-webkit-scrollbar-thumb:hover{ background:var(--ink-faint); }
+  .preview-defilant::-webkit-scrollbar-thumb:hover{ background:var(--ink); }
 
   /* Posee au-dessus du conteneur defilant, et decalee de la largeur de
      l'ascenseur : elle reste visible du haut en bas de la fiche, sur un fond

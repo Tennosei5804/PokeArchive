@@ -259,7 +259,7 @@
     scroll-behavior:smooth;
   }
   .grid::-webkit-scrollbar{ width:9px; }
-  .grid::-webkit-scrollbar-thumb{ background:var(--chrome-lo); border-radius:6px; }
+  .grid::-webkit-scrollbar-thumb{ background:var(--ink-soft); border-radius:6px; }
   .grid::-webkit-scrollbar-track{ background:transparent; }
 
   .gen-header{
@@ -672,7 +672,18 @@
   overflow-x:auto; overflow-y:hidden;
   padding:0 2px 8px;
   margin-bottom:8px;
-  scrollbar-width:thin;
+}
+/* Pouce en --ink-soft : mesure du contraste, --card-border tombe a 1.29 sur
+   --card et 1.13 sur --screen, soit un ascenseur invisible au repos. --ink-soft
+   donne 4.5 a 6.9 selon le fond et le theme, au-dessus du 3:1 attendu d un
+   element d interface.
+   Pas de scrollbar-width : la ou la notation standard est comprise elle
+   l emporte sur les regles -webkit, et dessine deux chevrons qu elle ne permet
+   pas de retirer. */
+.fiche-jeux-attaques::-webkit-scrollbar{ height:6px; }
+.fiche-jeux-attaques::-webkit-scrollbar-track{ background:transparent; }
+.fiche-jeux-attaques::-webkit-scrollbar-thumb{
+  background:var(--ink-soft); border-radius:999px;
 }
 .fiche-jeux-attaques:empty{ display:none; }
 .jeu-onglet{
@@ -798,11 +809,10 @@
   display:flex; gap:5px; flex-wrap:nowrap;
   overflow-x:auto; overflow-y:hidden;
   margin-bottom:7px; padding-bottom:4px;
-  scrollbar-width:thin;
-  scrollbar-color:var(--card-border) transparent;
 }
 .fiche-raccourcis::-webkit-scrollbar{ height:6px; }
-.fiche-raccourcis::-webkit-scrollbar-thumb{ background:var(--card-border); border-radius:999px; }
+.fiche-raccourcis::-webkit-scrollbar-track{ background:transparent; }
+.fiche-raccourcis::-webkit-scrollbar-thumb{ background:var(--ink-soft); border-radius:999px; }
 .fiche-raccourcis:empty{ display:none; }
 .raccourci{
   display:inline-flex; align-items:center; gap:5px;
