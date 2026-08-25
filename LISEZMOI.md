@@ -683,6 +683,30 @@ Trois limites tiennent à la source, pas au code, et le banc les surveille :
   habituelle — rendu HOME, artwork, Showdown — qui n'a pas changé d'un
   caractère.
 
+## Ses propres sprites
+
+`app/src/Sprites/` est vide, et c'est voulu : c'est un point d'extension. Un
+`.png` déposé là est essayé **avant toutes les sources en ligne** —
+`Sprites/<nom>.png` pour le sprite ordinaire, `Sprites/shiny/<nom>.png` pour le
+chromatique. Le `<nom>` est celui que l'application emploie en interne
+(`bulbasaur`, `mr-mime`, `deoxys-attack`), visible dans l'adresse du sprite
+affiché.
+
+Rien à déclarer, rien à recompiler : la chaîne de repli du navigateur essaie ce
+fichier, et passe à la suite s'il n'existe pas. C'est ce qui permet d'utiliser
+ses propres extractions — celles de spriters-resource.com, par exemple — sans
+toucher au code.
+
+Les deux `.gitkeep` ne servent qu'à garder les dossiers vides dans le dépôt.
+
+L'ordre complet, essayé de haut en bas :
+
+1. le fichier local dans `Sprites/` ;
+2. les rendus Pokémon HOME de PokeOS ;
+3. l'artwork officiel de PokeAPI ;
+4. le jeu « home » de Pokémon Showdown ;
+5. une icône générique, si rien n'a chargé.
+
 ## Les logos de type
 
 `app/src/types/` contient une image par type, nommée d'après le type en
