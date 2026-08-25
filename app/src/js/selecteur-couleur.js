@@ -329,12 +329,46 @@ function placerSelecteur(ancre){
   el.style.visibility = '';
 }
 
+// Les propriétés que le panneau se repose à lui-même. Voir figerPalette().
+let selecteurFigees = [];
+
+/**
+ * Met le panneau à l'abri des couleurs qu'on est en train de choisir.
+ *
+ * L'aperçu en direct pose les couleurs choisies sur <html>, et tout en hérite —
+ * le panneau compris. On se retrouvait à juger un vert vif dans une fenêtre
+ * elle-même devenue vert vif : le fond, les boutons, la ligne de contraste, et
+ * jusqu'au texte. L'instrument prenait la couleur de ce qu'il mesure.
+ *
+ * On repose donc les valeurs d'origine du thème sur le panneau lui-même. Les
+ * propriétés personnalisées héritent : celles-ci, plus proches, l'emportent sur
+ * celles de <html> pour lui et pour tout ce qu'il contient.
+ *
+ * Ce qui montre la couleur choisie reste juste : la pastille « après », le
+ * carré et le ruban la peignent en dur, sans passer par ces variables.
+ *
+ * Seules les propriétés listées sont touchées, jamais l'attribut style entier :
+ * il porte aussi la position du panneau.
+ */
+function figerPalette(boite, palette){
+  selecteurFigees.forEach(function(p){ boite.style.removeProperty(p); });
+  selecteurFigees = [];
+  if(!palette) return;
+  Object.keys(palette).forEach(function(p){
+    if(!palette[p]) return;
+    boite.style.setProperty(p, palette[p]);
+    selecteurFigees.push(p);
+  });
+}
+
 /**
  * Ouvre le sélecteur.
  *
  *   ancre         la pastille sous laquelle se poser
  *   couleur       celle de départ
  *   surfaces      [{ couleur, nom }] pour la ligne de contraste, facultatif
+ *   palette       les couleurs d'origine, reposées sur le panneau pour qu'il
+ *                 ne prenne pas la teinte qu'on est en train de choisir
  *   auChangement  appelée à chaque mouvement — l'application se repeint en direct
  *   aLaFin        appelée à la fermeture, avec la couleur gardée ou celle d'avant
  */
@@ -354,6 +388,7 @@ function ouvrirSelecteur(options){
 
   el.avant.style.background = depart;
   el.boite.hidden = false;
+  figerPalette(el.boite, options.palette);
   rafraichirSelecteur();
   placerSelecteur(options.ancre);
   el.carre.focus();

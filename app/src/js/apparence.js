@@ -403,6 +403,9 @@ function ligneApparence(cible){
       ancre: libre,
       couleur: rvb ? versHex(rvb) : '#000000',
       surfaces: surfacesDe(cible.cle),
+      // Le panneau garde les couleurs d'origine du thème pendant qu'on
+      // choisit : sans quoi il prend la teinte qu'il sert à juger.
+      palette: apparenceDefauts,
       // Pendant qu'on tire : l'application se repeint, mais rien n'est rangé.
       auChangement: function(hex){ appliquerApparence({ [cible.cle]: hex }); },
       // À la fermeture seulement. Annuler rend la couleur de départ, et poser()
