@@ -64,6 +64,7 @@
       <nav class="page-nav" id="pageNav" aria-label="Navigation">
         <button class="page-tab active" type="button" data-page="home" aria-current="page">🏠 Accueil</button>
         <button class="page-tab" type="button" data-page="jeux">📖 Pokédex</button>
+        <button class="page-tab" type="button" data-page="lieux">📍 Lieux</button>
         <button class="page-tab" type="button" data-page="dresseurs">👥 Dresseurs</button>
         <button class="page-tab" type="button" data-page="amis">📣 Amis</button>
         <button class="page-tab" type="button" data-page="chasse">✨ Chasse</button>
@@ -408,6 +409,26 @@
           </div>
           <span class="profil-bloc-etat" id="adminEtat"></span>
         </div>
+      </section>
+
+      <section class="page" id="page-lieux">
+        <div class="home-hero">
+          <div class="home-eyebrow">Où aller maintenant</div>
+          <h2 class="home-title">Les lieux</h2>
+          <p class="home-sub">Le relevé dit où trouver chaque Pokémon. Ici, c'est
+             l'inverse : tu choisis un jeu, et chaque route dit ce qu'il te reste
+             à y prendre.</p>
+        </div>
+
+        <div class="lieux-barre">
+          <select id="lieuxJeu" aria-label="Jeu"></select>
+          <label class="lieux-filtre">
+            <input type="checkbox" id="lieuxRestants" checked>
+            <span>Seulement les lieux où il me reste quelque chose</span>
+          </label>
+        </div>
+        <p class="lieux-resume" id="lieuxResume"></p>
+        <div class="lieux" id="lieuxListe"></div>
       </section>
 
       <section class="page" id="page-amis">
@@ -1042,6 +1063,7 @@
 <script src="js/cadeaux.js"></script>
 <script src="js/fiche.js"></script>
 <script src="js/grille.js"></script>
+<script src="js/lieux.js"></script>
 <script src="js/chasse.js"></script>
 <!-- Les règles de combat, puis l'écran qui s'appuie dessus. Tous deux après
      fiche.js (TYPE_RELATIONS, puceType, decoderBloc) et avant menus.js, qui

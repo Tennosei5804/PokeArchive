@@ -924,3 +924,79 @@
 @media (max-width:820px){
   .obtention-legende{ border-radius:11px; }
 }
+
+/* ---- La page des lieux -----------------------------------------------
+   Une liste de blocs depliants. Le rayon des lignes est 10 px, celui des
+   pastilles 7 px — le meme modele que partout ailleurs. */
+.lieux-barre{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:8px; }
+.lieux-barre select{ min-width:220px; }
+.lieux-filtre{ display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; color:var(--ink-soft); }
+.lieux-filtre input{ width:15px; height:15px; flex:none; accent-color:var(--dex-red); cursor:pointer; }
+
+.lieux-resume{
+  margin:0 0 12px; font-size:12.5px; color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;
+}
+.lieux{ display:flex; flex-direction:column; gap:7px; }
+
+.lieu{
+  border:1px solid var(--card-border); border-radius:10px;
+  background:var(--card); overflow:hidden;
+}
+/* Un lieu ou il ne reste rien passe en retrait : on le garde — savoir qu on a
+   tout ratisse vaut autant que savoir ce qui reste — mais il ne doit pas
+   disputer l attention a ceux ou il y a a faire. */
+.lieu.complet{ opacity:.55; }
+
+.lieu-tete{
+  width:100%; display:grid; grid-template-columns:minmax(0,1fr) auto auto;
+  align-items:center; gap:12px;
+  padding:11px 13px; border:0; background:transparent; cursor:pointer;
+  text-align:left; font-family:var(--font-body);
+}
+.lieu-tete:hover{ background:var(--screen); }
+.lieu-tete:focus-visible{ outline:2px solid var(--dex-red); outline-offset:-2px; }
+.lieu-nom{
+  font-size:13.5px; font-weight:600; color:var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.lieu-total{
+  font-family:var(--font-data); font-size:10px; color:var(--ink-faint);
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+/* Le compte de ce qui reste est la reponse a la question posee : il porte donc
+   la couleur du cadran, et la chasse fixe pour que la colonne ne danse pas. */
+.lieu-compteur{
+  font-family:var(--font-data); font-size:10px; font-weight:600;
+  letter-spacing:.06em; text-transform:uppercase;
+  color:#fff; background:var(--dex-red);
+  border-radius:999px; padding:3px 9px; white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+.lieu.complet .lieu-compteur{
+  color:var(--ink-faint); background:transparent;
+  border:1px solid var(--card-border);
+}
+
+.lieu-corps{
+  display:flex; flex-wrap:wrap; gap:6px;
+  padding:0 13px 12px;
+  border-top:1px solid var(--card-border);
+  padding-top:11px;
+}
+.lieu-corps[hidden]{ display:none; }
+
+.lieu-espece{
+  display:flex; align-items:baseline; gap:6px;
+  padding:5px 10px;
+  border:1px solid var(--card-border); border-radius:7px;
+  background:var(--screen); color:var(--ink);
+  font-family:var(--font-body); font-size:12px; cursor:pointer;
+}
+.lieu-espece:hover{ border-color:var(--dex-red); }
+.lieu-espece:focus-visible{ outline:2px solid var(--dex-red); outline-offset:1px; }
+/* Ce qui est deja pris : barre, et en retrait. La barre dit « fait » sans avoir
+   a l ecrire, et laisse la place lisible pour le reste. */
+.lieu-espece.pris{ opacity:.45; }
+.lieu-espece.pris .lieu-espece-nom{ text-decoration:line-through; }
+.lieu-sous{ font-family:var(--font-data); font-size:9px; color:var(--ink-faint); }

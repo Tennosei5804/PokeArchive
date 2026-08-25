@@ -360,13 +360,14 @@ function showPage(name){
   // créerait une collection pour un Pokédex qui n'existe pas.
   if(name === 'dresseurs' || name === 'profil' || name === 'chasse'
      || name === 'cadeaux' || name === 'strategie' || name === 'reproduction'
-     || name === 'amis'){
+     || name === 'amis' || name === 'lieux'){
     currentPage = name;
     pageHomeEl.classList.remove('active');
     pageDexEl.classList.remove('active');
     if(pageJeuxEl) pageJeuxEl.classList.remove('active');
     if(pageDresseursEl) pageDresseursEl.classList.toggle('active', name === 'dresseurs');
     if(pageAmisEl) pageAmisEl.classList.toggle('active', name === 'amis');
+    if(pageLieuxEl) pageLieuxEl.classList.toggle('active', name === 'lieux');
     if(pageProfilEl) pageProfilEl.classList.toggle('active', name === 'profil');
     if(pageChasseEl) pageChasseEl.classList.toggle('active', name === 'chasse');
     if(pageCadeauxEl) pageCadeauxEl.classList.toggle('active', name === 'cadeaux');
@@ -375,6 +376,7 @@ function showPage(name){
     marquerOnglet(name);
     if(name === 'dresseurs' && typeof chargerDresseurs === 'function') chargerDresseurs();
     if(name === 'amis' && typeof chargerAmis === 'function') chargerAmis();
+    if(name === 'lieux' && typeof chargerPageLieux === 'function') chargerPageLieux();
     if(name === 'profil' && typeof chargerProfil === 'function') chargerProfil();
     if(name === 'chasse' && typeof dessinerChasses === 'function') dessinerChasses();
     // La page se redessine à chaque ouverture : elle lit la collection HOME,
@@ -392,6 +394,7 @@ function showPage(name){
     pageDexEl.classList.remove('active');
     if(pageDresseursEl) pageDresseursEl.classList.remove('active');
     if(pageAmisEl) pageAmisEl.classList.remove('active');
+    if(pageLieuxEl) pageLieuxEl.classList.remove('active');
     if(pageJeuxEl) pageJeuxEl.classList.add('active');
     marquerOnglet('jeux');
     renderJeux();
@@ -400,6 +403,7 @@ function showPage(name){
 
   if(pageDresseursEl) pageDresseursEl.classList.remove('active');
   if(pageAmisEl) pageAmisEl.classList.remove('active');
+  if(pageLieuxEl) pageLieuxEl.classList.remove('active');
   if(pageProfilEl) pageProfilEl.classList.remove('active');
   if(pageChasseEl) pageChasseEl.classList.remove('active');
   if(pageJeuxEl) pageJeuxEl.classList.remove('active');
