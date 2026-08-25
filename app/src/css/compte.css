@@ -1073,7 +1073,10 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 
 .amis{ display:flex; flex-direction:column; gap:7px; margin-bottom:14px; }
 .ami{
-  display:grid; grid-template-columns:26px 1fr auto 26px;
+  /* minmax(0,1fr) et non 1fr : une colonne de grille refuse par defaut de
+     descendre sous la taille de son contenu, et un pseudo long l elargirait
+     jusqu a pousser les chiffres dehors au lieu d etre coupe. */
+  display:grid; grid-template-columns:26px minmax(0, 1fr) auto 26px;
   align-items:center; gap:10px;
   padding:9px 12px;
   border:1px solid var(--card-border); border-radius:10px;
@@ -1083,7 +1086,15 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   width:26px; height:26px; border-radius:50%; object-fit:cover;
   background:var(--screen);
 }
-.ami-nom{ font-size:13px; font-weight:600; color:var(--ink); }
+/* Un pseudo trop long chasse les chiffres hors de la ligne. Douze caracteres
+   est desormais la regle, mais ceux d avant peuvent en compter vingt : la
+   colonne se retrecit et coupe proprement plutot que de tout pousser. */
+.ami-nom{
+  font-size:13px; color:var(--ink);
+  min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.ami-nom strong{ font-weight:600; }
+.ami-aventure{ color:var(--ink-faint); font-weight:400; }
 .ami-chiffres{
   font-family:var(--font-data); font-size:11px; font-variant-numeric:tabular-nums;
   color:var(--ink-soft); white-space:pre;
@@ -1098,13 +1109,14 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 
 .fil{ display:flex; flex-direction:column; gap:6px; }
 .fil-ligne{
-  display:grid; grid-template-columns:26px 1fr auto;
+  display:grid; grid-template-columns:26px minmax(0, 1fr) auto;
   align-items:center; gap:10px;
   padding:8px 12px;
   border:1px solid var(--card-border); border-radius:10px;
   background:var(--card);
   font-size:12.5px; color:var(--ink-soft);
 }
+.fil-texte{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .fil-ligne strong{ color:var(--ink); font-weight:600; }
 /* Un chromatique est l'evenement rare de ce journal : il se voit. */
 .fil-ligne.chromatique{ border-color:var(--gold); }
@@ -1128,14 +1140,48 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   font-variant-numeric:tabular-nums;
 }
 
-/* Une case a cocher de reglage. Le libelle est cliquable avec elle : c'est
-   deux fois plus de surface pour la meme intention. */
-.profil-bascule{
-  display:flex; align-items:center; gap:9px;
-  font-size:13px; color:var(--ink); cursor:pointer;
-  margin-bottom:6px;
+
+
+/* ---- La bascule ------------------------------------------------------
+   La case a cocher du systeme ne prend pas le theme : elle reste carree et
+   bleue au milieu d une interface qui n a aucune autre couleur d origine,
+   et rien n y dit qu il s agit d un interrupteur plutot que d une option
+   dans une liste. Un rail et un pouce le disent d un coup d oeil.
+
+   La vraie case reste dans le HTML, seulement rendue invisible : c est elle
+   qui porte l etat, le clavier et le libelle. On ne dessine que par-dessus. */
+.bascule{
+  display:flex; align-items:center; gap:11px;
+  cursor:pointer; margin-bottom:6px;
 }
-.profil-bascule input{
-  width:16px; height:16px; flex:none; accent-color:var(--dex-red); cursor:pointer;
+.bascule input{
+  position:absolute; opacity:0; width:0; height:0;
 }
-.profil-bascule input:disabled{ cursor:default; opacity:.5; }
+.bascule-piste{
+  position:relative; flex:none;
+  width:38px; height:22px; border-radius:999px;
+  background:var(--screen);
+  border:1px solid var(--card-border);
+  transition:background .16s ease, border-color .16s ease;
+}
+.bascule-pouce{
+  position:absolute; top:2px; left:2px;
+  width:16px; height:16px; border-radius:50%;
+  background:var(--ink-faint);
+  transition:transform .16s ease, background .16s ease;
+}
+.bascule input:checked + .bascule-piste{
+  background:var(--dex-red); border-color:var(--dex-red);
+}
+.bascule input:checked + .bascule-piste .bascule-pouce{
+  transform:translateX(16px); background:#fff;
+}
+.bascule input:focus-visible + .bascule-piste{
+  outline:2px solid var(--dex-red); outline-offset:2px;
+}
+.bascule input:disabled + .bascule-piste{ opacity:.5; }
+.bascule input:disabled ~ .bascule-texte{ opacity:.5; }
+.bascule-texte{ font-size:13px; color:var(--ink); }
+@media (prefers-reduced-motion:reduce){
+  .bascule-piste, .bascule-pouce{ transition:none; }
+}

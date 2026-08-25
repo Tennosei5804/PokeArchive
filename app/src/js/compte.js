@@ -1139,9 +1139,9 @@ async function changerMonPseudo(){
   const propose = await demanderSaisie({
     eyebrow: 'Ton identité',
     titre: 'Changer de pseudo',
-    libelleChamp: 'Trois à vingt caractères : lettres, chiffres, espace, tiret, souligné',
+    libelleChamp: 'Trois à douze caractères : lettres, chiffres, espace, tiret, souligné',
     valeur: dresseurCourant ? dresseurCourant.pseudo : '',
-    maxlength: 20,
+    maxlength: 12,
     note: 'C\'est le nom sous lequel tes amis te trouvent dans le classement et '
       + 'dans la recherche. Ta progression n\'y touche pas.',
     // La règle est vérifiée pendant la frappe : découvrir un refus après avoir

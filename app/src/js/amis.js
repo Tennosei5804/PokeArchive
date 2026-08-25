@@ -199,20 +199,45 @@ function majPastilleAmis(){
 
 // ---- La page ----------------------------------------------------------------
 
+/**
+ * L'image d'un ami.
+ *
+ * Le champ « avatar » est un condensé Discord, pas une adresse : le poser tel
+ * quel dans src donnait une image cassée. avatarDiscord() vit dans compte.js et
+ * en fait une URL — et calcule même l'avatar par défaut à partir de
+ * l'identifiant quand la personne n'en a pas choisi.
+ */
+function avatarAmi(l, taille){
+  const img = document.createElement('img');
+  img.alt = '';
+  img.loading = 'lazy';
+  if(typeof avatarDiscord === 'function'){
+    img.src = avatarDiscord(l.discord_id, l.avatar, taille || 64);
+  }
+  return img;
+}
+
 function ligneAmi(a){
   const l = document.createElement('div');
   l.className = 'ami';
 
-  const av = document.createElement('img');
+  const av = avatarAmi(a, 64);
   av.className = 'ami-avatar';
-  av.alt = '';
-  // L'avatar vient de Discord ; sans lui, on ne met rien plutôt qu'une image
-  // cassée.
-  if(a.avatar) av.src = a.avatar; else av.style.visibility = 'hidden';
 
+  // « Discord — Aventure » : le pseudo seul ne dit pas laquelle de ses aventures
+  // on regarde, et quelqu'un qui en mène trois n'a pas la même avance sur
+  // chacune. L'aventure manque tant que la personne n'en a aucune publique.
   const nom = document.createElement('span');
   nom.className = 'ami-nom';
-  nom.textContent = a.pseudo;
+  const qui = document.createElement('strong');
+  qui.textContent = a.pseudo;
+  nom.appendChild(qui);
+  if(a.aventure){
+    const ou = document.createElement('span');
+    ou.className = 'ami-aventure';
+    ou.textContent = ' — ' + a.aventure;
+    nom.appendChild(ou);
+  }
 
   const chiffres = document.createElement('span');
   chiffres.className = 'ami-chiffres';
@@ -237,10 +262,8 @@ function ligneFil(l){
   const d = document.createElement('div');
   d.className = 'fil-ligne' + (l.chromatique ? ' chromatique' : '');
 
-  const av = document.createElement('img');
+  const av = avatarAmi(l, 64);
   av.className = 'fil-avatar';
-  av.alt = '';
-  if(l.avatar) av.src = l.avatar; else av.style.visibility = 'hidden';
 
   const texte = document.createElement('span');
   texte.className = 'fil-texte';

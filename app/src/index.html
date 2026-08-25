@@ -350,9 +350,10 @@
             connaît ton pseudo exact peut toujours voir tes aventures publiques, et ceux
             qui te suivent déjà continuent de voir passer tes captures. Pour ne rien
             montrer du tout, marque plutôt tes aventures comme privées.</p>
-          <label class="profil-bascule">
+          <label class="bascule">
             <input type="checkbox" id="visibleDresseurs" checked>
-            <span>Apparaître dans la liste des dresseurs</span>
+            <span class="bascule-piste" aria-hidden="true"><span class="bascule-pouce"></span></span>
+            <span class="bascule-texte">Apparaître dans la liste des dresseurs</span>
           </label>
           <span class="profil-bloc-etat" id="visibleEtat"></span>
         </div>
@@ -401,8 +402,8 @@
           <p class="profil-bloc-note">Renommer un dresseur dont le pseudo ne peut pas
             rester. Le nouveau nom passe par les mêmes règles que les autres.</p>
           <div class="admin-champs">
-            <input type="text" id="adminPseudo" maxlength="20" placeholder="Pseudo actuel">
-            <input type="text" id="adminNouveau" maxlength="20" placeholder="Nouveau pseudo">
+            <input type="text" id="adminPseudo" maxlength="12" placeholder="Pseudo actuel">
+            <input type="text" id="adminNouveau" maxlength="12" placeholder="Nouveau pseudo">
             <button class="toggle-btn danger" id="adminRenommer" type="button">Renommer</button>
           </div>
           <span class="profil-bloc-etat" id="adminEtat"></span>
@@ -418,7 +419,7 @@
         </div>
 
         <div class="amis-ajout">
-          <input type="text" id="amisQ" maxlength="20" autocomplete="off"
+          <input type="text" id="amisQ" maxlength="12" autocomplete="off"
                  placeholder="Suivre un dresseur par son pseudo…"
                  aria-label="Pseudo du dresseur à suivre">
           <button class="toggle-btn primary" id="amisSuivre" type="button">Suivre</button>
@@ -489,9 +490,9 @@
                Une case vide vaut ×1. La table n'a changé que deux fois en
                neuf générations : à toi de dire depuis quels jeux tu la lis.</p>
             <div class="table-ere" id="tableEre" role="group" aria-label="Époque de la table">
-              <button type="button" data-ere="6" class="actif">6<sup>e</sup> et après</button>
+              <button type="button" data-ere="1">1<sup>re</sup> génération</button>
               <button type="button" data-ere="2">2<sup>e</sup> à 5<sup>e</sup></button>
-              <button type="button" data-ere="1">1<sup>re</sup></button>
+              <button type="button" data-ere="6" class="actif">6<sup>e</sup> à 9<sup>e</sup></button>
             </div>
             <p class="strat-aide table-ere-note" id="tableEreNote"></p>
             <div class="table-types-cadre" id="tableTypes"></div>

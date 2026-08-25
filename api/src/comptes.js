@@ -10,7 +10,12 @@ import { estInterdit } from './pseudos-interdits.js';
 
 const SESSION_JOURS = 90;
 const PSEUDO_MIN = 3;
-const PSEUDO_MAX = 20;
+// Douze, et non vingt. Un pseudo s'affiche dans le classement, dans le fil des
+// amis et a cote d'un Pokedex : au-dela, il chasse tout le reste de la ligne.
+// Les pseudos deja plus longs restent valides en base — les couper d'office
+// renommerait des gens sans leur demander. Ils seront ramenes a douze au
+// prochain changement, et l'affichage les tronque proprement en attendant.
+const PSEUDO_MAX = 12;
 const TAILLE_MAX_DEX = 2_000_000;
 
 // Les accents sont admis : « Zoé », « Tennôsei » ou « Björn » sont des pseudos
