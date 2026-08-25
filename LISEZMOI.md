@@ -1065,8 +1065,19 @@ Trois variables décident de tout, et deux d'entre elles ne viennent pas de nous
 curl https://pokearchive.alwaysdata.net/api/etat
 ```
 
-Doit répondre `{"service":"pokearchive","discord":true}`. Un `discord:false`
-signifie que `DISCORD_CLIENT_ID` ou `DISCORD_SECRET` manque à l'appel.
+Doit répondre quelque chose comme :
+
+```json
+{"service":"pokearchive","discord":true,
+ "commit":"1ae51c3","demarreLe":"2026-08-25T18:04:11.882Z","deboutDepuis":93}
+```
+
+Un `discord:false` signifie que `DISCORD_CLIENT_ID` ou `DISCORD_SECRET` manque
+à l'appel.
+
+`commit` est la révision **réellement en cours d'exécution**, lue dans `.git` au
+démarrage du processus et figée là — un `git pull` pendant le service ne la fait
+donc pas mentir. `deboutDepuis` est en secondes.
 
 ### Mettre l'API à jour
 
@@ -1077,6 +1088,26 @@ cd PokeArchive && git pull && cd api && npm install --omit=dev
 
 Puis *redémarrer* le site depuis le panneau. Le service ne se recharge pas
 tout seul : sans redémarrage, il continue de servir l'ancien code.
+
+### Vérifier qu'une mise à jour est bien passée
+
+```
+curl -s https://pokearchive.alwaysdata.net/api/etat
+```
+
+Le `commit` doit être celui qu'on vient de pousser, et `deboutDepuis` doit être
+petit — quelques secondes ou minutes, pas plusieurs jours.
+
+**C'est le seul contrôle qui marche à tous les coups.** On a longtemps guetté
+qu'une route neuve passe de `404` à `401`, ce qui est vrai mais ne sert que
+lorsqu'une route est ajoutée. Un lot qui ne change que le *contenu* des réponses
+ne modifie aucun code de statut : de l'extérieur, avant et après sont
+identiques. C'est arrivé le 25 août 2026 sur un correctif qui rendait
+vingt-quatre succès à zéro — il a fallu ouvrir l'application pour savoir.
+
+Un `commit` à `null` signifie que le dossier n'est pas un dépôt git : c'est le
+cas si le code a été déposé par transfert de fichiers plutôt que par `git pull`.
+Tout le reste continue de fonctionner.
 
 ## Les pseudos et les noms d'aventure
 

@@ -13,6 +13,7 @@ import helmet from 'helmet';
 
 import { config, verifierConfig } from './config.js';
 import { creerSchema, description } from './base.js';
+import { etatVersion } from './version.js';
 import * as comptes from './comptes.js';
 import * as amis from './amis.js';
 import * as discord from './discord.js';
@@ -466,7 +467,18 @@ app.post('/api/admin/renommer', route(async (req, res) => {
   res.json({ ok: true, pseudo: r.pseudo });
 }));
 
-app.get('/api/etat', (req, res) => res.json({ service: 'pokearchive', discord: discord.actif() }));
+// L'etat du service, sans authentification.
+//
+// Le commit et l'heure de demarrage sont la pour qu'un deploiement se
+// verifie : un lot qui ne touche a aucune route ne change aucun code de statut,
+// et sans ces deux champs on redemarre le site sans pouvoir constater que le
+// nouveau code tourne. Le depot est public, le numero de commit ne revele rien
+// de plus que lui.
+app.get('/api/etat', (req, res) => res.json({
+  service: 'pokearchive',
+  discord: discord.actif(),
+  ...etatVersion(),
+}));
 
 app.use((req, res) => res.status(404).json({ erreur: 'Route inconnue.' }));
 
