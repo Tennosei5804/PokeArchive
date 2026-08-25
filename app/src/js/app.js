@@ -68,10 +68,13 @@ async function init(){
   // Les navigateurs restaurent la valeur des champs au rechargement : sans
   // ce nettoyage, on retrouve une recherche ou un filtre de la session
   // précédente, et la grille paraît vide sans raison visible.
-  // Le tri par nom est celui qui répond sans qu'on ait à savoir : on cherche
-  // « Florizarre », pas « le 3 ». Les tris par numéro restent à un clic, et
-  // celui qu'on choisit tient jusqu'à ce qu'on en change.
+  // Le tri suit l'onglet tant qu'on n'en a pas choisi un : « N° du jeu » dans
+  // un jeu, où l'on suit le Pokédex tel que la console le numérote, et
+  // alphabétique ailleurs — sur HOME, « N° du jeu » ne veut rien dire.
+  // updateSortOptions() pose la bonne valeur ; celle-ci n'est que le point de
+  // départ, avant qu'un onglet soit ouvert.
   sortEl.value = 'name';
+  triChoisi = false;
   resetFilters();          // resynchronise aussi les menus stylisés
   updateSaveModeLabel();
   await loadProgress();
@@ -136,7 +139,7 @@ async function init(){
 }
 
 searchEl.addEventListener('input', function(){ renderList(true); });
-sortEl.addEventListener('change', function(){ renderList(true); });
+sortEl.addEventListener('change', function(){ triChoisi = true; renderList(true); });
 filterEl.addEventListener('change', function(){ markActiveFilters(); renderList(true); });
 genFilterEl.addEventListener('change', function(){ markActiveFilters(); renderList(true); });
 loadMoreBtn.addEventListener('click', function(){ renderList(false); });

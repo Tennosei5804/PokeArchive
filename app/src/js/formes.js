@@ -495,10 +495,17 @@ function updateSortOptions(){
   const gameOption = sortEl.querySelector('option[value="game"]');
   gameOption.hidden = !onGame;
   gameOption.disabled = !onGame;
-  // La bascule ne touche que ces deux-là : un tri par nom ou par génération
-  // est un choix, et entrer dans un jeu ne doit pas le défaire.
-  if(onGame && sortEl.value === 'id') sortEl.value = 'game';
-  else if(!onGame && sortEl.value === 'game') sortEl.value = 'name';
+  if(!triChoisi){
+    // Personne n'a encore touché au menu : le tri suit l'onglet. Dans un jeu
+    // c'est « N° du jeu », l'ordre dans lequel la console elle-même présente
+    // son Pokédex, et c'est celui qu'on veut d'abord en y entrant.
+    sortEl.value = onGame ? 'game' : 'name';
+  } else if(onGame && sortEl.value === 'id'){
+    sortEl.value = 'game';
+  } else if(!onGame && sortEl.value === 'game'){
+    // Sélectionné mais inopérant : hors d'un jeu, « N° du jeu » n'a pas de sens.
+    sortEl.value = 'name';
+  }
   if(typeof syncSelects === 'function') syncSelects();
 }
 

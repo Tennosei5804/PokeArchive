@@ -5,6 +5,10 @@ const listEl = document.getElementById('list');
 const stateMsg = document.getElementById('state-msg');
 const searchEl = document.getElementById('search');
 const sortEl = document.getElementById('sort');
+// Vrai des qu'on a touche au menu de tri soi-meme. Tant qu'il est faux, le tri
+// suit l'onglet — « N° du jeu » dans un jeu, alphabetique ailleurs. Une fois
+// vrai, plus rien ne le defait : un tri choisi est un choix.
+let triChoisi = false;
 const filterEl = document.getElementById('filter');
 const genFilterEl = document.getElementById('genFilter');
 const shinyViewBtn = document.getElementById('shinyView');
