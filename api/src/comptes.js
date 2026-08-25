@@ -524,7 +524,7 @@ export async function ecrireDex(dresseurId, donnees, profilId = null) {
  */
 export async function classement() {
   return await lire(
-    `SELECT d.pseudo, d.discord_id, d.avatar,
+    `SELECT d.pseudo, d.discord_id, d.avatar, d.discord_nom,
             p.nom                   AS profil,
             COALESCE(x.captures, 0) AS captures,
             COALESCE(x.shiny, 0)    AS shiny,
@@ -560,7 +560,7 @@ export async function profilsPublics(pseudo) {
 export async function chercherDresseurs(requete) {
   const motif = `%${normaliser(requete).replace(/[%_]/g, '\\$&')}%`;
   return await lire(
-    `SELECT pseudo, avatar, discord_id FROM pa_dresseurs
+    `SELECT pseudo, avatar, discord_id, discord_nom FROM pa_dresseurs
       WHERE pseudo_cle LIKE ? AND visible = 1
       ORDER BY pseudo ASC LIMIT 25`, [motif]);
 }

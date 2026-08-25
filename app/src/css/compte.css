@@ -307,8 +307,8 @@ html[data-theme="light"] body{ background:#e9e7e0; }
    ecrite mais sans effet — releve a l'essai, la ligne sortait a 11,5 px au
    lieu de 10. */
 .visite-entete .visite-discord{
-  display:block; font-family:var(--font-data); font-size:10px;
-  letter-spacing:.06em; color:var(--ink-faint); margin-bottom:1px;
+  display:block; font-size:16px; font-weight:400; line-height:1.25;
+  color:var(--ink-soft);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .visite-entete strong{
@@ -370,6 +370,26 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 }
 
 .dr-infos{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+/* Le pseudo Discord sous le nom choisi, a la MEME taille que lui.
+
+   Ce qui les distingue n'est donc pas le corps mais la graisse et la
+   couleur : le nom porte 700 et --ink, celui-ci 400 et --ink-soft. Les
+   rapetisser aurait fait passer le pseudo Discord pour une note de bas de
+   page, alors que c'est lui qui identifie quand quelqu'un s'est renomme.
+   Le gap de 3px du parent suffit a les espacer. */
+.dr-discord{
+  font-family:var(--font-body); font-size:14.5px; font-weight:400;
+  letter-spacing:-.01em; color:var(--ink-soft);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+/* Dans la liste d'amis, la ligne prend toute la largeur : .ami-nom est
+   d'ordinaire une ligne unique, ce span la coupe en deux. */
+.ami-discord{
+  display:block;
+  font-family:var(--font-body); font-size:13px; font-weight:400;
+  color:var(--ink-soft);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
 .dr-nom{
   font-family:var(--font-body); font-size:14.5px; font-weight:700;
   letter-spacing:-.01em; color:var(--ink);

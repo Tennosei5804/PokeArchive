@@ -467,6 +467,10 @@ function ligneDresseur(p, rang, maxCaptures){
   const infos = document.createElement('div');
   infos.className = 'dr-infos';
 
+  // Le pseudo Discord au-dessus, comme dans la fiche d'un dresseur — sans avoir
+  // à cliquer pour l'obtenir. Il manque tant que la personne ne s'est pas
+  // reconnectée depuis que la colonne existe : la ligne se retire alors, elle
+  // ne reste pas vide.
   const nom = document.createElement('span');
   nom.className = 'dr-nom';
   nom.textContent = p.pseudo;
@@ -476,6 +480,18 @@ function ligneDresseur(p, rang, maxCaptures){
     nom.appendChild(marque);
   }
   infos.appendChild(nom);
+
+  // Le pseudo Discord sous le nom choisi : c'est lui qui identifie quand
+  // quelqu'un s'est renommé ici. Même taille, mais sans la graisse et en
+  // --ink-faint — ce qui distingue les deux sans en rapetisser un.
+  // Absent tant que la personne ne s'est pas reconnectée depuis que la
+  // colonne existe : la ligne se retire alors, elle ne reste pas vide.
+  if(p.discord_nom){
+    const discord = document.createElement('span');
+    discord.className = 'dr-discord';
+    discord.textContent = p.discord_nom;
+    infos.appendChild(discord);
+  }
 
   const sous = document.createElement('span');
   sous.className = 'dr-aventure';
@@ -594,6 +610,10 @@ async function visiterDresseur(pseudo){
   // représente la personne. Les profils arrivent triés par défaut d'abord.
   const titre = document.createElement('div');
 
+  const nom = document.createElement('strong');
+  nom.textContent = chez.dresseur.pseudo;
+  titre.appendChild(nom);
+
   if(chez.dresseur.nomDiscord){
     const discord = document.createElement('span');
     discord.className = 'visite-discord';
@@ -601,10 +621,6 @@ async function visiterDresseur(pseudo){
     discord.title = 'Son pseudo Discord — il ne se change pas depuis PokéArchive';
     titre.appendChild(discord);
   }
-
-  const nom = document.createElement('strong');
-  nom.textContent = chez.dresseur.pseudo;
-  titre.appendChild(nom);
 
   const sous = document.createElement('span');
   const autres = chez.profils.length - 1;

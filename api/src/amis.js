@@ -100,7 +100,7 @@ export async function mesAmis(dresseurId) {
   // L'aventure est celle qui represente la personne, choisie comme dans le
   // classement : la premiere publique, celle par defaut d'abord.
   const lignes = await lire(
-    `SELECT d.pseudo, d.avatar, d.discord_id, a.depuis, a.vu_jusqua,
+    `SELECT d.pseudo, d.avatar, d.discord_id, d.discord_nom, a.depuis, a.vu_jusqua,
             p.nom                   AS aventure,
             COALESCE(x.captures, 0) AS captures,
             COALESCE(x.shiny, 0)    AS shiny,
