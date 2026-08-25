@@ -811,6 +811,78 @@ export async function retrospective(dresseurId) {
   };
 }
 
+/**
+ * De quoi calculer les succès de quelqu'un d'autre.
+ *
+ * CE QU'ON DONNE, ET CE QU'ON NE DONNE PAS. Les succès se déduisent du journal,
+ * mais le journal lui-même — quel Pokémon, quel jour, à quelle heure — n'a pas à
+ * sortir. On rend donc l'AGRÉGAT : combien en tout, combien par jour, sur quels
+ * jeux. Assez pour un seuil ou une série, pas assez pour reconstituer les
+ * soirées de quelqu'un.
+ *
+ * Le dex, lui, est déjà public : le classement l'affiche, la page de visite le
+ * compare Pokémon par Pokémon. Le rendre ici n'ouvre rien de neuf, et c'est ce
+ * qui permet à l'application de calculer les succès par Pokédex — elle seule
+ * connaît la composition de chacun, l'API l'ignore et n'a pas à l'apprendre.
+ *
+ * Les aventures privées restent dehors, comme partout ailleurs.
+ */
+export async function succesDe(pseudo) {
+  const d = await une(
+    'SELECT id, pseudo FROM pa_dresseurs WHERE pseudo_cle = ? AND visible = 1',
+    [normaliser(pseudo)]);
+  if (!d) return null;
+
+  const jours = await lire(
+    `SELECT LEFT(h.ajoute_le, 10) AS jour,
+            COUNT(*)              AS combien,
+            SUM(h.chromatique)    AS chromatiques
+       FROM pa_historique h JOIN pa_profils p ON p.id = h.profil_id
+      WHERE p.dresseur_id = ? AND p.public = 1
+      GROUP BY jour
+      ORDER BY jour DESC
+      LIMIT ${RETRO_JOURS}`, [d.id]);
+
+  const jeux = await lire(
+    `SELECT h.dex, COUNT(*) AS combien
+       FROM pa_historique h JOIN pa_profils p ON p.id = h.profil_id
+      WHERE p.dresseur_id = ? AND p.public = 1
+      GROUP BY h.dex ORDER BY combien DESC LIMIT ${RETRO_JEUX}`, [d.id]);
+
+  const tout = await une(
+    `SELECT COUNT(*) AS total FROM pa_historique h
+       JOIN pa_profils p ON p.id = h.profil_id
+      WHERE p.dresseur_id = ? AND p.public = 1`, [d.id]);
+
+  const amis = await une(
+    'SELECT COUNT(*) AS n FROM pa_amis WHERE dresseur_id = ?', [d.id]);
+
+  // Ses aventures publiques : le meme compte que la page de visite affiche
+  // deja sous son nom. Sans lui, « Touche-a-tout » se mesurerait sur les
+  // notres, et dirait de lui ce qui est vrai de nous.
+  const av = await une(
+    'SELECT COUNT(*) AS n FROM pa_profils WHERE dresseur_id = ? AND public = 1', [d.id]);
+
+  const dex = await dexDe(pseudo);
+
+  return {
+    pseudo: d.pseudo,
+    resume: {
+      jours: jours.map((j) => ({
+        jour: j.jour,
+        combien: Number(j.combien) || 0,
+        chromatiques: Number(j.chromatiques) || 0,
+      })),
+      jeux: jeux.map((g) => ({ dex: g.dex, combien: Number(g.combien) || 0 })),
+      total: Number(tout && tout.total) || 0,
+    },
+    // Un nombre, pas la liste : qui suit qui ne regarde pas les succès.
+    amis: Number(amis && amis.n) || 0,
+    aventures: Number(av && av.n) || 0,
+    dex: dex ? { caught: dex.caught || [], shiny: dex.shiny || [] } : { caught: [], shiny: [] },
+  };
+}
+
 // --- Administration ---------------------------------------------------------
 
 /**

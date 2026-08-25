@@ -1334,6 +1334,14 @@ html[data-theme="light"] body{ background:#e9e7e0; }
    l etoile pleine et par sa bordure ; le reste porte une barre de
    progression, que l acquis n a justement plus — une barre pleine
    n apprend rien. */
+/* Dans la pop-up, la liste defile dans sa carte plutot que d etirer la page
+   derriere : vingt-trois Pokedex plus vingt-deux autres succes font une
+   longue colonne. */
+.succes-card{ max-width:640px; width:min(640px, 94vw); }
+.succes-card .succes-bloc{
+  max-height:62vh; overflow-y:auto; padding-right:4px;
+  text-align:left; margin-bottom:0;
+}
 .succes-bloc{ margin-bottom:14px; }
 .succes-compte{
   margin:0 0 10px;

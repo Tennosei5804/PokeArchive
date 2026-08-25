@@ -685,6 +685,14 @@ fn urlencode(s: &str) -> String {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// Les succès d'un autre dresseur : l'agrégat de son journal et son dex.
+#[tauri::command]
+async fn succes_de(etat: State<'_, Etat>, pseudo: String) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    let chemin = format!("/api/dresseurs/{}/succes", urlencode(&pseudo));
+    appeler(reqwest::Method::GET, &chemin, &jeton, None).await
+}
+
 /// Ce que le journal raconte une fois compté.
 #[tauri::command]
 async fn retrospective(etat: State<'_, Etat>) -> Result<serde_json::Value, String> {
@@ -818,6 +826,7 @@ pub fn run() {
             fermer_les_autres,
             journal,
             renommer_dresseur,
+            succes_de,
             retrospective,
             changer_visibilite,
             amis,

@@ -1,3 +1,26 @@
+// Les Pokémon légendaires, par identifiant d'espèce.
+//
+// RELEVÉS SUR POKÉPÉDIA, catégorie « Pokémon légendaire », le 25 août 2026 —
+// la même source que les lieux, et par la même API MediaWiki. Écrire
+// soixante-et-onze numéros de mémoire aurait été le meilleur moyen d'en
+// manquer trois et d'en inventer un.
+//
+// La catégorie compte 84 pages. Deux sont des pages de catégorie, et neuf
+// sont des FORMES dont l'espèce figure déjà : Artikodin de Galar, Kyurem
+// Blanc, Ultra-Necrozma… Elles se replient donc sur leur espèce, et aucune
+// n'est perdue.
+//
+// Disjointe de FABULEUX, dans cadeaux.js : Poképédia les range dans deux
+// catégories séparées, et le jeu aussi. Arceus est fabuleux, pas légendaire.
+const LEGENDAIRES = new Set([
+  144, 145, 146, 150, 243, 244, 245, 249, 250, 377, 378, 379,
+  380, 381, 382, 383, 384, 480, 481, 482, 483, 484, 485, 486,
+  487, 488, 638, 639, 640, 641, 642, 643, 644, 645, 646, 716,
+  717, 718, 772, 773, 785, 786, 787, 788, 789, 790, 791, 792,
+  800, 888, 889, 890, 891, 892, 894, 895, 896, 897, 898, 905,
+  1001, 1002, 1003, 1004, 1007, 1008, 1014, 1015, 1016, 1017, 1024,
+]);
+
 // Types, en francais. Les 18 identifiants de PokeAPI sont stables depuis la
 // generation 6, on peut donc les figer plutot que de telecharger types.csv.
 // Ce que Pokémon HOME n'accepte pas en boîte.

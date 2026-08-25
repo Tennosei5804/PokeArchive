@@ -330,6 +330,15 @@ app.get('/api/dex/:pseudo', route(async (req, res) => {
 }));
 
 
+// Les succès d'un autre dresseur : l'agrégat de son journal et son dex,
+// jamais le journal lui-même. Voir succesDe().
+app.get('/api/dresseurs/:pseudo/succes', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  const r = await comptes.succesDe(req.params.pseudo);
+  if (!r) return res.status(404).json({ erreur: 'Dresseur inconnu.' });
+  res.json(r);
+}));
+
 // Ce que le journal raconte une fois compte : jours, jeux, total.
 app.get('/api/retrospective', route(async (req, res) => {
   const d = await exiger(req, res); if (!d) return;

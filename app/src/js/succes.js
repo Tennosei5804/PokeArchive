@@ -22,6 +22,14 @@
 const SUCCES_AMIS_MAX = 5;
 
 let succesAmis = null;        // [{ depuis }], rapatrié une fois
+let succesDex = null;         // { cleJeu: { total, normal } }, calculé une fois
+let succesPour = null;        // le pseudo regardé, ou null pour soi
+// L'agrégat de quelqu'un d'autre vit ici et NON dans retroDonnees : cette
+// variable-là est celle du Profil, et la rétrospective s'en sert pour
+// dessiner nos propres chiffres. Y poser les siens ferait dire à notre page
+// ce qui est vrai de lui.
+let succesVisite = null;      // { jours, jeux, total, aventures } d'un visité
+let succesRares = { legendaires: 0, fabuleux: 0 };
 
 // ---- Les succès -------------------------------------------------------------
 //
@@ -95,6 +103,21 @@ const SUCCES = [
     cle: 'chroma10', nom: 'Chasseur patient', quoi: 'Dix Pokémon chromatiques',
     mesurer: (e) => seuilChromatique(e, 10) },
 
+  { groupe: 'Les rares',
+    cle: 'leg1', nom: 'Face à la légende', quoi: 'Capturer un Pokémon légendaire',
+    mesurer: (e) => ({ ou: e.legendaires, but: 1, fait: e.legendaires >= 1 }) },
+  { groupe: 'Les rares',
+    cle: 'leg10', nom: 'Le panthéon', quoi: 'Dix Pokémon légendaires',
+    mesurer: (e) => ({ ou: e.legendaires, but: 10, fait: e.legendaires >= 10 }) },
+  { groupe: 'Les rares',
+    cle: 'legTous', nom: 'Toutes les légendes',
+    quoi: 'Les soixante-et-onze légendaires',
+    mesurer: (e) => ({ ou: e.legendaires, but: e.legendairesEnTout,
+                       fait: e.legendaires >= e.legendairesEnTout }) },
+  { groupe: 'Les rares',
+    cle: 'fab1', nom: 'L’introuvable', quoi: 'Capturer un Pokémon fabuleux',
+    mesurer: (e) => ({ ou: e.fabuleux, but: 1, fait: e.fabuleux >= 1 }) },
+
   { groupe: 'À plusieurs',
     cle: 'ami1', nom: 'Bien accompagné', quoi: 'Suivre un dresseur',
     mesurer: (e) => seuilAmis(e, 1) },
@@ -102,6 +125,56 @@ const SUCCES = [
     cle: 'ami5', nom: 'Toute une bande', quoi: 'Suivre cinq dresseurs',
     mesurer: (e) => seuilAmis(e, SUCCES_AMIS_MAX) },
 ];
+
+/**
+ * Un succès par Pokédex, et un pour les avoir tous.
+ *
+ * Construits depuis GAMES plutôt qu'écrits un par un : la réserve a gagné
+ * Cobblemon aujourd'hui même, et une liste tapée à la main aurait manqué le
+ * vingt-troisième sans que rien ne le dise.
+ *
+ * CE QUE « FINIR » VEUT DIRE ICI : le Pokédex RÉGIONAL du jeu, pas le National
+ * ni les formes alternatives. C'est ce que le jeu lui-même demande, et c'est
+ * déjà ce que compte la section « À portée » de l'accueil.
+ *
+ * Ils n'ont pas de date : le journal dit quand chaque Pokémon est arrivé, mais
+ * savoir quand un Pokédex s'est refermé demanderait de rejouer toute la
+ * collection jour par jour contre la liste de chaque jeu. On se tait plutôt que
+ * d'approcher.
+ */
+function succesDesPokedex(){
+  const jeux = (typeof GAMES !== 'undefined') ? GAMES : [];
+  const liste = jeux.map(function(g){
+    return {
+      groupe: 'Les Pokédex',
+      cle: 'dex-' + g.key,
+      nom: g.title || g.tab || g.key,
+      quoi: 'Compléter son Pokédex régional',
+      mesurer: function(e){
+        const a = e.dex[g.key] || { total: 0, normal: 0 };
+        // Un jeu dont on ne connaît pas encore la liste vaut « pas commencé »,
+        // pas « fini » : sans total, le seuil serait franchi par le vide.
+        return { ou: a.normal, but: a.total || 1,
+                 fait: a.total > 0 && a.normal >= a.total };
+      },
+    };
+  });
+
+  liste.push({
+    groupe: 'Les Pokédex',
+    cle: 'dex-tous',
+    nom: 'Tous les Pokédex',
+    quoi: 'Compléter les ' + jeux.length + ' Pokédex régionaux',
+    mesurer: function(e){
+      const finis = jeux.filter(function(g){
+        const a = e.dex[g.key];
+        return a && a.total > 0 && a.normal >= a.total;
+      }).length;
+      return { ou: finis, but: jeux.length, fait: finis >= jeux.length };
+    },
+  });
+  return liste;
+}
 
 // ---- Les mesures -------------------------------------------------------------
 
@@ -166,10 +239,32 @@ function seuilAmis(e, but){
            quand: dates.length >= but ? dates[but - 1] : null };
 }
 
+/**
+ * Combien de légendaires et de fabuleux dans une collection.
+ *
+ * Les deux listes sont des identifiants d'ESPÈCE ; la collection, elle, retient
+ * des noms de forme. On passe donc par les entrées pour retrouver l'espèce, et
+ * on dédoublonne : Artikodin de Galar et Artikodin sont la même légende, et
+ * l'avoir deux fois n'en fait pas deux.
+ */
+function compterRares(collection){
+  const sortie = { legendaires: 0, fabuleux: 0 };
+  if(typeof allEntries === 'undefined' || !collection) return sortie;
+  const legs = new Set(), fabs = new Set();
+  allEntries.forEach(function(en){
+    if(!collection.caught.has(en.name)) return;
+    if(typeof LEGENDAIRES !== 'undefined' && LEGENDAIRES.has(en.speciesId)) legs.add(en.speciesId);
+    if(typeof FABULEUX !== 'undefined' && FABULEUX.has(en.speciesId)) fabs.add(en.speciesId);
+  });
+  sortie.legendaires = legs.size;
+  sortie.fabuleux = fabs.size;
+  return sortie;
+}
+
 // ---- L'état -------------------------------------------------------------------
 
 function etatSucces(){
-  const d = retroDonnees || { jours: [], jeux: [], total: 0 };
+  const d = succesVisite || retroDonnees || { jours: [], jeux: [], total: 0 };
   return {
     jours: d.jours || [],
     total: d.total || 0,
@@ -178,9 +273,14 @@ function etatSucces(){
     // Le nombre de jeux vient de la réserve, pas d'un chiffre écrit ici : elle
     // en a gagné un aujourd'hui même avec Cobblemon.
     jeuxEnTout: (typeof GAMES !== 'undefined') ? GAMES.length : 23,
-    aventures: (typeof profilsConnus !== 'undefined') ? profilsConnus.length : 0,
+    aventures: succesVisite ? (succesVisite.aventures || 0)
+             : ((typeof profilsConnus !== 'undefined') ? profilsConnus.length : 0),
     amis: succesAmis || [],
     amisCombien: (succesAmis || []).length,
+    dex: succesDex || {},
+    legendaires: succesRares.legendaires,
+    fabuleux: succesRares.fabuleux,
+    legendairesEnTout: (typeof LEGENDAIRES !== 'undefined') ? LEGENDAIRES.size : 0,
   };
 }
 
@@ -260,7 +360,8 @@ function carteSucces(s, m){
 function dessinerSucces(){
   if(!succesBloc) return;
   const e = etatSucces();
-  const mesures = SUCCES.map(function(s){ return { s: s, m: s.mesurer(e) }; });
+  const tous = SUCCES.concat(succesDesPokedex());
+  const mesures = tous.map(function(s){ return { s: s, m: s.mesurer(e) }; });
   const acquis = mesures.filter(function(x){ return x.m.fait; }).length;
 
   succesBloc.innerHTML = '';
@@ -292,7 +393,117 @@ function dessinerSucces(){
   });
 }
 
+/**
+ * L'avancement de chaque Pokédex, pour la personne regardée.
+ *
+ * avancementDuJeu() accepte une collection en second argument : c'est ce qui
+ * permet de calculer les mêmes succès pour quelqu'un d'autre à partir de son
+ * dex, sans que l'API ait à connaître la composition des Pokédex — elle ne la
+ * connaît pas, et n'a aucune raison de l'apprendre.
+ *
+ * Vingt-trois jeux, chacun pouvant demander ses listes : c'est le calcul le
+ * plus long, et c'est pourquoi il n'a lieu qu'à l'ouverture de la pop-up et
+ * non au chargement du Profil.
+ */
+async function calculerDex(collection){
+  if(typeof avancementDuJeu !== 'function' || typeof GAMES === 'undefined') return {};
+  const sortie = {};
+  for(const g of GAMES){
+    try{
+      sortie[g.key] = await avancementDuJeu(g, collection);
+    }catch(e){
+      sortie[g.key] = { total: 0, normal: 0, shiny: 0 };
+    }
+  }
+  return sortie;
+}
+
+/** La collection d'un dresseur, dans la forme qu'attend avancementDuJeu. */
+function collectionDepuisDex(dex){
+  return {
+    caught: new Set((dex && dex.caught) || []),
+    shiny: new Set((dex && dex.shiny) || []),
+  };
+}
+
+// ---- Ouvrir ---------------------------------------------------------------------
+
+async function ouvrirSucces(pseudo){
+  if(!succesOverlay) return;
+  succesPour = pseudo || null;
+  succesOverlay.style.display = 'flex';
+  succesBloc.innerHTML = '<div class="state-msg">Calcul en cours…</div>';
+  succesTitre.textContent = pseudo ? 'Les succès de ' + pseudo : 'Tes succès';
+  setTimeout(function(){ succesFermer.focus(); }, 10);
+
+  try{
+    if(pseudo){
+      const r = await invoke('succes_de', { pseudo: pseudo });
+      succesVisite = r.resume || { jours: [], jeux: [], total: 0 };
+      succesVisite.aventures = r.aventures || 0;
+      succesAmis = new Array(r.amis || 0).fill({ depuis: '' });
+      const col = collectionDepuisDex(r.dex);
+      succesRares = compterRares(col);
+      succesDex = await calculerDex(col);
+    } else {
+      if(!retroDonnees) retroDonnees = await invoke('retrospective');
+      if(succesAmis === null){
+        const a = await invoke('amis');
+        succesAmis = a.amis || [];
+      }
+      // La collection d'ensemble : celle de Pokémon HOME, qui réunit tout.
+      succesRares = compterRares(bucketFor('home'));
+      succesDex = await calculerDex(null);
+    }
+  }catch(e){
+    if(String(e) === 'SESSION_INVALIDE'){ await perdreSession(); return; }
+    succesBloc.innerHTML = '<div class="state-msg">Succès indisponibles.</div>';
+    return;
+  }
+  dessinerSucces();
+}
+
+function fermerSucces(){
+  if(succesOverlay) succesOverlay.style.display = 'none';
+  // Ce qui a été chargé pour quelqu'un d'autre ne doit pas rester : la
+  // prochaine ouverture parlerait de lui sous notre nom.
+  if(succesPour){
+    succesVisite = null; succesAmis = null; succesDex = null; succesPour = null;
+    succesRares = { legendaires: 0, fabuleux: 0 };
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  if(succesBtn) succesBtn.addEventListener('click', function(){ ouvrirSucces(null); });
+  if(succesFermer) succesFermer.addEventListener('click', fermerSucces);
+  if(succesOverlay){
+    succesOverlay.addEventListener('click', function(e){
+      if(e.target === succesOverlay) fermerSucces();
+    });
+  }
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && succesOverlay
+       && succesOverlay.style.display === 'flex') fermerSucces();
+  });
+});
+
+/**
+ * Le résumé sous le bouton, sans ouvrir la pop-up.
+ *
+ * Il ne compte que les succès qui ne demandent aucun calcul long : les Pokédex
+ * en sont donc absents, et la phrase le dit plutôt que de laisser croire à un
+ * total complet.
+ */
+function resumerSucces(){
+  if(!succesResume || !retroDonnees || succesPour) return;
+  const e = etatSucces();
+  const acquis = SUCCES.filter(function(s){ return s.mesurer(e).fait; }).length;
+  succesResume.textContent = acquis + ' sur ' + SUCCES.length
+    + ' — les Pokédex se comptent à l’ouverture.';
+}
+
 /** Appelé par chargerRetrospective(), une fois ses chiffres arrivés. */
+
 async function chargerSucces(){
   if(!succesBloc) return;
   // Les amis ne sont pas dans la rétrospective : un appel de plus, une fois.
@@ -307,5 +518,5 @@ async function chargerSucces(){
       succesAmis = [];
     }
   }
-  dessinerSucces();
+  resumerSucces();
 }

@@ -635,6 +635,20 @@ async function visiterDresseur(pseudo){
     : 'Aucune aventure publique';
   titre.appendChild(sous);
   entete.appendChild(img); entete.appendChild(titre);
+
+  // Les succès de quelqu'un d'autre, dans la même pop-up que les siens. Ils se
+  // déduisent de son dex et de l'agrégat de son journal — tous deux déjà
+  // publics, l'un affiché au classement, l'autre résumé pour l'occasion.
+  const succes = document.createElement('button');
+  succes.type = 'button';
+  succes.className = 'toggle-btn';
+  succes.textContent = '🏅 Ses succès';
+  succes.title = 'Le tableau de chasse de ' + chez.dresseur.pseudo;
+  succes.addEventListener('click', function(){
+    if(typeof ouvrirSucces === 'function') ouvrirSucces(chez.dresseur.pseudo);
+  });
+  entete.appendChild(succes);
+
   dresseurVisite.appendChild(entete);
 
   if(!chez.profils.length){

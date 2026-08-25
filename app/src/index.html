@@ -340,7 +340,12 @@
         <div class="retro" id="retroBloc"></div>
 
         <div class="home-section-title">Tes succès</div>
-        <div class="succes-bloc" id="succesBloc"></div>
+        <div class="profil-bloc">
+          <p class="profil-bloc-note">Ce que ton journal raconte, mis en tableau de
+            chasse. Ils se déduisent de tes captures — rien à réclamer, rien à cocher.</p>
+          <button class="toggle-btn" id="succesBtn" type="button">🏅 Voir mes succès</button>
+          <span class="profil-bloc-etat" id="succesResume"></span>
+        </div>
 
         <div class="home-section-title">Journal des captures</div>
         <div class="journal-entete">
@@ -727,6 +732,16 @@
            promesse invisible. -->
       <span class="credit credit-folder" id="cacheLabel"></span>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="succesOverlay" style="display:none;" role="dialog"
+     aria-modal="true" aria-labelledby="succesTitre">
+  <div class="modal-card succes-card">
+    <button class="fiche-fermer" id="succesFermer" type="button" aria-label="Fermer">✕</button>
+    <div class="modal-eyebrow" id="succesEyebrow">Tableau de chasse</div>
+    <h2 class="modal-title" id="succesTitre">Tes succès</h2>
+    <div class="succes-bloc" id="succesBloc"></div>
   </div>
 </div>
 
