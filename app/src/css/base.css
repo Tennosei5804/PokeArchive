@@ -238,23 +238,6 @@
   .card-compare.moi   { background:#2b4a6b; color:#cfe6ff; }
   .card-compare.aucun { background:transparent; color:var(--ink-faint); border:1px dashed var(--card-border); }
 
-  /* ---- Zone de code partagé ---- */
-  .code-box{
-    width:100%;
-    font-family:var(--font-data);
-    font-size:11px;
-    line-height:1.5;
-    color:var(--ink);
-    background:var(--screen);
-    border:1px solid var(--card-border);
-    border-radius:10px;
-    padding:10px 12px;
-    margin-bottom:12px;
-    resize:vertical;
-    word-break:break-all;
-  }
-  .code-box:focus-visible{ outline:2.5px solid var(--dex-red); }
-
   /* ---- Ce que la fiche partage avec le reste de l'application ----
      La mise en page de la fiche vit dans fiche.css depuis le modèle du 24 août
      2026. Ne restent ici que le repli des logos de type et la liste des jeux,
@@ -463,29 +446,7 @@
     margin-bottom:16px;
   }
   .modal-card input[type="text"]:focus-visible{ outline:2.5px solid var(--dex-red); }
-
-  /* ---- Choix du profil ---- */
-  .profile-list{ display:flex; flex-direction:column; gap:6px; margin:0 0 14px; text-align:left; }
-  .profile-btn{
-    display:flex; align-items:center; gap:10px;
-    font-family:var(--font-body); font-size:13px; font-weight:600;
-    color:var(--ink);
-    background:var(--screen);
-    border:1px solid var(--card-border);
-    border-radius:10px;
-    padding:9px 12px;
-    cursor:pointer;
-    text-align:left;
-    transition:border-color 120ms, background 120ms;
-  }
-  .profile-btn:hover{ border-color:var(--dex-red); }
   .profile-btn.current{ border-color:var(--caught); background:var(--caught-soft); }
-  .profile-btn:focus-visible{ outline:2.5px solid var(--dex-red); }
-  .profile-btn .pname{ flex:1; }
-  .profile-btn .pstats{
-    font-family:var(--font-data); font-size:10.5px; color:var(--ink-soft);
-    font-variant-numeric:tabular-nums;
-  }
   /* ---- Aperçu d'un Pokémon (clic sur une carte) ---- */
   /* La fiche porte maintenant stats, talents, évolution et lieux d'obtention :
      420 px n'y suffisaient plus. Elle s'élargit et défile si la fenêtre est
@@ -576,7 +537,6 @@
     color:#fff;
     border-color:var(--dex-red-deep);
   }
-
 
 /* ---- Le selecteur de couleur -----------------------------------------
    Panneau flottant, au rayon 11 px des blocs. Il se pose sur le corps de

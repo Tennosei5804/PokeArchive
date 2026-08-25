@@ -347,6 +347,10 @@ async function demarrerProfils(){
 
 async function perdreSession(){
   await invoke('deconnexion').catch(function(){});
+  // La présence Discord porte le pseudo et le nom d'aventure : la laisser
+  // après une déconnexion, c'est continuer à les afficher à toute une liste
+  // d'amis alors qu'on a justement voulu partir.
+  if(typeof presenceEffacer === 'function') presenceEffacer();
   dresseurCourant = null;
   profilCourant = null;
   profilsConnus = [];
@@ -417,6 +421,7 @@ document.getElementById('quitter').addEventListener('click', async function(e){
   });
   if(!ok) return;
   await invoke('deconnexion').catch(function(){});
+  if(typeof presenceEffacer === 'function') presenceEffacer();
   dresseurCourant = null;
   profilCourant = null;
   profilsConnus = [];

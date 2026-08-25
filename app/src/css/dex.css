@@ -454,7 +454,7 @@
     flex-wrap:wrap;
     padding:0 4px;
   }
-  .bottom-actions{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+
   .bottom-actions .toggle-btn{ padding:7px 11px; font-size:12px; }
   .credit-block{ display:flex; flex-direction:column; gap:2px; }
   .credit{
@@ -464,21 +464,8 @@
   }
   .credit-folder.connected{ color:#c9f5d6; }
   .credit-folder.unsupported{ color:rgba(255,255,255,0.55); }
-  .reset-btn{
-    font-family:var(--font-body);
-    font-weight:600;
-    font-size:12px;
-    text-transform:none;
-    color:#fff;
-    background:var(--danger);
-    border:1px solid rgba(0,0,0,0.15);
-    padding:7px 12px;
-    border-radius:7px;
-    cursor:pointer;
-  }
-  .reset-btn:hover{ background:#a8291f; }
 
-  @media (max-width:520px){
+@media (max-width:520px){
     .dex-title{ font-size:21px; }
     .stat-bar{ flex-wrap:wrap; }
     .grid{ grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); }

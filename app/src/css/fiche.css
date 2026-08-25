@@ -553,33 +553,8 @@ table.paliers-table{
   background:var(--card); border:1px solid var(--card-border);
 }
 .evo.ici{ border-color:var(--teinte); box-shadow:inset 3px 0 0 var(--teinte); }
-.evo-no{
-  font-family:var(--font-data); font-size:10px; color:var(--ink-faint);
-  font-variant-numeric:tabular-nums;
-}
-.evo-nom{ font-size:13px; font-weight:600; }
+
 .evo.ici .evo-nom{ color:var(--teinte); }
-.evo-ici-note{
-  margin-left:auto; font-family:var(--font-data); font-size:9px;
-  letter-spacing:.1em; text-transform:uppercase; color:var(--teinte);
-}
-.evo-lien{
-  display:flex; align-items:center; gap:8px;
-  padding:5px 9px 5px 22px;
-  font-size:11.5px; color:var(--ink-soft);
-}
-.evo-lien::before{
-  content:""; width:9px; height:9px; margin-left:-13px;
-  border-left:1.5px solid var(--card-border);
-  border-bottom:1.5px solid var(--card-border);
-  border-bottom-left-radius:4px;
-}
-.evo-cond{
-  font-family:var(--font-data); font-size:10.5px; font-weight:600;
-  color:var(--gold-deep);
-  background:var(--card); border:1px solid var(--card-border);
-  border-radius:6px; padding:1px 7px;
-}
 
 /* ---- 6. Reproduction -------------------------------------------- */
 .repro-puces{ display:flex; gap:6px; flex-wrap:wrap; }
@@ -697,14 +672,10 @@ table.attaques{
 .attaques td.cat{ text-align:left; width:88px; }
 .attaques td.chiffre{ font-family:var(--font-data); font-size:11.5px; color:var(--ink); }
 .attaques td.chiffre.vide{ color:var(--ink-faint); }
-.cat-puce{
-  display:inline-block; font-size:9.5px; font-weight:700;
-  border-radius:5px; padding:2px 7px; color:#fff;
-}
+
 .cat-puce.physique{ background:#c9694f; }
 .cat-puce.speciale{ background:#5269ac; }
 .cat-puce.statut{ background:#9099a1; }
-
 
 /* --- responsive --- */
 /* ---- Etroit ------------------------------------------------------ */

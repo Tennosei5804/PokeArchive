@@ -154,16 +154,7 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 
 /* ---- Liste des dresseurs ---- */
 .dresseurs{ display:flex; flex-direction:column; gap:7px; }
-.dresseur-ligne{
-  display:flex; align-items:center; gap:12px;
-  background:var(--card); border:1px solid var(--card-border);
-  border-radius:10px; padding:9px 13px;
-}
 .dresseur-ligne.moi{ border-color:var(--dex-red); }
-.dresseur-ligne img{
-  width:30px; height:30px; border-radius:50%;
-  background:var(--screen); flex-shrink:0;
-}
 .dresseur-ligne .nom{
   flex:1; font-weight:700; font-size:14px; letter-spacing:-.01em; color:var(--ink);
 }
@@ -275,9 +266,6 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   color:var(--ink); font-family:var(--font-body); font-size:13.5px;
 }
 .dresseur-recherche input:focus{ outline:2px solid var(--dex-red); outline-offset:1px; }
-
-.dresseur-ligne{ cursor:pointer; transition:border-color 120ms; }
-.dresseur-ligne:hover{ border-color:var(--dex-red); }
 .dresseur-ligne .nom{ display:flex; flex-direction:column; gap:1px; }
 .dresseur-ligne .nom small{
   font-family:var(--font-data); font-size:10.5px; font-weight:400; color:var(--ink-faint);
@@ -589,7 +577,6 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 /* Le bas de fenêtre n'a plus que sa ligne de crédit : sans les boutons, la
    barre garde une hauteur qui ne se justifie plus. */
 .bottom-bar{ padding-top:10px; padding-bottom:10px; }
-.bottom-actions:empty{ display:none; }
 
 /* ---- Accueil : l'aventure ouverte ---- */
 .accueil-aventure{
@@ -834,14 +821,6 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 }
 .chasse-changer:hover{ color:var(--gold); }
 .chasse-depart{ margin-bottom:14px; }
-
-/* Une note explicative, pas une erreur : elle suit le menu qu'elle commente. */
-.chasse-note{
-  margin:7px 0 0; padding:8px 11px; border-radius:10px;
-  background:var(--screen); border-left:3px solid var(--gold);
-  font-family:var(--font-body); font-size:12.5px; line-height:1.5;
-  color:var(--ink-soft);
-}
 
 /* ---- Page « Cadeau Mystère » ---- */
 /* Les fabuleux ne se rangent nulle part : ni Pokédex régional, ni lieu de
@@ -1186,8 +1165,6 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   font-family:var(--font-data); font-size:8.5px; line-height:1;
   font-variant-numeric:tabular-nums;
 }
-
-
 
 /* ---- La bascule ------------------------------------------------------
    La case a cocher du systeme ne prend pas le theme : elle reste carree et
