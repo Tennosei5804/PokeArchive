@@ -86,6 +86,20 @@ main()
     // Le code de sortie compte : une tâche planifiée qui échoue en silence
     // laisse croire qu'on est sauvegardé alors qu'on ne l'est plus.
     console.error(`Échec de la sauvegarde : ${e.message}`);
-    if (!config.base.hote) console.error('DB_HOTE est vide — les variables ne sont pas passées à la tâche.');
+    // Diagnostiquer ne suffit pas : la premiere fois qu'on lance ce script,
+    // c'est justement qu'on ne sait pas encore comment il attend d'etre lance.
+    if (!config.base.hote) {
+      console.error('');
+      console.error("DB_HOTE est vide : les variables d'environnement ne sont pas là.");
+      console.error("Ni SSH ni une tâche planifiée n'hérite de celles du site.");
+      console.error('');
+      console.error("  À la main   cd ~/PokeArchive/api \\");
+      console.error("              && node --env-file=.env outils/sauvegarder.js");
+      console.error("              (un .env à côté de .env.exemple, portant les DB_*)");
+      console.error("");
+      console.error("  Planifiée   alwaysdata : Avancé → Tâches planifiées,");
+      console.error("              en redonnant les DB_* dans l'environnement de la tâche.");
+      console.error('');
+    }
     process.exit(1);
   });

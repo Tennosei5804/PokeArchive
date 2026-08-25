@@ -1185,6 +1185,19 @@ n'hérite pas de celles du site. Sans elles le script échoue avec un code de
 sortie non nul, ce qui est voulu : une sauvegarde qui échoue en silence laisse
 croire qu'on est protégé alors qu'on ne l'est plus.
 
+**Une session SSH n'en hérite pas davantage.** Pour sauvegarder à la main —
+avant une opération risquée, ou simplement pour vérifier que ça marche — le plus
+court est un fichier `.env` à côté de `.env.exemple`, qu'on remplit une fois :
+
+```
+cd ~/PokeArchive/api && node --env-file=.env outils/sauvegarder.js
+```
+
+Le chemin est donné depuis `api/` exprès : `--env-file` cherche le fichier
+relativement au dossier courant, et lancer la même commande depuis ailleurs ne
+trouverait rien. Ce `.env` porte le mot de passe de la base — il est dans le
+`.gitignore` et n'a aucune raison de quitter le serveur.
+
 > Les sauvegardes contiennent les Pokédex, les pseudos et les identifiants
 > Discord de tout le monde. `sauvegardes/` est dans le `.gitignore` — elles
 > restent sur le serveur.
