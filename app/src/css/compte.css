@@ -1387,7 +1387,11 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   display:grid; grid-template-columns:repeat(auto-fill, minmax(228px, 1fr));
   gap:7px;
 }
-.succes{
+/* .succes-carte, et surtout PAS .succes : « succes » est deja un modificateur
+   de genre pose sur .modal-eyebrow et .confirm-note par prevenir(). Une regle
+   sur .succes nu les attrapait toutes les deux et leur imposait cette grille —
+   le texte tombait dans la colonne de 20px et se brisait un mot par ligne. */
+.succes-carte{
   display:grid; grid-template-columns:20px 1fr; gap:9px; align-items:start;
   padding:10px 12px;
   border:1px solid var(--card-border); border-radius:10px;
@@ -1395,13 +1399,13 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 }
 /* Un succes non acquis n est pas grise au point de disparaitre : c est ce qui
    reste a faire, et donc ce qu on vient lire. */
-.succes:not(.acquis){ opacity:.72; }
-.succes.acquis{ border-color:var(--gold); }
+.succes-carte:not(.acquis){ opacity:.72; }
+.succes-carte.acquis{ border-color:var(--gold); }
 .succes-marque{
   display:flex; align-items:center; justify-content:center;
   height:17px; color:var(--ink-faint);
 }
-.succes.acquis .succes-marque{ color:var(--gold); }
+.succes-carte.acquis .succes-marque{ color:var(--gold); }
 .succes-corps{ display:flex; flex-direction:column; gap:2px; min-width:0; }
 .succes-nom{
   font-size:12.5px; font-weight:600; color:var(--ink);
@@ -1412,7 +1416,7 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   font-family:var(--font-data); font-size:9px; color:var(--ink-faint);
   font-variant-numeric:tabular-nums; margin-top:2px;
 }
-.succes.acquis .succes-pied{ color:var(--gold); }
+.succes-carte.acquis .succes-pied{ color:var(--gold); }
 .succes-barre{
   display:block; height:3px; margin-top:5px;
   background:var(--screen); border-radius:999px; overflow:hidden;

@@ -518,7 +518,7 @@ function iconeSucces(acquis){
 
 function carteSucces(s, m){
   const c = document.createElement('div');
-  c.className = 'succes' + (m.fait ? ' acquis' : '');
+  c.className = 'succes-carte' + (m.fait ? ' acquis' : '');
 
   const marque = document.createElement('span');
   marque.className = 'succes-marque';
