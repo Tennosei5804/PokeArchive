@@ -849,9 +849,11 @@ export async function succesDe(pseudo) {
       WHERE p.dresseur_id = ? AND p.public = 1
       GROUP BY h.dex ORDER BY combien DESC LIMIT ${RETRO_JEUX}`, [d.id]);
 
+  // MIN(ajoute_le) et non le dernier des jours ci-dessus : celui-la est
+  // plafonne a deux ans, et dirait « un an » de quelqu'un qui joue depuis cinq.
   const tout = await une(
-    `SELECT COUNT(*) AS total FROM pa_historique h
-       JOIN pa_profils p ON p.id = h.profil_id
+    `SELECT COUNT(*) AS total, MIN(h.ajoute_le) AS premier
+       FROM pa_historique h JOIN pa_profils p ON p.id = h.profil_id
       WHERE p.dresseur_id = ? AND p.public = 1`, [d.id]);
 
   const amis = await une(
@@ -875,6 +877,7 @@ export async function succesDe(pseudo) {
       })),
       jeux: jeux.map((g) => ({ dex: g.dex, combien: Number(g.combien) || 0 })),
       total: Number(tout && tout.total) || 0,
+      premier: (tout && tout.premier) || null,
     },
     // Un nombre, pas la liste : qui suit qui ne regarde pas les succès.
     amis: Number(amis && amis.n) || 0,

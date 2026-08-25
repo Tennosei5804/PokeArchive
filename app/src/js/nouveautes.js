@@ -20,6 +20,24 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.17.0', date: '2026-08-25', titre: 'Un tableau de chasse, et les succès des autres',
+    points: [
+      'Un bouton **Voir mes succès** dans ton profil ouvre soixante succès : '
+      + 'tes premiers pas, ta régularité, tes chromatiques, tes légendaires — '
+      + 'et un par Pokédex.',
+      'Rien à débloquer à la main : tout se déduit de ce que tu as déjà '
+      + 'enregistré. Un succès ajouté plus tard s’acquiert **rétroactivement**, '
+      + 'à sa vraie date.',
+      '**L’exploration** : un lieu compte dès que tu y as pris un Pokémon. '
+      + 'Trois mille trois cents lieux sur les vingt-trois jeux, et « Carte '
+      + 'complète » pour un jeu arpenté de bout en bout.',
+      'Les **dix-huit types**, le **temps long** — un an d’archive, ou reprendre '
+      + 'après trente jours d’absence — et une **légende chromatique**.',
+      'Les succès d’un autre dresseur se regardent depuis sa fiche, par '
+      + '**Ses succès**. Son journal, lui, ne sort pas : seuls les totaux servent.',
+    ],
+  },
+  {
     version: '0.16.0', date: '2026-08-25', titre: 'Ta présence Discord s’efface quand tu pars',
     points: [
       'En te déconnectant, ta présence Discord continuait d’afficher ton pseudo '

@@ -162,6 +162,10 @@ function decouperLieu(morceau, cleJeu){
  * détail.
  */
 function indexerCobblemon(){
+  // La reserve du mod se charge a la demande, et tout le monde ne passe pas par
+  // la page Lieux : les succes, eux, indexent les vingt-trois jeux d'un coup.
+  // Sans ce garde-fou, l'onglet manquant faisait tomber l'appelant.
+  if(typeof DONNEES_COBBLEMON === 'undefined') return [];
   const d = DONNEES_COBBLEMON;
   const parBiome = new Map();
   Object.keys(d.especes).forEach(function(sid){
@@ -193,7 +197,12 @@ function indexerLieux(cleJeu){
   if(lieuxIndex[cleJeu]) return lieuxIndex[cleJeu];
 
   if(cleJeu === 'cobblemon'){
-    lieuxIndex[cleJeu] = indexerCobblemon();
+    const biomes = indexerCobblemon();
+    // Rien en cache tant que la reserve du mod n'est pas la : l'index vide
+    // qu'on garderait ici survivrait a son chargement, et l'onglet resterait
+    // desespérément vide.
+    if(!biomes.length) return biomes;
+    lieuxIndex[cleJeu] = biomes;
     return lieuxIndex[cleJeu];
   }
 

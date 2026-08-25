@@ -29,7 +29,9 @@ let succesPour = null;        // le pseudo regardé, ou null pour soi
 // dessiner nos propres chiffres. Y poser les siens ferait dire à notre page
 // ce qui est vrai de lui.
 let succesVisite = null;      // { jours, jeux, total, aventures } d'un visité
-let succesRares = { legendaires: 0, fabuleux: 0 };
+let succesRares = { legendaires: 0, fabuleux: 0, legendairesChromatiques: 0 };
+let succesLieux = null;       // { couverts, total, arpentes, jeux }
+let succesTypes = null;       // { combien, total }
 
 // ---- Les succès -------------------------------------------------------------
 //
@@ -124,7 +126,65 @@ const SUCCES = [
   { groupe: 'À plusieurs',
     cle: 'ami5', nom: 'Toute une bande', quoi: 'Suivre cinq dresseurs',
     mesurer: (e) => seuilAmis(e, SUCCES_AMIS_MAX) },
+
+  { groupe: 'Les grandes sessions',
+    cle: 'jour100', nom: 'La razzia', quoi: 'Cent captures en un jour',
+    mesurer: (e) => seuilJournee(e, 100) },
+
+  { groupe: 'L’exploration',
+    cle: 'expl250', nom: 'Le goût du voyage', quoi: 'Deux cent cinquante lieux',
+    mesurer: (e) => ({ ou: e.lieux, but: 250, fait: e.lieux >= 250 }) },
+  { groupe: 'L’exploration',
+    cle: 'expl1500', nom: 'Le grand tour', quoi: 'Mille cinq cents lieux',
+    mesurer: (e) => ({ ou: e.lieux, but: 1500, fait: e.lieux >= 1500 }) },
+  { groupe: 'L’exploration',
+    cle: 'arp1', nom: 'Carte complète',
+    quoi: 'Un Pokémon dans chaque lieu d’un jeu',
+    mesurer: (e) => ({ ou: e.jeuxArpentes, but: 1, fait: e.jeuxArpentes >= 1 }) },
+  { groupe: 'L’exploration',
+    cle: 'arp5', nom: 'Cartographe', quoi: 'Cinq jeux arpentés de bout en bout',
+    mesurer: (e) => ({ ou: e.jeuxArpentes, but: 5, fait: e.jeuxArpentes >= 5 }) },
+  { groupe: 'L’exploration',
+    cle: 'arpTous', nom: 'Rien d’inexploré', quoi: 'Tous les jeux arpentés',
+    mesurer: (e) => ({ ou: e.jeuxArpentes, but: e.jeuxAvecLieux,
+                       fait: e.jeuxAvecLieux > 0 && e.jeuxArpentes >= e.jeuxAvecLieux }) },
+
+  { groupe: 'Les types',
+    cle: 'type9', nom: 'La moitié du tableau', quoi: 'Neuf types différents',
+    mesurer: (e) => ({ ou: e.types, but: 9, fait: e.types >= 9 }) },
+  { groupe: 'Les types',
+    cle: 'type18', nom: 'Les dix-huit types',
+    quoi: 'Un Pokémon de chacun des dix-huit types',
+    mesurer: (e) => ({ ou: e.types, but: e.typesEnTout,
+                       fait: e.typesEnTout > 0 && e.types >= e.typesEnTout }) },
+
+  { groupe: 'Les chromatiques',
+    cle: 'chrom50', nom: 'Chasseur obstiné', quoi: 'Cinquante Pokémon chromatiques',
+    mesurer: (e) => seuilChromatique(e, 50) },
+  { groupe: 'Les chromatiques',
+    cle: 'chrom100', nom: 'La centaine brillante', quoi: 'Cent Pokémon chromatiques',
+    mesurer: (e) => seuilChromatique(e, 100) },
+  { groupe: 'Les chromatiques',
+    cle: 'chrom2j', nom: 'Coup double', quoi: 'Deux chromatiques le même jour',
+    mesurer: (e) => ({ ou: e.chromJour.combien, but: 2,
+                       fait: e.chromJour.combien >= 2, quand: e.chromJour.quand }) },
+  { groupe: 'Les chromatiques',
+    cle: 'chromLeg', nom: 'La légende brillante',
+    quoi: 'Un Pokémon légendaire chromatique',
+    mesurer: (e) => ({ ou: e.legendairesChromatiques, but: 1,
+                       fait: e.legendairesChromatiques >= 1 }) },
+
+  { groupe: 'Le temps long',
+    cle: 'an1', nom: 'Un an d’archive',
+    quoi: 'Un an entre la première capture et la dernière',
+    mesurer: (e) => ({ ou: e.duree.jours, but: 365,
+                       fait: e.duree.jours >= 365, quand: e.duree.quand }) },
+  { groupe: 'Le temps long',
+    cle: 'retour', nom: 'Le retour', quoi: 'Reprendre après trente jours sans rien',
+    mesurer: (e) => ({ ou: e.absence.jours, but: 30,
+                       fait: e.absence.jours >= 30, quand: e.absence.quand }) },
 ];
+
 
 /**
  * Un succès par Pokédex, et un pour les avoir tous.
@@ -248,17 +308,150 @@ function seuilAmis(e, but){
  * l'avoir deux fois n'en fait pas deux.
  */
 function compterRares(collection){
-  const sortie = { legendaires: 0, fabuleux: 0 };
+  const sortie = { legendaires: 0, fabuleux: 0, legendairesChromatiques: 0 };
   if(typeof allEntries === 'undefined' || !collection) return sortie;
-  const legs = new Set(), fabs = new Set();
+  const legs = new Set(), fabs = new Set(), brillantes = new Set();
+  const chroma = collection.shiny || new Set();
   allEntries.forEach(function(en){
+    const estLeg = (typeof LEGENDAIRES !== 'undefined') && LEGENDAIRES.has(en.speciesId);
+    // Une legende chromatique se compte sur le relevé des chromatiques, qui est
+    // un ensemble a part : elle n'a aucune raison de figurer aussi dans caught.
+    if(estLeg && chroma.has(en.name)) brillantes.add(en.speciesId);
     if(!collection.caught.has(en.name)) return;
-    if(typeof LEGENDAIRES !== 'undefined' && LEGENDAIRES.has(en.speciesId)) legs.add(en.speciesId);
+    if(estLeg) legs.add(en.speciesId);
     if(typeof FABULEUX !== 'undefined' && FABULEUX.has(en.speciesId)) fabs.add(en.speciesId);
   });
   sortie.legendaires = legs.size;
   sortie.fabuleux = fabs.size;
+  sortie.legendairesChromatiques = brillantes.size;
   return sortie;
+}
+
+
+// ---- L'exploration ------------------------------------------------------------
+//
+// « Un Pokémon sur chaque route » : un lieu compte dès qu'une seule de ses
+// espèces est prise. Ce n'est pas le Pokédex sous un autre nom — c'est un
+// jalon qui tombe AVANT lui, et mesuré : sur Rouge / Bleu, onze espèces bien
+// choisies couvrent les cinquante lieux, quand il en faut cent-une pour les
+// avoir toutes. On récompense d'aller partout, pas d'avoir tout.
+//
+// LE COMPTE CUMULÉ SATURE VITE, et les seuils en tiennent compte : cent
+// espèces couvrent déjà mille sept cents des trois mille trois cents lieux,
+// parce que les communes sont partout. Au-delà, c'est l'arpentage jeu par jeu
+// qui demande encore quelque chose.
+
+/**
+ * Ce qui est pris dans un jeu.
+ *
+ * Pour soi, le relevé de CE jeu — arpenter Rouge / Bleu, c'est y être allé,
+ * pas posséder l'espèce ailleurs. Pour quelqu'un d'autre, on n'a que son dex
+ * d'ensemble : la mesure est alors plus généreuse, faute de mieux, exactement
+ * comme les succès par Pokédex le font déjà.
+ */
+function prisesPourSucces(cleJeu, collection){
+  if(collection) return collection.caught;
+  if(typeof prisesDe === 'function') return prisesDe(cleJeu);
+  return new Set();
+}
+
+async function calculerLieux(collection){
+  const vide = { couverts: 0, total: 0, arpentes: 0, jeux: 0 };
+  if(typeof indexerLieux !== 'function' || typeof GAMES === 'undefined') return vide;
+  // La réserve du mod se charge à la demande, et sans elle Cobblemon
+  // compterait zéro lieu : le total annoncé serait faux de soixante biomes.
+  if(typeof chargerCobblemon === 'function'){
+    try{ await chargerCobblemon(); }catch(e){ /* hors ligne : soixante de moins */ }
+  }
+  const sortie = { couverts: 0, total: 0, arpentes: 0, jeux: 0 };
+  GAMES.forEach(function(g){
+    let lieux = [];
+    try{ lieux = indexerLieux(g.key) || []; }catch(e){ return; }
+    if(!lieux.length) return;                  // jeu sans relevé de lieux
+    const pris = prisesPourSucces(g.key, collection);
+    let couverts = 0;
+    lieux.forEach(function(l){
+      const ok = l.especes.some(function(x){
+        const en = (typeof entreeParId === 'function') ? entreeParId(x.id) : null;
+        return en && pris.has(en.name);
+      });
+      if(ok) couverts++;
+    });
+    sortie.couverts += couverts;
+    sortie.total += lieux.length;
+    sortie.jeux++;
+    if(couverts === lieux.length) sortie.arpentes++;
+  });
+  return sortie;
+}
+
+// ---- Les types ----------------------------------------------------------------
+//
+// La réserve embarque déjà les types — mille trois cent cinquante-et-une
+// entrées, chargées à la demande par le filtre du dex. Rien à relever.
+
+async function calculerTypes(collection){
+  const vide = { combien: 0, total: 18 };
+  if(typeof loadTypes !== 'function' || typeof allEntries === 'undefined') return vide;
+  let table;
+  try{ table = await loadTypes(); }catch(e){ return vide; }
+  if(!table) return vide;
+  const pris = collection ? collection.caught
+             : (typeof bucketFor === 'function' ? bucketFor('home').caught : new Set());
+  const vus = new Set();
+  allEntries.forEach(function(en){
+    if(!pris.has(en.name)) return;
+    (table.get(en.id) || []).forEach(function(t){ vus.add(t); });
+  });
+  return { combien: vus.size,
+           total: (typeof TYPES_FR !== 'undefined') ? Object.keys(TYPES_FR).length : 18 };
+}
+
+// ---- Le temps -----------------------------------------------------------------
+
+/** Le nombre de jours entre deux « AAAA-MM-JJ ». Midi UTC : hors d'atteinte des fuseaux. */
+function ecartEnJours(depuis, jusqua){
+  const a = Date.parse(String(depuis).slice(0, 10) + 'T12:00:00Z');
+  const b = Date.parse(String(jusqua).slice(0, 10) + 'T12:00:00Z');
+  if(isNaN(a) || isNaN(b)) return 0;
+  return Math.round((b - a) / 86400000);
+}
+
+/**
+ * La plus longue absence, et le jour du retour.
+ *
+ * Les jours arrivent du plus récent au plus ancien et sans trou : un jour sans
+ * capture n'a pas de ligne. L'écart entre deux lignes voisines est donc
+ * exactement le temps passé loin.
+ */
+function plusLongueAbsence(jours){
+  let record = 0, quand = null;
+  for(let i = 0; i < jours.length - 1; i++){
+    const trou = ecartEnJours(jours[i + 1].jour, jours[i].jour);
+    if(trou > record){ record = trou; quand = jours[i].jour; }
+  }
+  return { jours: record, quand: quand };
+}
+
+/** Le plus grand nombre de chromatiques pris dans une même journée. */
+function meilleurJourChromatique(jours){
+  let record = 0, quand = null;
+  jours.forEach(function(j){
+    if(j.chromatiques > record){ record = j.chromatiques; quand = j.jour; }
+  });
+  return { combien: record, quand: quand };
+}
+
+/**
+ * Depuis combien de temps l'archive dure.
+ *
+ * Du premier jour au DERNIER enregistré, et non à aujourd'hui : le mérite est
+ * d'avoir tenu un an, pas d'avoir laissé un an passer.
+ */
+function dureeArchive(e){
+  if(!e.premier || !e.jours.length) return { jours: 0, quand: null };
+  const dernier = e.jours[0].jour;
+  return { jours: ecartEnJours(e.premier, dernier), quand: dernier };
 }
 
 // ---- L'état -------------------------------------------------------------------
@@ -281,6 +474,17 @@ function etatSucces(){
     legendaires: succesRares.legendaires,
     fabuleux: succesRares.fabuleux,
     legendairesEnTout: (typeof LEGENDAIRES !== 'undefined') ? LEGENDAIRES.size : 0,
+    legendairesChromatiques: succesRares.legendairesChromatiques || 0,
+    lieux: succesLieux ? succesLieux.couverts : 0,
+    lieuxEnTout: succesLieux ? succesLieux.total : 0,
+    jeuxArpentes: succesLieux ? succesLieux.arpentes : 0,
+    jeuxAvecLieux: succesLieux ? succesLieux.jeux : 0,
+    types: succesTypes ? succesTypes.combien : 0,
+    typesEnTout: succesTypes ? succesTypes.total : 18,
+    premier: d.premier || null,
+    duree: dureeArchive({ premier: d.premier || null, jours: d.jours || [] }),
+    absence: plusLongueAbsence(d.jours || []),
+    chromJour: meilleurJourChromatique(d.jours || []),
   };
 }
 
@@ -445,6 +649,8 @@ async function ouvrirSucces(pseudo){
       const col = collectionDepuisDex(r.dex);
       succesRares = compterRares(col);
       succesDex = await calculerDex(col);
+      succesLieux = await calculerLieux(col);
+      succesTypes = await calculerTypes(col);
     } else {
       if(!retroDonnees) retroDonnees = await invoke('retrospective');
       if(succesAmis === null){
@@ -454,6 +660,10 @@ async function ouvrirSucces(pseudo){
       // La collection d'ensemble : celle de Pokémon HOME, qui réunit tout.
       succesRares = compterRares(bucketFor('home'));
       succesDex = await calculerDex(null);
+      // null : chaque jeu se mesure sur SON relevé. Arpenter Rouge / Bleu,
+      // c'est y être allé, pas posséder l'espèce sur un autre jeu.
+      succesLieux = await calculerLieux(null);
+      succesTypes = await calculerTypes(null);
     }
   }catch(e){
     if(String(e) === 'SESSION_INVALIDE'){ await perdreSession(); return; }
@@ -469,7 +679,8 @@ function fermerSucces(){
   // prochaine ouverture parlerait de lui sous notre nom.
   if(succesPour){
     succesVisite = null; succesAmis = null; succesDex = null; succesPour = null;
-    succesRares = { legendaires: 0, fabuleux: 0 };
+    succesLieux = null; succesTypes = null;
+    succesRares = { legendaires: 0, fabuleux: 0, legendairesChromatiques: 0 };
   }
 }
 
@@ -500,6 +711,8 @@ function resumerSucces(){
   const acquis = SUCCES.filter(function(s){ return s.mesurer(e).fait; }).length;
   succesResume.textContent = acquis + ' sur ' + SUCCES.length
     + ' — les Pokédex se comptent à l’ouverture.';
+  succesResume.title = 'Les vingt-trois Pokédex, plus « Tous les Pokédex », '
+    + 'demandent de parcourir chaque jeu : ils s’ajoutent quand tu ouvres le tableau.';
 }
 
 /** Appelé par chargerRetrospective(), une fois ses chiffres arrivés. */
@@ -516,6 +729,23 @@ async function chargerSucces(){
       // ce qui est faux mais silencieux — mieux que de vider la page entière
       // pour deux cartes sur dix-huit.
       succesAmis = [];
+    }
+  }
+  // Les lieux, les types et les rares se calculent ici aussi, et pas seulement
+  // a l'ouverture de la pop-up : sans eux le resume compterait comme perdus
+  // treize succes qui sont peut-etre acquis. Mesure : quatre millisecondes pour
+  // indexer les vingt-trois jeux, et les types sont embarques.
+  if(succesLieux === null){
+    try{
+      const col = (typeof bucketFor === 'function') ? bucketFor('home') : null;
+      if(col) succesRares = compterRares(col);
+      succesLieux = await calculerLieux(null);
+      succesTypes = await calculerTypes(null);
+    }catch(e){
+      // Une reserve absente ne doit pas emporter le Profil : le resume dira
+      // moins que la verite, la pop-up rattrapera.
+      succesLieux = { couverts: 0, total: 0, arpentes: 0, jeux: 0 };
+      succesTypes = { combien: 0, total: 18 };
     }
   }
   resumerSucces();
