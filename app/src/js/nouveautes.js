@@ -20,6 +20,17 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.15.0', date: '2026-08-25', titre: 'Chercher un lieu, ou un Pokémon',
+    points: [
+      'Une **barre de recherche** sur la page Lieux : tape le nom d’une route ou '
+      + 'celui d’un Pokémon, c’est le même champ. Les accents ne comptent pas — '
+      + '« foret » trouve la Forêt de Jade.',
+      'Le premier lieu trouvé s’ouvre tout seul.',
+      'Un **trait sépare** ce qu’il te reste à prendre de ce que tu as déjà.',
+      'La fenêtre « à jour » dit désormais en quelle version tu es.',
+    ],
+  },
+  {
     version: '0.14.0', date: '2026-08-25', titre: 'Où aller, et ce que tu as fait',
     points: [
       'Un onglet **Lieux** : choisis un jeu, et chaque route dit ce qu’il te reste '

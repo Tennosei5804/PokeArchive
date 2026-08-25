@@ -1,6 +1,6 @@
 [package]
 name = "pokearchive"
-version = "0.14.0"
+version = "0.15.0"
 description = "PokéArchive — suivi de collection Pokémon"
 authors = ["Tennosei_"]
 edition = "2021"
