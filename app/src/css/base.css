@@ -687,6 +687,7 @@
 .selecteur-contraste[hidden]{ display:none; }
 
 .selecteur-actions{ display:flex; gap:7px; }
+.selecteur-defaut[hidden]{ display:none; }
 .selecteur-actions button{
   flex:1; height:28px; padding:0 10px;
   border:1px solid var(--card-border); border-radius:7px;
@@ -697,3 +698,47 @@
   background:var(--dex-red); border-color:var(--dex-red); color:#fff;
 }
 .selecteur-actions button:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+
+/* ---- Les changelogs --------------------------------------------------
+   Une modale qui se lit : la liste peut etre longue, elle defile dans sa
+   carte plutot que d etirer la page derriere. */
+.nouveautes-card{ max-width:560px; width:min(560px, 92vw); }
+.nouveautes{
+  display:flex; flex-direction:column; gap:16px;
+  max-height:58vh; overflow-y:auto; padding-right:4px; margin-top:4px;
+}
+.nouv-version{
+  border-left:2px solid var(--card-border);
+  padding:2px 0 2px 13px;
+}
+.nouv-version.neuve{ border-left-color:var(--dex-red); }
+.nouv-tete{ display:flex; align-items:baseline; flex-wrap:wrap; gap:8px; }
+.nouv-num{
+  font-family:var(--font-data); font-size:10px; font-variant-numeric:tabular-nums;
+  letter-spacing:.08em; color:var(--ink-faint);
+  border:1px solid var(--card-border); border-radius:999px; padding:2px 8px;
+}
+.nouv-titre{ font-size:14px; font-weight:600; color:var(--ink); }
+.nouv-marque{
+  font-family:var(--font-data); font-size:8.5px; letter-spacing:.12em;
+  text-transform:uppercase; color:#fff;
+  background:var(--dex-red); border-radius:999px; padding:2px 7px;
+}
+.nouv-date{
+  margin-left:auto;
+  font-family:var(--font-data); font-size:9.5px; color:var(--ink-faint);
+}
+.nouv-points{ margin:7px 0 0; padding-left:17px; }
+.nouv-points li{
+  font-size:12.5px; line-height:1.55; color:var(--ink-soft); margin-bottom:5px;
+}
+.nouv-points strong{ color:var(--ink); font-weight:600; }
+
+/* La pastille du bouton : un point, pas un compte — le nombre de versions non
+   lues n interesse personne, seul le fait qu il y en ait compte. */
+.maj-btn.a-du-neuf{ position:relative; }
+.maj-btn.a-du-neuf::after{
+  content:''; position:absolute; top:3px; right:3px;
+  width:7px; height:7px; border-radius:50%;
+  background:var(--dex-red); border:1px solid var(--card);
+}

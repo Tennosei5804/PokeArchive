@@ -50,6 +50,8 @@
     </div>
     <button class="lang-btn" id="langBtn" type="button" aria-pressed="false"
             title="Afficher les noms de Pokémon en anglais">Français</button>
+    <button class="maj-btn" id="nouveautesBtn" type="button"
+            title="Changelogs — ce qui a changé">📋</button>
     <button class="maj-btn" id="majBtn" type="button"
             title="Vérifier les mises à jour">⟳</button>
     <button class="theme-btn" id="themeBtn" type="button" aria-pressed="false" title="Basculer clair / sombre">🌙</button>
@@ -693,6 +695,16 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="nouveautesOverlay" style="display:none;" role="dialog"
+     aria-modal="true" aria-labelledby="nouveautesTitre">
+  <div class="modal-card nouveautes-card">
+    <button class="fiche-fermer" id="nouveautesFermer" type="button" aria-label="Fermer">✕</button>
+    <div class="modal-eyebrow">Changelogs</div>
+    <h2 class="modal-title" id="nouveautesTitre">Ce qui a changé</h2>
+    <div class="nouveautes" id="nouveautesListe"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="chasseOverlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="chasseTitre">
   <div class="modal-card profil-card">
     <div class="modal-eyebrow">Chromatiques</div>
@@ -1018,6 +1030,7 @@
 <script src="js/noyau.js"></script>
 <script src="js/confirmer.js"></script>
 <script src="js/maj.js"></script>
+<script src="js/nouveautes.js"></script>
 <script src="js/serveur.js"></script>
 <script src="js/formes.js"></script>
 <script src="js/accueil.js"></script>

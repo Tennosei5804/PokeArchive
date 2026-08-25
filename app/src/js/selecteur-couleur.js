@@ -108,6 +108,7 @@ function construireSelecteur(){
     + '</div>'
     + '<p class="selecteur-contraste" hidden></p>'
     + '<div class="selecteur-actions">'
+    +   '<button class="selecteur-defaut" type="button" hidden>Défaut</button>'
     +   '<button class="selecteur-annuler" type="button">Annuler</button>'
     +   '<button class="selecteur-valider" type="button">Garder</button>'
     + '</div>';
@@ -125,6 +126,7 @@ function construireSelecteur(){
     hex:       b.querySelector('.selecteur-hex input'),
     rvb:       [...b.querySelectorAll('.selecteur-rvb input')],
     contraste: b.querySelector('.selecteur-contraste'),
+    defaut:    b.querySelector('.selecteur-defaut'),
     annuler:   b.querySelector('.selecteur-annuler'),
     valider:   b.querySelector('.selecteur-valider'),
   };
@@ -146,6 +148,12 @@ function construireSelecteur(){
     });
   }
 
+  // Revenir a la couleur d'origine du theme sans fermer : on la voit posee, et
+  // on peut encore changer d'avis. Le bouton ne parait que si l'appelant a dit
+  // quelle est cette couleur.
+  el.defaut.addEventListener('click', function(){
+    if(selecteurEtat && selecteurEtat.defaut) poserCouleur(selecteurEtat.defaut);
+  });
   el.annuler.addEventListener('click', function(){ fermerSelecteur(true); });
   el.valider.addEventListener('click', function(){ fermerSelecteur(false); });
 
@@ -367,6 +375,8 @@ function figerPalette(boite, palette){
  *   ancre         la pastille sous laquelle se poser
  *   couleur       celle de départ
  *   surfaces      [{ couleur, nom }] pour la ligne de contraste, facultatif
+ *   defaut        la couleur d'origine du thème pour cette cible ; sans elle,
+ *                 le bouton « Défaut » ne paraît pas
  *   palette       les couleurs d'origine, reposées sur le panneau pour qu'il
  *                 ne prenne pas la teinte qu'on est en train de choisir
  *   auChangement  appelée à chaque mouvement — l'application se repeint en direct
@@ -380,6 +390,7 @@ function ouvrirSelecteur(options){
     depart: depart,
     ancre: options.ancre,
     surfaces: options.surfaces || [],
+    defaut: options.defaut || null,
     auChangement: options.auChangement,
     aLaFin: options.aLaFin,
   };
@@ -387,6 +398,7 @@ function ouvrirSelecteur(options){
   selecteurEtat.t = tsv.t; selecteurEtat.s = tsv.s; selecteurEtat.v = tsv.v;
 
   el.avant.style.background = depart;
+  el.defaut.hidden = !options.defaut;
   el.boite.hidden = false;
   figerPalette(el.boite, options.palette);
   rafraichirSelecteur();

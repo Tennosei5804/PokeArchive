@@ -403,6 +403,7 @@ function ligneApparence(cible){
       ancre: libre,
       couleur: rvb ? versHex(rvb) : '#000000',
       surfaces: surfacesDe(cible.cle),
+      defaut: defaut,
       // Le panneau garde les couleurs d'origine du thème pendant qu'on
       // choisit : sans quoi il prend la teinte qu'il sert à juger.
       palette: apparenceDefauts,
