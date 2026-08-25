@@ -581,9 +581,15 @@ async function visiterDresseur(pseudo){
   img.alt = '';
   const titre = document.createElement('div');
   titre.innerHTML = '<strong>' + escapeHtml(chez.dresseur.pseudo) + '</strong>';
+  // Le nom de l'aventure, et non leur nombre. « 1 aventure publique »
+  // n'apprenait rien : la liste juste en dessous les compte déjà, et ce qu'on
+  // veut savoir en arrivant, c'est laquelle représente la personne. Les profils
+  // arrivent triés par défaut d'abord, donc le premier est le bon.
   const sous = document.createElement('span');
+  const autres = chez.profils.length - 1;
   sous.textContent = chez.profils.length
-    ? chez.profils.length + ' aventure' + (chez.profils.length > 1 ? 's publiques' : ' publique')
+    ? chez.profils[0].nom + (autres > 0
+        ? ' · et ' + autres + ' autre' + (autres > 1 ? 's' : '') : '')
     : 'Aucune aventure publique';
   titre.appendChild(sous);
   entete.appendChild(img); entete.appendChild(titre);

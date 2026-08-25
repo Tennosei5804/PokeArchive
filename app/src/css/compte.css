@@ -289,9 +289,23 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   padding:12px 14px; margin-bottom:4px;
   background:var(--card); border:1px solid var(--card-border); border-radius:11px;
 }
-.visite-entete img{ width:48px; height:48px; border-radius:50%; background:var(--screen); }
-.visite-entete strong{ display:block; font-size:16px; color:var(--ink); }
-.visite-entete span{ font-family:var(--font-data); font-size:11.5px; color:var(--ink-soft); }
+.visite-entete img{ width:48px; height:48px; flex:none; border-radius:50%; background:var(--screen); }
+/* Un pseudo herite peut compter vingt caracteres la ou douze est desormais la
+   regle : il se coupe plutot que de deborder de la carte.
+
+   Le plancher de retrecissement n'est pas pose ici : .visite-entete > div
+   porte deja min-width:140px plus bas dans cette feuille, et l'emporte sur
+   toute valeur qu'on mettrait a cet endroit. Cent quarante pixels suffisent
+   — text-overflow s'applique des que le texte depasse la place disponible,
+   pas seulement a zero. */
+.visite-entete strong{
+  display:block; font-size:16px; color:var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.visite-entete span{
+  display:block; font-family:var(--font-data); font-size:11.5px; color:var(--ink-soft);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
 
 .visite-profil{
   display:flex; align-items:center; justify-content:space-between; gap:12px;
