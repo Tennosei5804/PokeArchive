@@ -679,6 +679,19 @@ fn urlencode(s: &str) -> String {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// Figurer ou non dans la liste des dresseurs.
+#[tauri::command]
+async fn changer_visibilite(etat: State<'_, Etat>, visible: bool) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(
+        reqwest::Method::POST,
+        "/api/visibilite",
+        &jeton,
+        Some(serde_json::json!({ "visible": visible })),
+    )
+    .await
+}
+
 // --- Les amis ---------------------------------------------------------------
 //
 // Abonnement à sens unique : pas de demande, pas d'acceptation. Ce que l'API
@@ -792,6 +805,7 @@ pub fn run() {
             fermer_les_autres,
             journal,
             renommer_dresseur,
+            changer_visibilite,
             amis,
             suivre,
             ne_plus_suivre,

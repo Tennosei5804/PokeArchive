@@ -116,7 +116,8 @@ export async function depuisDiscord(profil) {
 export async function session(jeton) {
   if (!jeton) return null;
   const l = await une(
-    `SELECT d.id, d.discord_id, d.pseudo, d.avatar, d.cree_le, s.expire_le
+    `SELECT d.id, d.discord_id, d.pseudo, d.avatar, d.cree_le, d.visible,
+            s.expire_le
        FROM pa_sessions s JOIN pa_dresseurs d ON d.id = s.dresseur_id
       WHERE s.jeton_cle = ?`, [cle(jeton)]);
   if (!l) return null;
@@ -127,6 +128,7 @@ export async function session(jeton) {
   return {
     id: l.id, discordId: l.discord_id, pseudo: l.pseudo,
     avatar: l.avatar, creeLe: l.cree_le,
+    visible: l.visible !== 0,
   };
 }
 
@@ -525,6 +527,7 @@ export async function classement() {
                           WHERE dresseur_id = d.id AND public = 1
                           ORDER BY par_defaut DESC, id ASC LIMIT 1)
        LEFT JOIN pa_dex x ON x.profil_id = p.id
+      WHERE d.visible = 1
       ORDER BY captures DESC, shiny DESC, d.pseudo ASC
       LIMIT 200`);
 }
@@ -548,7 +551,27 @@ export async function chercherDresseurs(requete) {
   const motif = `%${normaliser(requete).replace(/[%_]/g, '\\$&')}%`;
   return await lire(
     `SELECT pseudo, avatar, discord_id FROM pa_dresseurs
-      WHERE pseudo_cle LIKE ? ORDER BY pseudo ASC LIMIT 25`, [motif]);
+      WHERE pseudo_cle LIKE ? AND visible = 1
+      ORDER BY pseudo ASC LIMIT 25`, [motif]);
+}
+
+/**
+ * Figurer ou non dans la liste des dresseurs.
+ *
+ * CE QUE CELA FAIT, ET CE QUE CELA NE FAIT PAS. Se retirer sort du classement
+ * et de la recherche : on ne se fait plus trouver. Cela ne rend rien prive pour
+ * autant — qui connait le pseudo exact peut toujours aller voir les aventures
+ * publiques, et ceux qui suivent deja continuent de voir passer les captures.
+ *
+ * C'est deliberе. Rendre un compte introuvable ET muet d'un seul interrupteur
+ * ferait disparaitre quelqu'un du fil de ses amis sans qu'ils comprennent
+ * pourquoi. Pour ne rien montrer, l'outil existe deja et il est plus precis :
+ * marquer ses aventures comme privees.
+ */
+export async function changerVisibilite(dresseurId, visible) {
+  const v = visible ? 1 : 0;
+  await ecrire('UPDATE pa_dresseurs SET visible = ? WHERE id = ?', [v, dresseurId]);
+  return { visible: v === 1 };
 }
 
 /**

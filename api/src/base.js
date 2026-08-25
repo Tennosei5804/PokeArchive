@@ -290,6 +290,7 @@ export async function creerSchema(journal = () => {}) {
   await migrerNiveauFormes(journal);
   await migrerVersProfils(journal);
   await migrerIdSession(journal);
+  await migrerVisibiliteDresseur(journal);
 }
 
 /**
@@ -304,6 +305,24 @@ export async function creerSchema(journal = () => {}) {
  * session pour le service. L'identifiant n'est qu'une poignée, et il est donc
  * seulement UNIQUE.
  */
+/**
+ * Ajoute pa_dresseurs.visible.
+ *
+ * Etre dans le classement est le comportement par defaut : la colonne vaut 1
+ * pour tout le monde, y compris les comptes qui existaient avant elle. Se
+ * retirer est un geste, y figurer n'en demande aucun.
+ */
+async function migrerVisibiliteDresseur(journal) {
+  const deja = await une(
+    `SELECT COUNT(*) AS n FROM information_schema.columns
+      WHERE table_schema = DATABASE() AND table_name = 'pa_dresseurs'
+        AND column_name = 'visible'`);
+  if (deja?.n) return;
+  await base().query(
+    'ALTER TABLE pa_dresseurs ADD COLUMN visible TINYINT(1) NOT NULL DEFAULT 1');
+  journal('schema : colonne pa_dresseurs.visible ajoutee');
+}
+
 async function migrerIdSession(journal) {
   const deja = await une(
     `SELECT COUNT(*) AS n FROM information_schema.columns

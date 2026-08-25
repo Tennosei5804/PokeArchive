@@ -1127,3 +1127,15 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   font-family:var(--font-data); font-size:8.5px; line-height:1;
   font-variant-numeric:tabular-nums;
 }
+
+/* Une case a cocher de reglage. Le libelle est cliquable avec elle : c'est
+   deux fois plus de surface pour la meme intention. */
+.profil-bascule{
+  display:flex; align-items:center; gap:9px;
+  font-size:13px; color:var(--ink); cursor:pointer;
+  margin-bottom:6px;
+}
+.profil-bascule input{
+  width:16px; height:16px; flex:none; accent-color:var(--dex-red); cursor:pointer;
+}
+.profil-bascule input:disabled{ cursor:default; opacity:.5; }

@@ -218,10 +218,49 @@ document.addEventListener('DOMContentLoaded', function(){
   if (exportBtn) exportBtn.addEventListener('click', exporterMesDonnees);
   if (sessionsAutres) sessionsAutres.addEventListener('click', fermerLesAutresSessions);
   if (adminRenommer) adminRenommer.addEventListener('click', renommerQuelquun);
+  if (visibleDresseurs) visibleDresseurs.addEventListener('change', basculerVisibilite);
 });
 
 /** Appelé par chargerProfil() : la page vient de s'ouvrir. */
 function chargerDonneesPerso() {
   chargerSessions();
   verifierAdmin();
+  if (typeof dresseurCourant !== 'undefined') poserVisibilite(dresseurCourant);
+}
+
+// ---- Ma presence dans la liste des dresseurs --------------------------------
+//
+// L'etat vient du serveur, jamais de localStorage : c'est une donnee de compte,
+// pas une preference d'appareil. Se retirer sur une machine doit valoir partout.
+
+async function basculerVisibilite() {
+  if (!visibleDresseurs) return;
+  const veut = visibleDresseurs.checked;
+  visibleDresseurs.disabled = true;
+  visibleEtat.textContent = '';
+  try {
+    const r = await invoke('changer_visibilite', { visible: veut });
+    visibleDresseurs.checked = r.visible;
+    visibleEtat.textContent = r.visible
+      ? 'Tu apparais dans le classement.'
+      : 'Tu n\u2019apparais plus ni dans le classement, ni dans la recherche.';
+    // Le classement affiche pour la session en cours doit suivre, sinon on s'y
+    // voit encore apres s'en etre retire.
+    if (typeof chargerDresseurs === 'function' && currentPage === 'dresseurs') chargerDresseurs();
+  } catch (e) {
+    if (String(e) === 'SESSION_INVALIDE') { await perdreSession(); return; }
+    // Remettre la case ou elle etait : une case qui a bouge alors que rien n'a
+    // change ment sur l'etat du compte.
+    visibleDresseurs.checked = !veut;
+    visibleEtat.textContent = String(e);
+  } finally {
+    visibleDresseurs.disabled = false;
+  }
+}
+
+/** Coche la case d'apres ce que le serveur dit du compte. */
+function poserVisibilite(dresseur) {
+  if (!visibleDresseurs || !dresseur) return;
+  // Absent d'une ancienne API : on suppose visible, ce qui est le defaut.
+  visibleDresseurs.checked = dresseur.visible !== false;
 }

@@ -166,9 +166,62 @@ function calculerEfficacite(){
 const tableTypesEl = document.getElementById('tableTypes');
 let tableTypesFaite = false;
 
+if(tableEre){
+  tableEre.addEventListener('click', function(e){
+    const b = e.target.closest('button');
+    if(b) poserEreTable(Number(b.dataset.ere));
+  });
+}
+
+// L'époque de la table complète.
+//
+// Trois valeurs, et pas vingt-quatre : la table n'a changé que deux fois en
+// neuf générations. Proposer un jeu par jeu laisserait croire à vingt-quatre
+// tables différentes, alors que Rubis, Diamant et Noir donnent exactement la
+// même — autant le dire.
+//
+// Les règles elles-mêmes vivent dans fiche.js, avec relationsDeLEre() et
+// typeExiste() : c'est là qu'elles ont été relevées sur les
+// « past_damage_relations » de PokeAPI, et les dupliquer ici ferait diverger
+// les deux copies.
+let tableTypesEre = 6;
+
+const TABLE_ERE_NOTE = {
+  6: '',
+  2: 'Or / Argent à Noir 2 / Blanc 2. Le type Fée n’existe pas encore : '
+   + 'Combat, Poison et Dragon s’en trouvent tout autres.',
+  1: 'Rouge / Bleu / Jaune. Ni Acier, ni Ténèbres, ni Fée — quinze types '
+   + 'seulement. Spectre ne fait AUCUN dégât au Psy, Insecte et Poison sont '
+   + 'super-efficaces l’un contre l’autre, et Glace ne craint pas le Feu.',
+};
+
+function poserEreTable(ere){
+  tableTypesEre = ere;
+  if(tableEre){
+    tableEre.querySelectorAll('button').forEach(function(b){
+      b.classList.toggle('actif', Number(b.dataset.ere) === ere);
+    });
+  }
+  if(tableEreNote){
+    tableEreNote.textContent = TABLE_ERE_NOTE[ere] || '';
+    // « block » et non la chaine vide : la feuille cache la note par defaut, et
+    // rendre la propriete a la feuille la recacherait aussitot.
+    tableEreNote.style.display = TABLE_ERE_NOTE[ere] ? 'block' : 'none';
+  }
+  // La table est mémoïsée : dessiner dix-huit lignes de dix-huit cases à chaque
+  // ouverture de l'onglet serait du gaspillage. Changer d'époque est justement
+  // le cas où il faut la redessiner.
+  tableTypesFaite = false;
+  dessinerTableTypes();
+}
+
 function dessinerTableTypes(){
   if(!tableTypesEl || tableTypesFaite) return;
-  const ids = Object.keys(TYPES_FR).map(Number);
+  // Un type qui n'existe pas encore ne doit figurer ni en ligne ni en colonne :
+  // une colonne Fee sur une table de Rouge et Bleu serait un mensonge poli.
+  const rel = relationsDeLEre(tableTypesEre);
+  const ids = Object.keys(TYPES_FR).map(Number)
+    .filter(function(id){ return typeExiste(id, tableTypesEre); });
 
   const table = document.createElement('table');
   table.className = 'table-types';
@@ -205,7 +258,7 @@ function dessinerTableTypes(){
 
     ids.forEach(function(d){
       const td = document.createElement('td');
-      const f = efficaciteOffensive(a, [d]).mult;
+      const f = efficaciteOffensive(a, [d], rel).mult;
       // Le neutre reste vide : dessiner 324 « ×1 » noierait les cases utiles.
       // Le « × » est sous-entendu dans une matrice — le répéter 324 fois
       // ajouterait du bruit sans rien apprendre.

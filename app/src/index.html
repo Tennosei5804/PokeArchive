@@ -341,6 +341,20 @@
         <div class="journal" id="journalListe"></div>
         <button class="load-more" id="journalPlus" type="button" style="display:none;">Afficher plus</button>
 
+        <div class="home-section-title">Ma présence</div>
+        <div class="profil-bloc">
+          <p class="profil-bloc-note">Se retirer sort du classement et de la recherche :
+            on ne se fait plus trouver. Ce n'est pas la même chose que se cacher — qui
+            connaît ton pseudo exact peut toujours voir tes aventures publiques, et ceux
+            qui te suivent déjà continuent de voir passer tes captures. Pour ne rien
+            montrer du tout, marque plutôt tes aventures comme privées.</p>
+          <label class="profil-bascule">
+            <input type="checkbox" id="visibleDresseurs" checked>
+            <span>Apparaître dans la liste des dresseurs</span>
+          </label>
+          <span class="profil-bloc-etat" id="visibleEtat"></span>
+        </div>
+
         <div class="home-section-title">Notifications</div>
         <div class="profil-bloc">
           <p class="profil-bloc-note">Quand un ami avance, une bulle apparaît. Un lot de
@@ -470,8 +484,14 @@
           <div class="strat-bloc">
             <h3>La table complète</h3>
             <p class="strat-aide">Les lignes attaquent, les colonnes défendent.
-               Une case vide vaut ×1. Table de la 6<sup>e</sup> génération et
-               suivantes — celle en vigueur depuis l'arrivée du type Fée.</p>
+               Une case vide vaut ×1. La table n'a changé que deux fois en
+               neuf générations : à toi de dire depuis quels jeux tu la lis.</p>
+            <div class="table-ere" id="tableEre" role="group" aria-label="Époque de la table">
+              <button type="button" data-ere="6" class="actif">6<sup>e</sup> et après</button>
+              <button type="button" data-ere="2">2<sup>e</sup> à 5<sup>e</sup></button>
+              <button type="button" data-ere="1">1<sup>re</sup></button>
+            </div>
+            <p class="strat-aide table-ere-note" id="tableEreNote"></p>
             <div class="table-types-cadre" id="tableTypes"></div>
           </div>
         </section>

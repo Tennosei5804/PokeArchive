@@ -329,6 +329,12 @@ app.get('/api/dex/:pseudo', route(async (req, res) => {
 }));
 
 
+// Figurer ou non dans la liste des dresseurs. Voir changerVisibilite().
+app.post('/api/visibilite', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json({ ok: true, ...(await comptes.changerVisibilite(d.id, !!req.body?.visible)) });
+}));
+
 // --- Les amis ---------------------------------------------------------------
 // Abonnement a sens unique : pas de demande, pas d'acceptation. Voir amis.js.
 

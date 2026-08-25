@@ -803,3 +803,21 @@
 .confirm-note.succes{ border-left-color:var(--caught); color:var(--ink); }
 .confirm-note.danger{ border-left-color:var(--danger); }
 .confirm-saisie-erreur.apercu{ color:var(--ink-faint); font-style:italic; }
+
+/* Le choix d'epoque de la table complete. Trois valeurs et non vingt-quatre :
+   la table n'a change que deux fois en neuf generations. */
+.table-ere{
+  display:flex; gap:0; margin:2px 0 8px;
+  border:1px solid var(--card-border); border-radius:999px;
+  overflow:hidden; width:max-content;
+}
+.table-ere button{
+  border:0; background:transparent; color:var(--ink-faint); cursor:pointer;
+  font-family:var(--font-data); font-size:9px; font-weight:600;
+  letter-spacing:.08em; text-transform:uppercase;
+  padding:6px 13px; line-height:1.2;
+}
+.table-ere button.actif{ background:var(--dex-red); color:#fff; }
+.table-ere button:focus-visible{ outline:2px solid var(--dex-red); outline-offset:-2px; }
+.table-ere sup{ font-size:.7em; }
+.table-ere-note{ display:none; }

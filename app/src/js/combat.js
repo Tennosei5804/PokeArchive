@@ -28,8 +28,12 @@ function typesDe(entry){
  * reste incompréhensible — c'est un ×2 et un ×0.5 qui s'annulent, et le dire
  * évite de croire à un bug.
  */
-function efficaciteOffensive(attaque, typesDef){
-  const rel = TYPE_RELATIONS[attaque];
+function efficaciteOffensive(attaque, typesDef, relations){
+  // « relations » permet de rejouer une table d'époque — celle de la première
+  // génération n'a ni Acier ni Ténèbres, et deux de ses règles ont changé.
+  // Sans argument, c'est la table actuelle, qui est le cas de tous les appels
+  // sauf celui de la table complète.
+  const rel = (relations || TYPE_RELATIONS)[attaque];
   if(!rel) return { mult: 1, detail: [] };
   let mult = 1;
   const detail = [];
