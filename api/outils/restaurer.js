@@ -58,7 +58,34 @@ async function main() {
     for (const table of TABLES) {
       const lignes = contenu.tables[table] || [];
       if (!lignes.length) continue;
+
+      // Les noms de colonnes viennent du FICHIER, et se retrouvent interpolés
+      // dans la requête — les paramètres de MySQL ne portent que des valeurs,
+      // jamais des identifiants. C'est le seul endroit de tout le service où un
+      // identifiant SQL n'est pas écrit en dur, et il faut donc le vérifier
+      // contre quelque chose d'autre que lui-même.
+      //
+      // On demande à la base quelles colonnes elle a, et on n'accepte que
+      // celles-là. Une liste écrite ici vieillirait à chaque migration ; le
+      // schéma, lui, est toujours à jour par construction.
+      //
+      // Le contrôle attrape deux choses d'un coup : un fichier trafiqué, et un
+      // fichier honnête mais périmé — sauvegardé avant une colonne ajoutée
+      // depuis, ou après une colonne retirée. Le second cas est de loin le plus
+      // probable, et il échouait jusqu'ici avec un message de MySQL.
+      const [colonnesDeLaBase] = await co.query(
+        `SELECT column_name AS c FROM information_schema.columns
+          WHERE table_schema = DATABASE() AND table_name = ?`, [table]);
+      const connues = new Set(colonnesDeLaBase.map((r) => r.c));
+
       const colonnes = Object.keys(lignes[0]);
+      const inconnues = colonnes.filter((c) => !connues.has(c));
+      if (inconnues.length) {
+        throw new Error(
+          `${table} : colonne(s) inconnue(s) dans la sauvegarde — ${inconnues.join(', ')}. `
+          + `La base connaît : ${[...connues].join(', ')}.`);
+      }
+
       const valeurs = lignes.map((l) => colonnes.map((c) => l[c]));
       await co.query(
         `INSERT INTO ${table} (${colonnes.map((c) => `\`${c}\``).join(',')}) VALUES ?`,
