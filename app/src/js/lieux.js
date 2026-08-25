@@ -30,13 +30,107 @@ let lieuxJeuCourant = null;
 let lieuxOuvert = null;               // le lieu déplié
 let lieuxParId = null;                // id d'espèce -> entrée
 
-/** Le lieu et sa sous-zone, à partir d'une ligne de rencontre. */
-function decouperLieu(morceau){
-  // Les chiffres en queue — « (5-7, 30 %) » — ne font pas partie du nom.
-  const nu = String(morceau).replace(/\s*\([^()]*\)\s*$/, '').trim();
+// Un taux lisible sans equivoque : une seule valeur dans la parenthese.
+//
+// Le releve y met aussi la VERSION — « 1 %R, 25 %B » se lit un pour cent dans
+// Rouge, vingt-cinq dans Bleu. Deux valeurs ne peuvent donc pas se resumer en
+// une : on les laisse alors telles quelles, ou elles se lisent tres bien.
+//
+// Mesure sur les vingt-deux jeux : 20 580 rencontres portent au moins un taux,
+// sur 33 576 — soit 61 %. Les autres n'en ont pas du tout : un echange, un
+// achat au casino ou un Pokemon fixe n'ont pas de frequence.
+// À quoi renvoient les lettres qui suivent un pourcentage.
+//
+// « 10 %R » se lit dix pour cent dans Rouge. La lettre est propre au jeu, et
+// c'est pourquoi la table l'est aussi : B vaut Bleu dans Rouge/Bleu, Blanc dans
+// Noir/Blanc et Bouclier dans Épée/Bouclier. Une table unique se serait
+// trompée deux fois sur trois.
+//
+// Relevé sur les vingt-deux jeux : seuls ceux qui suivent portent des taux
+// suffixés. Les autres n'ont qu'une version, ou aucun taux propre à l'une
+// d'elles. Une lettre inconnue est laissée telle quelle plutôt que devinée.
+const LIEUX_VERSIONS = {
+  rby:    { R:'Rouge', B:'Bleu' },
+  gsc:    { O:'Or', A:'Argent' },
+  rse:    { R:'Rubis', S:'Saphir' },
+  frlg:   { RF:'Rouge Feu', VF:'Vert Feuille' },
+  dp:     { D:'Diamant', P:'Perle' },
+  hgss:   { HG:'Or HeartGold', SS:'Argent SoulSilver' },
+  bw:     { N:'Noir', B:'Blanc' },
+  b2w2:   { N:'Noir 2', B:'Blanc 2' },
+  xy:     { X:'X', Y:'Y' },
+  oras:   { RO:'Rubis Oméga', SA:'Saphir Alpha' },
+  sm:     { S:'Soleil', L:'Lune' },
+  usum:   { US:'Ultra-Soleil', UL:'Ultra-Lune' },
+  letsgo: { LGP:'Let’s Go Pikachu', LGE:'Let’s Go Évoli' },
+  swsh:   { E:'Épée', B:'Bouclier' },
+  bdsp:   { DE:'Diamant Étincelant', PS:'Perle Scintillante' },
+};
+
+// La lettre qui suit un pourcentage est la VERSION — « 10 %R » se lit dix
+// pour cent dans Rouge. Elle fait partie du taux et se garde avec lui : sans
+// elle, une frequence propre a une version passerait pour la regle.
+const LIEUX_TAUX = /\d+(?:[.,]\d+)?\s*%\s*[A-ZÉÈÀ]{0,3}/g;
+
+/**
+ * Le lieu, sa sous-zone, ses taux et ses niveaux.
+ *
+ * La parenthèse porte les deux — « (5–7, 30 %) » — et il faut les séparer pour
+ * les dire proprement : un taux se met en avant, un niveau se préfixe.
+ *
+ * LE RESTE N'EST PAS TOUJOURS UN NIVEAU. « Unique », « Peu commun », « 1200
+ * jetons », « ★, ★★ » se logent au même endroit. On ne préfixe donc « Niv. »
+ * que si ce qui reste n'est fait que de chiffres, de tirets et de virgules —
+ * sinon on l'affiche tel quel, ce qui reste juste dans tous les cas.
+ */
+function decouperLieu(morceau, cleJeu){
+  const brut = String(morceau).trim();
+  const g = brut.match(/\(([^()]*)\)\s*$/);
+  const dedans = g ? g[1].trim() : '';
+  const nu = brut.replace(/\s*\([^()]*\)\s*$/, '').trim();
+
+  const versions = LIEUX_VERSIONS[cleJeu] || {};
+  const taux = [];
+  let reste = dedans;
+  (dedans.match(LIEUX_TAUX) || []).forEach(function(jeton){
+    reste = reste.replace(jeton, '');
+    const m = jeton.trim().match(/^(\d+(?:[.,]\d+)?\s*%)\s*([A-ZÉÈÀ]{0,3})$/);
+    if(!m) { taux.push({ valeur: jeton.trim(), version: '' }); return; }
+    taux.push({
+      valeur: m[1].replace(/\s+/g, ' ').trim(),
+      // Une lettre qu'on ne sait pas traduire est gardée telle quelle : mieux
+      // vaut « 10 %Z » qu'un nom de jeu inventé.
+      version: m[2] ? (versions[m[2]] || m[2]) : '',
+    });
+  });
+  reste = reste.replace(/,\s*,/g, ',').replace(/^[,\s]+|[,\s]+$/g, '');
+
+  // Les niveaux aussi peuvent dépendre de la version — « 7R, 9B ». Écrire
+  // « 1 % Rouge » puis « 7R » sur la même ligne serait bancal : on développe
+  // les deux de la même façon.
+  //
+  // Le motif exige des chiffres COLLÉS aux capitales, ce qui laisse tranquilles
+  // « 1200 jetonsR » — le mot s'intercale — et « ★, ★★ », qui n'a pas de
+  // chiffre du tout.
+  const lisible = reste.replace(
+    /(\d+(?:\s*[–—-]\s*\d+)?)([A-ZÉÈÀ]{1,3})\b/g,
+    function(tout, nombre, lettres){
+      return versions[lettres] ? nombre + ' ' + versions[lettres] : tout;
+    });
+
+  // « Niv. » seulement devant ce qui est bien un niveau : « Unique », « Peu
+  // commun » et « 1200 jetons » se logent au même endroit et n'en sont pas.
+  const niveaux = lisible && /^[\d\s,.–—-]+$/.test(lisible)
+    ? 'Niv. ' + lisible
+    : lisible;
+
   const i = nu.indexOf('•');
-  if(i === -1) return { lieu: nu, sous: '' };
-  return { lieu: nu.slice(0, i).trim(), sous: nu.slice(i + 1).trim() };
+  return {
+    lieu: i === -1 ? nu : nu.slice(0, i).trim(),
+    sous: i === -1 ? '' : nu.slice(i + 1).trim(),
+    taux: taux,
+    niveaux: niveaux,
+  };
 }
 
 /**
@@ -99,16 +193,24 @@ function indexerLieux(cleJeu){
       if(ligne[1] !== 0) return;                 // sauvage uniquement
       const id = parseInt(sid, 10);
       const texte = DONNEES_LIEUX.textes[ligne[0]] || '';
+      // L'heure, la météo et la saison sont portées par l'espèce dans ce jeu,
+      // et non par chacune de ses rencontres : le relevé ne descend pas plus
+      // bas. Elles s'affichent donc sur l'espèce, ce qui reste juste.
+      const quand = (ligne[3] || [])
+        .map(function(i){ return DONNEES_LIEUX.textes[i]; })
+        .filter(Boolean).join(' · ');
       const vus = new Set();
       texte.split('\n').forEach(function(morceau){
-        const d = decouperLieu(morceau);
+        const d = decouperLieu(morceau, cleJeu);
         if(!d.lieu) return;
         // Une espèce peut tenir plusieurs sous-zones du même lieu : elle ne doit
         // y compter qu'une fois, sinon « 30 espèces » en annonce le double.
         if(vus.has(d.lieu)) return;
         vus.add(d.lieu);
         if(!parLieu.has(d.lieu)) parLieu.set(d.lieu, { nom: d.lieu, especes: [] });
-        parLieu.get(d.lieu).especes.push({ id: id, sous: d.sous });
+        parLieu.get(d.lieu).especes.push({ id: id, sous: d.sous,
+                                           taux: d.taux, niveaux: d.niveaux,
+                                           quand: quand });
       });
     });
   }
@@ -144,7 +246,9 @@ function manquantsDe(lieu, pris){
   lieu.especes.forEach(function(e){
     const entry = entreeParId(e.id);
     if(!entry) return;                            // forme absente de la réserve
-    (pris.has(entry.name) ? deja : manque).push({ entry: entry, sous: e.sous });
+    (pris.has(entry.name) ? deja : manque).push({ entry: entry, sous: e.sous,
+                                                  taux: e.taux, niveaux: e.niveaux,
+                                                  quand: e.quand });
   });
   return { manque: manque, deja: deja };
 }
@@ -171,6 +275,32 @@ function puceEspece(x, estPris){
     s.className = 'lieu-sous';
     s.textContent = x.sous;
     l.appendChild(s);
+  }
+
+  // Le taux : c'est le chiffre qui décide si l'on reste ou si l'on passe son
+  // chemin. Quand il dépend de la version, elle est écrite en toutes lettres —
+  // « 1 % Rouge » et non « 1 %R », qu'il fallait déchiffrer.
+  x.taux.forEach(function(tx){
+    const p = document.createElement('span');
+    p.className = 'lieu-taux';
+    p.textContent = tx.version ? tx.valeur + ' ' + tx.version : tx.valeur;
+    l.appendChild(p);
+  });
+
+  if(x.niveaux){
+    const n = document.createElement('span');
+    n.className = 'lieu-niveaux';
+    n.textContent = x.niveaux;
+    l.appendChild(n);
+  }
+
+  // L'heure, la météo, la saison. Elles ne se répètent pas sur chaque
+  // rencontre du relevé — elles valent pour l'espèce dans ce jeu.
+  if(x.quand){
+    const q = document.createElement('span');
+    q.className = 'lieu-quand';
+    q.textContent = x.quand;
+    l.appendChild(q);
   }
   return l;
 }

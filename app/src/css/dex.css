@@ -930,8 +930,9 @@
    pastilles 7 px — le meme modele que partout ailleurs. */
 .lieux-barre{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:8px; }
 .lieux-barre select{ min-width:220px; }
-.lieux-filtre{ display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; color:var(--ink-soft); }
-.lieux-filtre input{ width:15px; height:15px; flex:none; accent-color:var(--dex-red); cursor:pointer; }
+/* La bascule est definie dans compte.css : c est un composant, pas un
+   detail de cette page. Elle sert deja au reglage de visibilite du Profil. */
+.lieux-barre .bascule{ margin-bottom:0; }
 
 .lieux-resume{
   margin:0 0 12px; font-size:12.5px; color:var(--ink-soft);
@@ -1000,3 +1001,23 @@
 .lieu-espece.pris{ opacity:.45; }
 .lieu-espece.pris .lieu-espece-nom{ text-decoration:line-through; }
 .lieu-sous{ font-family:var(--font-data); font-size:9px; color:var(--ink-faint); }
+/* Le taux : c est le chiffre qui decide si l on reste ou si l on passe son
+   chemin. Il porte donc l or, et tabular-nums pour que la colonne des
+   pastilles ne danse pas d une espece a l autre. */
+.lieu-taux{
+  font-family:var(--font-data); font-size:9.5px; font-weight:600;
+  font-variant-numeric:tabular-nums; color:var(--gold); white-space:nowrap;
+}
+.lieu-niveaux{
+  font-family:var(--font-data); font-size:9px; color:var(--ink-faint);
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+/* L heure, la meteo, la saison. Elles valent pour l espece dans ce jeu et
+   non pour la rencontre : elles passent donc a la ligne, en retrait. */
+.lieu-quand{
+  flex-basis:100%; font-family:var(--font-data); font-size:8.5px;
+  color:var(--ink-faint); font-style:italic;
+}
+/* La puce s empile des qu il y a une condition : sinon la ligne de l heure
+   pousserait tout le reste hors de la pastille. */
+.lieu-espece{ flex-wrap:wrap; }
