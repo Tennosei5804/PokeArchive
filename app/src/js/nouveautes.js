@@ -20,6 +20,16 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.11.0', date: '2026-08-25', titre: 'Le pseudo Discord, en plus du tien',
+    points: [
+      'Le profil d’un dresseur montre maintenant **trois lignes** : son pseudo '
+      + 'Discord, son pseudo PokéArchive, puis son aventure.',
+      'Le pseudo Discord ne se change pas depuis l’application — c’est ce qui '
+      + 'permet de reconnaître quelqu’un qui s’est renommé ici.',
+      'Il n’apparaît qu’après une reconnexion : on ne le gardait pas jusqu’ici.',
+    ],
+  },
+  {
     version: '0.10.0', date: '2026-08-25', titre: 'L’aventure d’un dresseur, nommée',
     points: [
       'Quand tu ouvres le profil de quelqu’un, tu vois **le nom de son aventure** '
