@@ -63,6 +63,7 @@
         <button class="page-tab active" type="button" data-page="home" aria-current="page">🏠 Accueil</button>
         <button class="page-tab" type="button" data-page="jeux">📖 Pokédex</button>
         <button class="page-tab" type="button" data-page="dresseurs">👥 Dresseurs</button>
+        <button class="page-tab" type="button" data-page="amis">📣 Amis</button>
         <button class="page-tab" type="button" data-page="chasse">✨ Chasse</button>
         <button class="page-tab" type="button" data-page="cadeaux">🎁 Cadeau Mystère</button>
         <button class="page-tab" type="button" data-page="strategie">⚔️ Stratégie</button>
@@ -340,6 +341,18 @@
         <div class="journal" id="journalListe"></div>
         <button class="load-more" id="journalPlus" type="button" style="display:none;">Afficher plus</button>
 
+        <div class="home-section-title">Notifications</div>
+        <div class="profil-bloc">
+          <p class="profil-bloc-note">Quand un ami avance, une bulle apparaît. Un lot de
+            captures ne donne qu'une bulle, jamais une par Pokémon — sinon une soirée de
+            jeu chez quelqu'un d'autre couvrirait ton écran.</p>
+          <select id="amisNotif" aria-label="Quand être prévenu">
+            <option value="tout">Tout ce que mes amis attrapent</option>
+            <option value="chromatiques">Seulement les chromatiques</option>
+            <option value="rien">Rien — juste la pastille</option>
+          </select>
+        </div>
+
         <div class="home-section-title">Apparence</div>
         <div class="profil-bloc">
           <p class="profil-bloc-note">Cinq couleurs, et le reste s’en déduit — les
@@ -378,6 +391,30 @@
           </div>
           <span class="profil-bloc-etat" id="adminEtat"></span>
         </div>
+      </section>
+
+      <section class="page" id="page-amis">
+        <div class="home-hero">
+          <div class="home-eyebrow">Ce qu'ils attrapent</div>
+          <h2 class="home-title">Les amis</h2>
+          <p class="home-sub">Suis qui tu veux, sans rien demander : leur progression
+             est déjà publique. Tu seras prévenu quand ils avancent.</p>
+        </div>
+
+        <div class="amis-ajout">
+          <input type="text" id="amisQ" maxlength="20" autocomplete="off"
+                 placeholder="Suivre un dresseur par son pseudo…"
+                 aria-label="Pseudo du dresseur à suivre">
+          <button class="toggle-btn primary" id="amisSuivre" type="button">Suivre</button>
+        </div>
+        <p class="modal-error" id="amisErreur" role="alert"></p>
+
+        <div class="home-section-title">Mes amis</div>
+        <div class="amis" id="amisListe"></div>
+
+        <div class="home-section-title">Ce qu'ils attrapent</div>
+        <div class="fil" id="amisFil"></div>
+        <button class="load-more" id="amisPlus" type="button" style="display:none;">Afficher plus</button>
       </section>
 
       <section class="page" id="page-dresseurs">
@@ -947,48 +984,49 @@
   </div>
 </div>
 
-<script src="../src/js/donnees.js?v=1787642475"></script>
+<script src="../src/js/donnees.js?v=1787643861"></script>
 <!-- Généré par outils/generer-donnees.html. Doit précéder cache.js, qui y
      puise quand le stockage local est vide. -->
-<script src="../src/js/donnees-embarquees.js?v=1787642475"></script>
+<script src="../src/js/donnees-embarquees.js?v=1787643861"></script>
 <!-- Les notices du Pokédex, une par espèce et par jeu, relevées sur Poképédia
      par outils/relever-descriptions.py, ne sont PAS déclarées ici : fiche.js va
      les chercher à la première fiche ouverte, comme les attaques et les lieux.
      Une notice par jeu, c'est vingt-deux fois le texte d'une notice par espèce
      — de quoi allonger chaque démarrage pour une carte qu'on ne lit pas
      toujours. -->
-<script src="../src/js/cache.js?v=1787642475"></script>
-<script src="../src/js/noyau.js?v=1787642475"></script>
-<script src="../src/js/confirmer.js?v=1787642475"></script>
-<script src="../src/js/maj.js?v=1787642475"></script>
-<script src="../src/js/serveur.js?v=1787642475"></script>
-<script src="../src/js/formes.js?v=1787642475"></script>
-<script src="../src/js/accueil.js?v=1787642475"></script>
-<script src="../src/js/dex.js?v=1787642475"></script>
+<script src="../src/js/cache.js?v=1787643861"></script>
+<script src="../src/js/noyau.js?v=1787643861"></script>
+<script src="../src/js/confirmer.js?v=1787643861"></script>
+<script src="../src/js/maj.js?v=1787643861"></script>
+<script src="../src/js/serveur.js?v=1787643861"></script>
+<script src="../src/js/formes.js?v=1787643861"></script>
+<script src="../src/js/accueil.js?v=1787643861"></script>
+<script src="../src/js/dex.js?v=1787643861"></script>
 <!-- Les distributions françaises, à la main. Doit précéder cadeaux.js et
      fiche.js, qui y puisent tous les deux. -->
-<script src="../src/js/evenements.js?v=1787642475"></script>
-<script src="../src/js/cadeaux.js?v=1787642475"></script>
-<script src="../src/js/fiche.js?v=1787642475"></script>
-<script src="../src/js/grille.js?v=1787642475"></script>
-<script src="../src/js/chasse.js?v=1787642475"></script>
+<script src="../src/js/evenements.js?v=1787643861"></script>
+<script src="../src/js/cadeaux.js?v=1787643861"></script>
+<script src="../src/js/fiche.js?v=1787643861"></script>
+<script src="../src/js/grille.js?v=1787643861"></script>
+<script src="../src/js/chasse.js?v=1787643861"></script>
 <!-- Les règles de combat, puis l'écran qui s'appuie dessus. Tous deux après
      fiche.js (TYPE_RELATIONS, puceType, decoderBloc) et avant menus.js, qui
      stylise leurs menus déroulants. -->
-<script src="../src/js/combat.js?v=1787642475"></script>
-<script src="../src/js/strategie.js?v=1787642475"></script>
+<script src="../src/js/combat.js?v=1787643861"></script>
+<script src="../src/js/strategie.js?v=1787643861"></script>
 <!-- Après strategie.js : il lui emprunte creerSelecteur. -->
-<script src="../src/js/reproduction.js?v=1787642475"></script>
-<script src="../src/js/partage.js?v=1787642475"></script>
-<script src="../src/js/menus.js?v=1787642475"></script>
+<script src="../src/js/reproduction.js?v=1787643861"></script>
+<script src="../src/js/partage.js?v=1787643861"></script>
+<script src="../src/js/menus.js?v=1787643861"></script>
 <!-- Redéfinit la couche de sauvegarde quand l'app tourne dans Tauri.
      Hors Tauri (serveur.py, ou fichier ouvert directement), il ne fait rien. -->
 
-<script src="../src/js/donnees-perso.js?v=1787642475"></script>
-<script src="../src/js/presence.js?v=1787642475"></script>
+<script src="../src/js/amis.js?v=1787643861"></script>
+<script src="../src/js/donnees-perso.js?v=1787643861"></script>
+<script src="../src/js/presence.js?v=1787643861"></script>
 
-<script src="../src/js/selecteur-couleur.js?v=1787642475"></script>
-<script src="../src/js/apparence.js?v=1787642475"></script>
+<script src="../src/js/selecteur-couleur.js?v=1787643861"></script>
+<script src="../src/js/apparence.js?v=1787643861"></script>
 <script src="generer.js"></script>
 </body>
 </html>

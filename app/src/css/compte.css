@@ -1058,3 +1058,72 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 @media (prefers-reduced-motion:reduce){
   .pastille:hover{ transform:none; }
 }
+
+/* ---- Les amis --------------------------------------------------------
+   Deux listes : qui l'on suit, et ce qu'ils attrapent. Rayons du modele —
+   10 px pour une ligne, 11 px pour un bloc, 7 px pour une commande. */
+.amis-ajout{ display:flex; gap:8px; margin-bottom:6px; }
+.amis-ajout input{
+  flex:1; min-width:0; height:36px; padding:0 12px;
+  border:1px solid var(--card-border); border-radius:10px;
+  background:var(--card); color:var(--ink);
+  font-family:var(--font-body); font-size:13px;
+}
+.amis-ajout input:focus{ outline:none; border-color:var(--dex-red); }
+
+.amis{ display:flex; flex-direction:column; gap:7px; margin-bottom:14px; }
+.ami{
+  display:grid; grid-template-columns:26px 1fr auto 26px;
+  align-items:center; gap:10px;
+  padding:9px 12px;
+  border:1px solid var(--card-border); border-radius:10px;
+  background:var(--card);
+}
+.ami-avatar, .fil-avatar{
+  width:26px; height:26px; border-radius:50%; object-fit:cover;
+  background:var(--screen);
+}
+.ami-nom{ font-size:13px; font-weight:600; color:var(--ink); }
+.ami-chiffres{
+  font-family:var(--font-data); font-size:11px; font-variant-numeric:tabular-nums;
+  color:var(--ink-soft); white-space:pre;
+}
+.ami-retirer{
+  width:26px; height:26px; padding:0; line-height:1;
+  border:1px solid var(--card-border); border-radius:7px;
+  background:transparent; color:var(--ink-faint); cursor:pointer;
+}
+.ami-retirer:hover{ color:#fff; background:var(--danger); border-color:var(--danger); }
+.ami-retirer:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+
+.fil{ display:flex; flex-direction:column; gap:6px; }
+.fil-ligne{
+  display:grid; grid-template-columns:26px 1fr auto;
+  align-items:center; gap:10px;
+  padding:8px 12px;
+  border:1px solid var(--card-border); border-radius:10px;
+  background:var(--card);
+  font-size:12.5px; color:var(--ink-soft);
+}
+.fil-ligne strong{ color:var(--ink); font-weight:600; }
+/* Un chromatique est l'evenement rare de ce journal : il se voit. */
+.fil-ligne.chromatique{ border-color:var(--gold); }
+.fil-ligne.chromatique strong{ color:var(--gold); }
+.fil-quand{
+  font-family:var(--font-data); font-size:10px; color:var(--ink-faint);
+  white-space:nowrap;
+}
+
+/* La pastille de l'onglet. Le compte est dans un attribut : pas de noeud de
+   plus a tenir a jour, et il disparait avec la classe. */
+.page-tab.a-du-neuf{ position:relative; }
+.page-tab.a-du-neuf::after{
+  content:attr(data-combien);
+  position:absolute; top:2px; right:2px;
+  min-width:15px; height:15px; padding:0 4px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:999px;
+  background:var(--dex-red); color:#fff;
+  font-family:var(--font-data); font-size:8.5px; line-height:1;
+  font-variant-numeric:tabular-nums;
+}

@@ -48,6 +48,14 @@ const pageDexEl = document.getElementById('page-dex');
 const pageHomeEl = document.getElementById('page-home');
 // Propres à PokéArchive : la page de partage et la connexion Discord.
 const pageDresseursEl = document.getElementById('page-dresseurs');
+const pageAmisEl = document.getElementById('page-amis');
+const amisQ = document.getElementById('amisQ');
+const amisSuivre = document.getElementById('amisSuivre');
+const amisErreur = document.getElementById('amisErreur');
+const amisListe = document.getElementById('amisListe');
+const amisFil = document.getElementById('amisFil');
+const amisPlus = document.getElementById('amisPlus');
+const amisNotif = document.getElementById('amisNotif');
 const pageProfilEl = document.getElementById('page-profil');
 const pageChasseEl = document.getElementById('page-chasse');
 const pageJeuxEl = document.getElementById('page-jeux');

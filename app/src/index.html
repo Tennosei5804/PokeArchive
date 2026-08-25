@@ -63,6 +63,7 @@
         <button class="page-tab active" type="button" data-page="home" aria-current="page">🏠 Accueil</button>
         <button class="page-tab" type="button" data-page="jeux">📖 Pokédex</button>
         <button class="page-tab" type="button" data-page="dresseurs">👥 Dresseurs</button>
+        <button class="page-tab" type="button" data-page="amis">📣 Amis</button>
         <button class="page-tab" type="button" data-page="chasse">✨ Chasse</button>
         <button class="page-tab" type="button" data-page="cadeaux">🎁 Cadeau Mystère</button>
         <button class="page-tab" type="button" data-page="strategie">⚔️ Stratégie</button>
@@ -340,6 +341,18 @@
         <div class="journal" id="journalListe"></div>
         <button class="load-more" id="journalPlus" type="button" style="display:none;">Afficher plus</button>
 
+        <div class="home-section-title">Notifications</div>
+        <div class="profil-bloc">
+          <p class="profil-bloc-note">Quand un ami avance, une bulle apparaît. Un lot de
+            captures ne donne qu'une bulle, jamais une par Pokémon — sinon une soirée de
+            jeu chez quelqu'un d'autre couvrirait ton écran.</p>
+          <select id="amisNotif" aria-label="Quand être prévenu">
+            <option value="tout">Tout ce que mes amis attrapent</option>
+            <option value="chromatiques">Seulement les chromatiques</option>
+            <option value="rien">Rien — juste la pastille</option>
+          </select>
+        </div>
+
         <div class="home-section-title">Apparence</div>
         <div class="profil-bloc">
           <p class="profil-bloc-note">Cinq couleurs, et le reste s’en déduit — les
@@ -378,6 +391,30 @@
           </div>
           <span class="profil-bloc-etat" id="adminEtat"></span>
         </div>
+      </section>
+
+      <section class="page" id="page-amis">
+        <div class="home-hero">
+          <div class="home-eyebrow">Ce qu'ils attrapent</div>
+          <h2 class="home-title">Les amis</h2>
+          <p class="home-sub">Suis qui tu veux, sans rien demander : leur progression
+             est déjà publique. Tu seras prévenu quand ils avancent.</p>
+        </div>
+
+        <div class="amis-ajout">
+          <input type="text" id="amisQ" maxlength="20" autocomplete="off"
+                 placeholder="Suivre un dresseur par son pseudo…"
+                 aria-label="Pseudo du dresseur à suivre">
+          <button class="toggle-btn primary" id="amisSuivre" type="button">Suivre</button>
+        </div>
+        <p class="modal-error" id="amisErreur" role="alert"></p>
+
+        <div class="home-section-title">Mes amis</div>
+        <div class="amis" id="amisListe"></div>
+
+        <div class="home-section-title">Ce qu'ils attrapent</div>
+        <div class="fil" id="amisFil"></div>
+        <button class="load-more" id="amisPlus" type="button" style="display:none;">Afficher plus</button>
       </section>
 
       <section class="page" id="page-dresseurs">
@@ -984,6 +1021,7 @@
 <!-- Redéfinit la couche de sauvegarde quand l'app tourne dans Tauri.
      Hors Tauri (serveur.py, ou fichier ouvert directement), il ne fait rien. -->
 <script src="js/compte.js"></script>
+<script src="js/amis.js"></script>
 <script src="js/donnees-perso.js"></script>
 <script src="js/presence.js"></script>
 <script src="js/app.js"></script>

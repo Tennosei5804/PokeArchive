@@ -30,6 +30,7 @@ discord-rich-presence = "1"
 
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+tauri-plugin-notification = "2"
 
 # rustls plutôt que le TLS du système : un binaire distribuable qui ne dépend
 # d'aucune bibliothèque installée sur la machine du joueur.

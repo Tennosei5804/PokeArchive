@@ -14,6 +14,7 @@ import helmet from 'helmet';
 import { config, verifierConfig } from './config.js';
 import { creerSchema, description } from './base.js';
 import * as comptes from './comptes.js';
+import * as amis from './amis.js';
 import * as discord from './discord.js';
 import { limiter } from './debit.js';
 
@@ -325,6 +326,45 @@ app.get('/api/dex/:pseudo', route(async (req, res) => {
   const autre = await comptes.dexDe(req.params.pseudo, profilDemande(req));
   if (!autre) return res.status(404).json({ erreur: 'Dresseur inconnu.' });
   res.json(autre);
+}));
+
+
+// --- Les amis ---------------------------------------------------------------
+// Abonnement a sens unique : pas de demande, pas d'acceptation. Voir amis.js.
+
+app.get('/api/amis', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json(await amis.mesAmis(d.id));
+}));
+
+app.post('/api/amis', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json({ ok: true, ...(await amis.suivre(d.id, req.body?.pseudo)) });
+}));
+
+app.delete('/api/amis/:pseudo', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json({ ok: true, ...(await amis.nePlusSuivre(d.id, req.params.pseudo)) });
+}));
+
+// Le fil complet, pagine.
+app.get('/api/amis/fil', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json(await amis.fil(d.id, req.query.avant));
+}));
+
+// Ce qui n'a pas encore ete annonce, deja groupe en annonces.
+app.get('/api/amis/nouveautes', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json(await amis.nouveautes(d.id));
+}));
+
+// L'application le dit une fois les notifications reellement affichees, pas
+// avant : si elle se ferme entre les deux, on les revoit plutot que de les
+// perdre.
+app.post('/api/amis/vu', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json({ ok: true, ...(await amis.marquerVu(d.id, req.body?.jusqua)) });
 }));
 
 app.post('/api/deconnexion', route(async (req, res) => {

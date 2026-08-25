@@ -679,10 +679,75 @@ fn urlencode(s: &str) -> String {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+// --- Les amis ---------------------------------------------------------------
+//
+// Abonnement à sens unique : pas de demande, pas d'acceptation. Ce que l'API
+// en pense est dans api/src/amis.js ; ici il n'y a que le passage du jeton.
+
+/// Mes amis, avec où ils en sont.
+#[tauri::command]
+async fn amis(etat: State<'_, Etat>) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(reqwest::Method::GET, "/api/amis", &jeton, None).await
+}
+
+#[tauri::command]
+async fn suivre(etat: State<'_, Etat>, pseudo: String) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(
+        reqwest::Method::POST,
+        "/api/amis",
+        &jeton,
+        Some(serde_json::json!({ "pseudo": pseudo })),
+    )
+    .await
+}
+
+#[tauri::command]
+async fn ne_plus_suivre(etat: State<'_, Etat>, pseudo: String) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    let chemin = format!("/api/amis/{}", urlencode(&pseudo));
+    appeler(reqwest::Method::DELETE, &chemin, &jeton, None).await
+}
+
+/// Le fil, du plus récent au plus ancien.
+#[tauri::command]
+async fn amis_fil(etat: State<'_, Etat>, avant: Option<i64>) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    let chemin = match avant {
+        Some(a) => format!("/api/amis/fil?avant={a}"),
+        None => "/api/amis/fil".to_string(),
+    };
+    appeler(reqwest::Method::GET, &chemin, &jeton, None).await
+}
+
+/// Ce qui n'a pas encore été annoncé, déjà groupé par l'API.
+#[tauri::command]
+async fn amis_nouveautes(etat: State<'_, Etat>) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(reqwest::Method::GET, "/api/amis/nouveautes", &jeton, None).await
+}
+
+/// Dit jusqu'où on a annoncé. Appelé APRÈS l'affichage des notifications, pas
+/// avant : si l'application se ferme entre les deux, on les reverra plutôt que
+/// de les perdre.
+#[tauri::command]
+async fn amis_vu(etat: State<'_, Etat>, jusqua: i64) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(
+        reqwest::Method::POST,
+        "/api/amis/vu",
+        &jeton,
+        Some(serde_json::json!({ "jusqua": jusqua })),
+    )
+    .await
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let fichier = app
                 .path()
@@ -727,6 +792,12 @@ pub fn run() {
             fermer_les_autres,
             journal,
             renommer_dresseur,
+            amis,
+            suivre,
+            ne_plus_suivre,
+            amis_fil,
+            amis_nouveautes,
+            amis_vu,
             presence::presence_maj,
             presence::presence_effacer
         ])

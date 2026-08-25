@@ -129,11 +129,32 @@ const TABLES = [
      CONSTRAINT fk_pa_dex_dresseur FOREIGN KEY (dresseur_id)
        REFERENCES pa_dresseurs(id) ON DELETE CASCADE
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // Qui suit qui. Abonnement a sens unique : pas de demande, pas
+  // d'acceptation. Rien de neuf n'est revele — le classement et les profils
+  // publics montrent deja cette progression a tout le monde. S'abonner ne fait
+  // que filtrer ce qu'on pouvait deja aller lire.
+  //
+  // vu_jusqua est l'identifiant du dernier pa_historique deja annonce. Il est
+  // pose au maximum du moment ou l'abonnement est cree : sans cela, suivre
+  // quelqu'un deverserait six mois de son journal en notifications.
+  `CREATE TABLE IF NOT EXISTS pa_amis (
+     dresseur_id BIGINT      NOT NULL,
+     ami_id      BIGINT      NOT NULL,
+     depuis      VARCHAR(64) NOT NULL,
+     vu_jusqua   BIGINT      NOT NULL DEFAULT 0,
+     PRIMARY KEY (dresseur_id, ami_id),
+     CONSTRAINT fk_pa_amis_dresseur FOREIGN KEY (dresseur_id)
+       REFERENCES pa_dresseurs(id) ON DELETE CASCADE,
+     CONSTRAINT fk_pa_amis_ami FOREIGN KEY (ami_id)
+       REFERENCES pa_dresseurs(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const INDEX = [
   { nom: 'idx_pa_dresseurs_discord', table: 'pa_dresseurs', colonnes: 'discord_id', unique: true },
   { nom: 'idx_pa_sessions_dresseur', table: 'pa_sessions', colonnes: 'dresseur_id', unique: false },
+  { nom: 'idx_pa_amis_ami', table: 'pa_amis', colonnes: 'ami_id', unique: false },
 ];
 
 /**
