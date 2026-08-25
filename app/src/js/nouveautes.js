@@ -20,6 +20,16 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.12.0', date: '2026-08-25', titre: 'Reconnaître quelqu’un sans cliquer',
+    points: [
+      'Le pseudo Discord apparaît aussi dans **le classement, la recherche et ta '
+      + 'liste d’amis** — plus seulement sur la fiche d’un dresseur.',
+      'Le pseudo choisi passe au-dessus, le pseudo Discord en dessous, et les deux '
+      + 'à la même taille.',
+      'Les changelogs se lisent à gauche au lieu d’être centrés.',
+    ],
+  },
+  {
     version: '0.11.0', date: '2026-08-25', titre: 'Le pseudo Discord, en plus du tien',
     points: [
       'Le profil d’un dresseur montre maintenant **trois lignes** : son pseudo '
