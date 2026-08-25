@@ -20,6 +20,24 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.18.0', date: '2026-08-25', titre: 'Le bon tri, et des scores qui se comparent',
+    points: [
+      'Dans un jeu, la liste se trie par **numéro du jeu** — l’ordre dans lequel '
+      + 'la console présente son propre Pokédex. Si tu choisis un autre tri, il '
+      + 'tient : rien ne le défait en changeant d’onglet.',
+      'Au classement, chaque ligne dit **sur quelle base** elle compte : « Vus », '
+      + '« Living dex », « Formes 4 ». Trois cents captures ne veulent pas dire la '
+      + 'même chose d’une aventure à l’autre.',
+      'Un **sélecteur** permet de ne comparer que les aventures du même type. '
+      + 'Quand il est actif, une ligne dit combien de dresseurs il met de côté.',
+      'Les succès par Pokédex d’un autre dresseur affichaient **zéro pour tout le '
+      + 'monde**. Ils montrent désormais son vrai avancement, jeu par jeu.',
+      'La fenêtre « Tu es à jour » s’affichait un mot par ligne. Réparée.',
+      'Les barres de défilement se voient enfin, et ont perdu leurs deux petites '
+      + 'flèches.',
+    ],
+  },
+  {
     version: '0.17.0', date: '2026-08-25', titre: 'Un tableau de chasse, et les succès des autres',
     points: [
       'Un bouton **Voir mes succès** dans ton profil ouvre soixante succès : '
