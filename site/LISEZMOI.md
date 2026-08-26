@@ -167,6 +167,40 @@ Ce qui pèse mais n'est **pas** chargé d'emblée : `donnees-lieux.js` (1,9 Mo),
 `donnees-attaques.js` (1,9 Mo) et `donnees-descriptions.js` (1,5 Mo). Ils
 descendent à la demande, quand on ouvre la page ou la fiche qui les réclame.
 
+## Le banc d'essai
+
+```
+cd site && py outils/banc.py
+```
+
+Dix-sept vérifications, jouées dans une vraie fenêtre. Le rapport s'affiche
+par-dessus la page.
+
+**La règle, la même que pour le banc de l'application** : un bug est passé, on
+écrit la vérification qui l'aurait arrêté. Pas de tests écrits « au cas où » —
+ils vieillissent mal et personne ne les relit. La plupart des entrées portent
+donc le nom d'un défaut réellement rencontré en bâtissant ce site : le bandeau
+écrasé par le flex de `body`, la bascule d'époque que `flex-wrap` seul
+n'enroulait pas, la pagination par décalage là où l'API veut un curseur.
+
+**Deux familles.** Le pont se vérifie en appelant ses commandes. La mise en page
+demande une largeur : elle se mesure dans une **iframe dimensionnée**, parce que
+les requêtes de média répondent à la taille de la fenêtre qui les contient —
+c'est le seul moyen d'éprouver le 375 px sans redimensionner la vraie fenêtre.
+
+**Il a des dents, et c'est vérifié.** En réintroduisant volontairement deux
+défauts déjà corrigés — le `max-width` de la bascule et la pagination par
+décalage — le banc les attrape tous les deux et nomme précisément le symptôme
+(« 1 bouton coupé, dont *6e à 9e génération* », « 8 lignes après la dernière »),
+sans un seul faux positif ailleurs.
+
+Le banc écrase la réserve du site pendant qu'il joue — il coche, efface,
+recharge. Il la range avant de commencer et la remet à la fin, mais on évite
+quand même de le lancer sur le navigateur où l'on tient sa vraie collection.
+
+`window.__bancEchecs` porte le nombre d'échecs une fois fini, pour qui voudrait
+le lire autrement qu'à l'œil.
+
 ## Les commandes
 
 ```
@@ -174,4 +208,6 @@ py outils/servir.py                  ouvre le site (assemble d'abord)
 py outils/servir.py --port 9000      ailleurs, si 8130 est pris
 py outils/servir.py --sans-navigateur   sans ouvrir de fenêtre
 py outils/assembler.py               assembler seulement
+py outils/banc.py                    jouer les dix-sept verifications
+py outils/banc.py --port 9001        ailleurs, si 8131 est pris
 ```

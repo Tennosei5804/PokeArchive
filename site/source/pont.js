@@ -48,8 +48,9 @@
     dresseur: null,          // { pseudo } — un nom local, pas un compte Discord
     profils: [],             // les aventures
     dex: {},                 // profilId -> le dex enregistré
-    journal: [],             // { jour, pokemon, dex, chromatique } — voir dater()
-    dernierId: 0,
+    journal: [],             // { id, profilId, jour, pokemon, dex, chromatique }
+    dernierId: 0,            // pour les aventures
+    dernierJournalId: 0,     // pour les lignes de journal
   };
 
   function lire(){
@@ -115,8 +116,9 @@
    * Les retraits ne sont pas journalisés : décocher est une correction, pas un
    * événement de collection.
    */
-  function dater(avant, apres){
+  function dater(avant, apres, profilId, prochainId){
     const ajouts = [];
+    let id = prochainId;
     const jour = aujourdhui();
     const anciens = (avant && avant.dex) || {};
     const recents = (apres && apres.dex) || {};
@@ -126,7 +128,11 @@
         const deja = new Set((anciens[cle] && anciens[cle][champ]) || []);
         ((recents[cle] && recents[cle][champ]) || []).forEach(function(nom){
           if(!deja.has(nom)){
-            ajouts.push({ jour: jour, pokemon: String(nom), dex: String(cle),
+            // Un identifiant croissant, parce que la pagination se fait DESSUS
+            // et non sur un décalage : c'est le contrat de l'API, et une
+            // insertion pendant la lecture ne décale alors aucune page.
+            ajouts.push({ id: ++id, profilId: profilId, jour: jour,
+                          pokemon: String(nom), dex: String(cle),
                           chromatique: champ === 'shiny' ? 1 : 0 });
           }
         });
@@ -153,6 +159,30 @@
     journal.forEach(function(l){ m.set(l.dex, (m.get(l.dex) || 0) + 1); });
     return [...m.entries()].map(([dex, combien]) => ({ dex: dex, combien: combien }))
                            .sort((a, b) => b.combien - a.combien);
+  }
+
+  /** Une ligne de journal, dans la forme que l'application affiche. */
+  function ligneJournal(l){
+    return { id: l.id, pokemon: l.pokemon, dex: l.dex,
+             chromatique: l.chromatique, ajoute_le: l.jour };
+  }
+
+  /**
+   * Une page de journal, du plus récent au plus ancien.
+   *
+   * « avant » est un IDENTIFIANT et non un rang : on rend ce qui lui est
+   * strictement antérieur. Une ligne de plus que demandé est lue pour savoir
+   * s'il y a une suite, exactement comme le fait l'API — sans avoir à compter
+   * la table entière à chaque page.
+   */
+  function pageAvant(lignes, avant, combien){
+    const borne = Math.min(Math.max(Number(combien) || 50, 1), 200);
+    const curseur = Number(avant);
+    let suite = lignes.slice().sort((a, b) => b.id - a.id);
+    if(Number.isInteger(curseur) && curseur > 0){
+      suite = suite.filter((l) => l.id < curseur);
+    }
+    return { lignes: suite.slice(0, borne), encore: suite.length > borne };
   }
 
   // ---- Les aventures ---------------------------------------------------------
@@ -337,7 +367,8 @@
 
       // Dater AVANT d'écraser : c'est la comparaison avec l'ancien qui dit ce
       // qui est neuf, et une fois remplacé il n'y a plus rien à comparer.
-      const ajouts = dater(e.dex[p.id], donnees);
+      const ajouts = dater(e.dex[p.id], donnees, p.id, e.dernierJournalId);
+      if(ajouts.length) e.dernierJournalId = ajouts[ajouts.length - 1].id;
       e.journal = e.journal.concat(ajouts);
 
       e.dex[p.id] = donnees;
@@ -350,20 +381,32 @@
 
     // --- Le journal -----------------------------------------------------------
 
+    // Deux commandes, parce que deux questions : « qu'ai-je attrapé dans CETTE
+    // aventure » et « qu'ai-je attrapé, tout court ». La seconde nomme
+    // l'aventure de chaque ligne, la première n'en a pas besoin.
+    //
+    // LA PAGINATION SE FAIT SUR L'IDENTIFIANT et non sur un décalage : c'est le
+    // contrat de l'API, et l'application passe « avant ». Un décalage aurait
+    // fait tourner « voir plus » en rond, la première page se resservant
+    // indéfiniment.
     historique: function(a){
       const e = lire();
-      const tout = e.journal.slice().reverse();       // le plus récent d'abord
-      const debut = (a && a.depuis) || 0;
-      const combien = (a && a.combien) || 50;
-      const page = tout.slice(debut, debut + combien);
+      const p = profilRetenu(e, a && a.id);
+      const sien = e.journal.filter((l) => !p || l.profilId === p.id);
+      const page = pageAvant(sien, a && a.avant, 60);
+      return { lignes: page.lignes.map(ligneJournal),
+               total: sien.length, encore: page.encore };
+    },
+
+    journal: function(a){
+      const e = lire();
+      const noms = {};
+      e.profils.forEach((p) => { noms[p.id] = p.nom; });
+      const page = pageAvant(e.journal, a && a.avant, 50);
       return {
-        lignes: page.map((l, i) => ({
-          id: debut + i + 1, pokemon: l.pokemon, dex: l.dex,
-          chromatique: l.chromatique, ajoute_le: l.jour,
-        })),
-        total: tout.length,
-        reste: debut + page.length < tout.length,
-        encore: debut + page.length < tout.length,
+        lignes: page.lignes.map((l) => Object.assign(ligneJournal(l),
+                  { aventure: noms[l.profilId] || 'Aventure supprimée' })),
+        encore: page.encore,
       };
     },
 
@@ -377,8 +420,6 @@
         premier: e.journal.length ? e.journal[0].jour : null,
       };
     },
-
-    journal: () => ({ lignes: [] }),
 
     exporter: function(){
       const e = lire();
