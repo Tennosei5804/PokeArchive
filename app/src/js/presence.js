@@ -37,6 +37,25 @@ const PRESENCE_ECRANS = {
 let presenceMinuteur = null;
 const PRESENCE_DELAI = 400;
 
+// ---- Le réglage ------------------------------------------------------------
+//
+// DANS localStorage, ET NON SUR LE COMPTE. C'est l'inverse du choix fait pour
+// « Apparaître dans la liste des dresseurs », et pour une raison précise : cette
+// visibilité-là est une donnée de compte, se retirer sur une machine doit valoir
+// partout. La présence Discord, elle, dépend de la machine où Discord tourne.
+// Quelqu'un peut vouloir l'afficher chez lui et pas au travail, et un réglage
+// de compte lui refuserait ce choix.
+//
+// Même convention que le volume du cri : une clé, une valeur, et le stockage
+// refusé n'est jamais fatal.
+const PRESENCE_CLE = 'pokearchive-presence-discord';
+
+/** Vrai tant que rien ne dit le contraire : la présence était active avant ce réglage. */
+function presenceActive(){
+  try{ return localStorage.getItem(PRESENCE_CLE) !== 'non'; }
+  catch(e){ return true; }              // stockage refusé : on garde le défaut
+}
+
 /** Ce qu'on fait, en une ligne. */
 function presenceQuoi(){
   if(typeof currentPage === 'undefined') return 'Ouvre PokéArchive';
@@ -66,10 +85,11 @@ function presenceQui(){
   return 'Pas encore connecté';
 }
 
-/** Annonce l'état courant. Sans effet si Discord n'écoute pas. */
+/** Annonce l'état courant. Sans effet si Discord n'écoute pas, ou si on l'a coupée. */
 function presenceMaj(){
   const invoke = window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke;
   if(!invoke) return;                       // banc d'essai, ou page de génération
+  if(!presenceActive()) return;
   invoke('presence_maj', { etat: { quoi: presenceQuoi(), qui: presenceQui() } })
     .catch(function(){ /* une décoration ne remonte pas d'erreur */ });
 }
@@ -87,6 +107,20 @@ function presenceEffacer(){
   invoke('presence_effacer').catch(function(){});
 }
 
+/**
+ * Appliquer le choix, tout de suite.
+ *
+ * COUPER DOIT EFFACER, et non simplement cesser d'annoncer. Sans cet effacement,
+ * la dernière présence envoyée resterait affichée sous le nom du joueur pour
+ * toute sa liste d'amis, jusqu'à ce qu'il ferme l'application. C'est exactement
+ * le défaut qu'avait la déconnexion : le pseudo et l'aventure survivaient au
+ * départ, et personne ne s'en apercevait de son côté de l'écran.
+ */
+function presenceAppliquer(){
+  if(presenceActive()) presencePlusTard();
+  else presenceEffacer();
+}
+
 // On enveloppe showPage plutôt que d'ajouter un appel à chacune de ses sorties :
 // elle en compte trois, et une quatrième ajoutée un jour oublierait la
 // présence sans que rien ne le signale. Le procédé est déjà celui de compte.js,
@@ -100,5 +134,24 @@ document.addEventListener('DOMContentLoaded', function(){
       return r;
     };
   }
-  presencePlusTard();
+  const choix = document.getElementById('presenceMode');
+  const etat = document.getElementById('presenceEtat');
+  if(choix){
+    choix.value = presenceActive() ? 'oui' : 'non';
+    const dire = function(){
+      if(!etat) return;
+      etat.textContent = presenceActive()
+        ? 'Tes amis Discord voient l’écran que tu consultes, ton pseudo et ton aventure.'
+        : 'Discord n’affiche plus rien sous ton nom.';
+    };
+    dire();
+    choix.addEventListener('change', function(){
+      try{ localStorage.setItem(PRESENCE_CLE, choix.value === 'non' ? 'non' : 'oui'); }
+      catch(e){ /* stockage refusé : le choix ne tiendra pas au redémarrage */ }
+      dire();
+      presenceAppliquer();
+    });
+    if(typeof syncSelects === 'function') syncSelects();
+  }
+  presenceAppliquer();
 });

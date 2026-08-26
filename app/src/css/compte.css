@@ -951,6 +951,20 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   margin-bottom:14px;
   display:flex; flex-direction:column; gap:12px; align-items:flex-start;
 }
+/* Une ligne « nom du reglage : menu ». Le bloc qui la contient est deja une
+   colonne alignee a gauche ; celle-ci se remet en rangee, et s enroule sur un
+   ecran etroit plutot que de pousser le menu hors du cadre. */
+.profil-champ{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  cursor:pointer;
+}
+.profil-champ-nom{
+  font-size:12.5px; font-weight:600; color:var(--ink);
+}
+/* Assez large pour que « Desactivee » ne soit pas coupe, et pas plus : un menu
+   a deux choix n a pas besoin de toute la largeur du bloc. */
+.profil-champ .select-wrap{ min-width:160px; }
+
 .profil-bloc-note{
   margin:0; max-width:64ch;
   font-size:13.5px; line-height:1.5; color:var(--ink-soft);

@@ -20,6 +20,18 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.19.0', date: '2026-08-26', titre: 'Ta présence Discord, quand tu le veux',
+    points: [
+      'Un réglage **Ma présence Discord** dans ton profil : tu choisis si Discord '
+      + 'affiche sous ton nom l’écran que tu consultes, ton pseudo et ton aventure. '
+      + 'Jusqu’ici c’était toujours actif, sans moyen de couper.',
+      'Couper l’**efface tout de suite** — la dernière présence envoyée ne reste '
+      + 'pas affichée à ta liste d’amis.',
+      'Le choix vaut **pour cette machine**, pas pour ton compte : tu peux '
+      + 'l’afficher chez toi et pas ailleurs.',
+    ],
+  },
+  {
     version: '0.18.0', date: '2026-08-25', titre: 'Le bon tri, et des scores qui se comparent',
     points: [
       'Dans un jeu, la liste se trie par **numéro du jeu** — l’ordre dans lequel '

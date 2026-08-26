@@ -174,6 +174,19 @@ body::-webkit-scrollbar-thumb {
 }
 body::-webkit-scrollbar-thumb:hover { background: var(--ink); }
 
+/* ---- Ce qui n'a pas de sens dans un navigateur ---------------------------
+   La presence Discord suppose un client Discord sur la machine, et le pont web
+   ne fait que repondre « ok » a presence_maj. Laisser le reglage visible
+   afficherait un menu qui ne fait rien, sous un titre qui promet quelque chose.
+
+   On masque le bloc ET son titre : un intitule de section seul, sans rien
+   dessous, se lit comme un ecran casse. :has() est compris par ce moteur,
+   verifie avant de s'y fier — c'est deja le procede de la bascule d'epoque. */
+.profil-bloc:has(#presenceMode),
+.home-section-title:has(+ .profil-bloc #presenceMode){
+  display: none;
+}
+
 /* ---- Le clavier -----------------------------------------------------------
    Sur le bureau on clique ; sur le web on tabule aussi. L'anneau de focus
    n'existait pas partout — il coute peu et rend la page utilisable sans souris.
