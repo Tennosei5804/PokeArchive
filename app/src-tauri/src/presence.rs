@@ -103,9 +103,14 @@ pub fn presence_maj(etat: Etat, presence: tauri::State<'_, Presence>) -> bool {
         None => return false,
     };
 
-    let activite = Activity::new()
+    // La seconde ligne est FACULTATIVE, et c'est ce qui rend la presence
+    // discrete possible. `qui` porte le pseudo et le nom d'aventure — la seule
+    // partie qui identifie. En mode discret, l'interface l'envoie vide, et une
+    // chaine vide posee en `state` laisserait un trou sous le titre : c'est
+    // justement ce que presence.js evite en ecrivant « Pas encore connecte »
+    // plutot que rien. On omet donc la ligne au lieu de l'annoncer creuse.
+    let mut activite = Activity::new()
         .details(&quoi)
-        .state(&qui)
         .assets(
             Assets::new()
                 // La clé de l'image se déclare dans le portail Discord, onglet
@@ -115,6 +120,10 @@ pub fn presence_maj(etat: Etat, presence: tauri::State<'_, Presence>) -> bool {
                 .large_text("PokéArchive"),
         )
         .timestamps(Timestamps::new().start(presence.depuis));
+
+    if !qui.is_empty() {
+        activite = activite.state(&qui);
+    }
 
     if client.set_activity(activite).is_err() {
         // Le tuyau s'est fermé — Discord a redémarré, ou s'est fermé pendant

@@ -22,9 +22,12 @@ const NOUVEAUTES = [
   {
     version: '0.19.0', date: '2026-08-26', titre: 'Ta présence Discord, quand tu le veux',
     points: [
-      'Un réglage **Ma présence Discord** dans ton profil : tu choisis si Discord '
-      + 'affiche sous ton nom l’écran que tu consultes, ton pseudo et ton aventure. '
+      'Un réglage **Ma présence Discord** dans ton profil, avec trois choix. '
       + 'Jusqu’ici c’était toujours actif, sans moyen de couper.',
+      '**Discrète** est sans doute celui qu’il te faut : Discord montre l’écran '
+      + 'que tu consultes, mais ni ton pseudo ni le nom de ton aventure. Une '
+      + 'présence se lit par toute ta liste d’amis, y compris par des gens que tu '
+      + 'ne connais pas.',
       'Couper l’**efface tout de suite** — la dernière présence envoyée ne reste '
       + 'pas affichée à ta liste d’amis.',
       'Le choix vaut **pour cette machine**, pas pour ton compte : tu peux '

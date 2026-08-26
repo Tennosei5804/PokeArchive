@@ -50,11 +50,33 @@ const PRESENCE_DELAI = 400;
 // refusé n'est jamais fatal.
 const PRESENCE_CLE = 'pokearchive-presence-discord';
 
-/** Vrai tant que rien ne dit le contraire : la présence était active avant ce réglage. */
-function presenceActive(){
-  try{ return localStorage.getItem(PRESENCE_CLE) !== 'non'; }
-  catch(e){ return true; }              // stockage refusé : on garde le défaut
+// Trois états, et le troisième est le plus utile des trois.
+//
+// « oui »      l'écran, le pseudo et l'aventure — ce qui existait
+// « discrete » l'écran seulement
+// « non »      rien du tout
+//
+// POURQUOI UN ENTRE-DEUX. Ce fichier note lui-même qu'une présence se lit par
+// n'importe qui dans la liste d'amis, y compris par des gens qu'on ne connaît
+// pas. Or les deux lignes ne racontent pas la même chose : « Pokédex de
+// Rouge / Bleu » dit ce qu'on FAIT, « Tennosei — Aventure 1 » dit QUI on est.
+// Seule la seconde identifie. Couper le tout pour se protéger de la seconde
+// revenait à sacrifier la première sans raison.
+const PRESENCE_MODES = ['oui', 'discrete', 'non'];
+
+/** Le mode retenu. Actif tant que rien ne dit le contraire. */
+function presenceMode(){
+  let v = null;
+  try{ v = localStorage.getItem(PRESENCE_CLE); }
+  catch(e){ /* stockage refusé : on garde le défaut */ }
+  // Une valeur inconnue — réserve d'une version future, ou abîmée — vaut mieux
+  // traitée comme le défaut que comme « non » : couper la présence de quelqu'un
+  // sans qu'il l'ait demandé est le pire des deux.
+  return PRESENCE_MODES.indexOf(v) > -1 ? v : 'oui';
 }
+
+/** Vrai dès qu'on annonce quelque chose, discrètement ou non. */
+function presenceActive(){ return presenceMode() !== 'non'; }
 
 /** Ce qu'on fait, en une ligne. */
 function presenceQuoi(){
@@ -90,7 +112,10 @@ function presenceMaj(){
   const invoke = window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke;
   if(!invoke) return;                       // banc d'essai, ou page de génération
   if(!presenceActive()) return;
-  invoke('presence_maj', { etat: { quoi: presenceQuoi(), qui: presenceQui() } })
+  // Vide en mode discret, et le Rust omet alors la ligne au lieu de l'annoncer
+  // creuse — Discord laisserait un trou sous le titre.
+  const qui = presenceMode() === 'discrete' ? '' : presenceQui();
+  invoke('presence_maj', { etat: { quoi: presenceQuoi(), qui: qui } })
     .catch(function(){ /* une décoration ne remonte pas d'erreur */ });
 }
 
@@ -116,9 +141,19 @@ function presenceEffacer(){
  * le défaut qu'avait la déconnexion : le pseudo et l'aventure survivaient au
  * départ, et personne ne s'en apercevait de son côté de l'écran.
  */
-function presenceAppliquer(){
-  if(presenceActive()) presencePlusTard();
-  else presenceEffacer();
+function presenceAppliquer(precedent){
+  if(!presenceActive()){ presenceEffacer(); return; }
+
+  // EFFACER SEULEMENT SI L'ON VIENT DE CHANGER DE MODE. Discord garde les
+  // champs qu'on ne renvoie pas : en passant d'« activée » à « discrète », la
+  // seconde ligne — le pseudo et l'aventure — resterait affichée alors qu'on
+  // vient justement de demander qu'elle ne le soit plus.
+  //
+  // Au démarrage, en revanche, il n'y a rien à effacer, et le faire coûtait
+  // deux allers-retours de plus à chaque ouverture. Le banc l'a vu : la
+  // suppression d'une aventure passait de sept appels à dix.
+  if(precedent && precedent !== presenceMode()) presenceEffacer();
+  presencePlusTard();
 }
 
 // On enveloppe showPage plutôt que d'ajouter un appel à chacune de ses sorties :
@@ -137,19 +172,24 @@ document.addEventListener('DOMContentLoaded', function(){
   const choix = document.getElementById('presenceMode');
   const etat = document.getElementById('presenceEtat');
   if(choix){
-    choix.value = presenceActive() ? 'oui' : 'non';
+    choix.value = presenceMode();
     const dire = function(){
       if(!etat) return;
-      etat.textContent = presenceActive()
-        ? 'Tes amis Discord voient l’écran que tu consultes, ton pseudo et ton aventure.'
-        : 'Discord n’affiche plus rien sous ton nom.';
+      const m = presenceMode();
+      etat.textContent =
+        m === 'non' ? 'Discord n’affiche plus rien sous ton nom.'
+      : m === 'discrete' ? 'Tes amis Discord voient l’écran que tu consultes, '
+                         + 'mais ni ton pseudo ni le nom de ton aventure.'
+      : 'Tes amis Discord voient l’écran que tu consultes, ton pseudo et ton aventure.';
     };
     dire();
     choix.addEventListener('change', function(){
-      try{ localStorage.setItem(PRESENCE_CLE, choix.value === 'non' ? 'non' : 'oui'); }
+      const avant = presenceMode();
+      const veut = PRESENCE_MODES.indexOf(choix.value) > -1 ? choix.value : 'oui';
+      try{ localStorage.setItem(PRESENCE_CLE, veut); }
       catch(e){ /* stockage refusé : le choix ne tiendra pas au redémarrage */ }
       dire();
-      presenceAppliquer();
+      presenceAppliquer(avant);
     });
     if(typeof syncSelects === 'function') syncSelects();
   }
