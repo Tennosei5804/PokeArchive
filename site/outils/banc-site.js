@@ -264,6 +264,39 @@ verifier('Le pont',
     return '4 captures, 1 jour, 1 chromatique, date au format du serveur';
   });
 
+verifier('La synchro',
+  'L’export rend le format d’échange, celui que l’application sait lire',
+  async function(){
+    // LE BUG : le pont rendait le dex brut. donnees-perso.js lit
+    // contenu.aventures pour annoncer « n aventures enregistrées », et en
+    // comptait zéro — le fichier produit par le site était illisible par
+    // l'application, sans que rien ne le dise.
+    neuf();
+    await invoke('connexion', { pseudo: 'Banc' });
+    await invoke('ecrire_dex', { profil: null,
+      donnees: { version: 1, dex: { rby: { caught: ['bulbasaur'], shiny: ['pikachu'] } } } });
+    await invoke('creer_profil', { nom: 'Seconde', mode: 'living' });
+
+    const x = await invoke('exporter');
+    if(x.format !== 'pokearchive-1') return 'échec : format « ' + x.format + ' »';
+    if(!Array.isArray(x.aventures)) return 'échec : aucune liste d’aventures';
+    if(x.aventures.length !== 2) return 'échec : ' + x.aventures.length + ' aventure(s) au lieu de 2';
+    if(!x.dresseur || x.dresseur.pseudo !== 'Banc') return 'échec : le dresseur manque';
+    if(!x.exporteLe) return 'échec : aucune date d’export';
+
+    const une = x.aventures[0];
+    // Les champs que l'API rend, et que l'application ou une reprise attendent.
+    for(const champ of ['nom','mode','niveau_formes','dex','historique']){
+      if(!(champ in une)) return 'échec : « ' + champ + ' » absent d’une aventure';
+    }
+    if(!une.dex || !une.dex.dex || !une.dex.dex.rby) return 'échec : le dex n’est pas dans l’aventure';
+    if(une.historique.length !== 2) return 'échec : ' + une.historique.length + ' ligne(s) d’historique';
+    if(!une.historique[0].ajoute_le) return 'échec : une ligne d’historique sans date';
+    // Un identifiant de base n'a aucun sens hors de la base : l'API le retire.
+    if('id' in une) return 'échec : un identifiant d’aventure est sorti';
+    return 'format pokearchive-1, 2 aventures, dex et historique compris';
+  });
+
 // ---- La mise en page --------------------------------------------------------
 //
 // Dans une iframe dimensionnée : les requêtes de média répondent à la taille de

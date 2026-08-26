@@ -106,6 +106,69 @@ Côté site, il n'y a **qu'un endroit** à changer : la fonction `repondre()` da
 `pont.js`, qui choisit entre la réserve locale et le réseau. Les commandes
 n'auront pas à bouger, puisqu'elles rendent déjà les formes de l'API.
 
+## La synchro site ↔ application
+
+Elle n'existe pas encore. Ce qui suit dit où on en est et ce qu'il reste, parce
+que la moitié du travail est déjà faite sans qu'on l'ait cherché.
+
+### Le format existe, et il est versionné
+
+`pokearchive-1` est défini par l'API dans `exporter()`. Il porte **tout** ce
+qu'il faut pour reconstruire un compte :
+
+```
+{ exporteLe, format: 'pokearchive-1',
+  dresseur: { pseudo, avatar, creeLe },
+  aventures: [ { nom, mode, niveau_formes, public, par_defaut,
+                 cree_le, maj_le, dex, historique } ] }
+```
+
+Les deux côtés le produisent désormais : l'application par « Exporter mes
+données », le site par le même bouton. Aucun identifiant de base n'en sort — il
+n'aurait aucun sens ailleurs.
+
+### Ce qui manque : personne ne sait lire
+
+**Ni l'application ni le site n'ont d'import.** C'est la seule pièce absente
+pour une synchro par fichier, et c'est un manque du projet, pas du site :
+l'application exporte depuis toujours sans jamais savoir relire.
+
+### La question qui décide de tout : que fait-on d'un conflit ?
+
+C'est là qu'une synchro se gagne ou se perd. Si les deux côtés ont bougé,
+écraser l'un par l'autre perd du travail — et personne ne s'en aperçoit avant
+d'aller chercher un Pokémon qui n'y est plus.
+
+Le format permet de faire mieux qu'écraser :
+
+- **le dex se réunit**, il ne se remplace pas. Cocher est monotone : on ajoute
+  des captures, on n'en retire pratiquement jamais. L'union des deux côtés est
+  presque toujours la bonne réponse ;
+- **l'historique se dédoublonne** sur `(pokemon, dex, chromatique, ajoute_le)`.
+  Deux fois la même capture le même jour dans le même jeu est la même capture ;
+- **`maj_le` départage** ce qui ne se réunit pas — le nom d'une aventure, son
+  mode, son niveau de formes. Là, le plus récent gagne.
+
+Un décochage volontaire serait perdu par cette règle. C'est un choix assumé :
+perdre une correction est réparable en deux clics, perdre trois mois de
+cochage ne l'est pas.
+
+### Les deux étapes, dans l'ordre
+
+**1. Par fichier — faisable aujourd'hui, sans rien décider d'autre.** Un import
+de `pokearchive-1` des deux côtés, avec la fusion ci-dessus. Manuel, mais
+complet et hors ligne. Ne demande ni hébergement, ni CORS, ni session web.
+
+**2. Par le compte — demande l'hébergement.** Le site parle à l'API comme le
+fait l'application. Côté site il n'y a **qu'une fonction** à changer,
+`repondre()` dans `pont.js`, puisque les trente-deux commandes rendent déjà les
+formes de l'API. Côté serveur il faut le CORS et un vrai chemin de session
+navigateur — voir « Le jour où l'API sera joignable » plus haut.
+
+L'étape 1 ne se perd pas si l'on fait la 2 : un import de fichier reste utile
+pour reprendre une sauvegarde, changer de machine, ou récupérer après un vidage
+du navigateur.
+
 ## S'adapter à la fenêtre
 
 L'application de bureau vit dans une fenêtre dont on choisit la taille ; un

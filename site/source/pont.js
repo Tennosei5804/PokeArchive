@@ -421,10 +421,42 @@
       };
     },
 
+    /**
+     * Le format d'échange, et non le dex brut.
+     *
+     * C'EST LE FORMAT DE LA SYNCHRO. « pokearchive-1 » est versionné et complet
+     * — toutes les aventures, leur dex ET leur historique — et c'est l'API qui
+     * le définit, dans exporter(). Le respecter ici n'est pas une politesse :
+     * donnees-perso.js lit contenu.aventures pour annoncer « n aventures
+     * enregistrées », et le dex brut lui en faisait compter zéro. Le fichier
+     * produit par le site était illisible par l'application.
+     *
+     * Les identifiants d'aventure ne sortent pas : un identifiant de base n'a
+     * aucun sens hors de la base, et l'API les retire pour la même raison.
+     */
     exporter: function(){
       const e = lire();
-      const p = profilRetenu(e, null);
-      return (p && e.dex[p.id]) || { version: 1, dex: {}, captures: [], shiny: [] };
+      return {
+        exporteLe: maintenant(),
+        format: 'pokearchive-1',
+        dresseur: {
+          pseudo: (e.dresseur && e.dresseur.pseudo) || null,
+          avatar: null,
+          creeLe: null,
+        },
+        aventures: e.profils.map(function(p){
+          return {
+            nom: p.nom, public: p.public, par_defaut: p.par_defaut,
+            mode: p.mode, niveau_formes: p.niveau_formes,
+            cree_le: p.cree_le, maj_le: p.maj_le,
+            dex: e.dex[p.id] || null,
+            historique: e.journal
+              .filter((l) => l.profilId === p.id)
+              .map((l) => ({ pokemon: l.pokemon, dex: l.dex,
+                             chromatique: l.chromatique, ajoute_le: l.jour })),
+          };
+        }),
+      };
     },
 
     // --- Ce qui demande d'autres joueurs --------------------------------------

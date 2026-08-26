@@ -155,8 +155,9 @@ def batir() -> int:
     bandeau = (
         '<div class="site-bandeau" role="status">'
         '<b>Version web</b> — tout ce que tu coches reste dans ce navigateur. '
-        'Rien n\'est envoye, rien n\'est partage, et vider les donnees du site '
-        'efface la collection.'
+        'Rien n\'est envoyé, rien n\'est partagé, et vider les données du site '
+        'efface la collection. Le bouton <b>Exporter mes données</b> du Profil '
+        "rend un fichier que l'application sait lire."
         '</div>'
     )
     # Mesure : body est en display:flex, flex-direction:row, pour centrer le
