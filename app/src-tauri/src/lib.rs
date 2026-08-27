@@ -15,6 +15,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{Manager, State};
 
+mod overlay;
 mod presence;
 
 /// Adresse de l'API. Fixée à la compilation pour la version distribuée :
@@ -562,6 +563,36 @@ async fn exporter(etat: State<'_, Etat>) -> Result<serde_json::Value, String> {
     appeler(reqwest::Method::GET, "/api/export", &jeton, None).await
 }
 
+/// La rareté de chaque entrée : combien de dresseurs la possèdent.
+///
+/// Le classement ne compte que le nombre ; celle-ci dit ce que ce nombre vaut.
+/// Le calcul est fait et mis en cache côté API — il relit chaque collection
+/// publique, ce qui n'a rien à faire dans une application de bureau.
+#[tauri::command]
+async fn rarete(etat: State<'_, Etat>) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(reqwest::Method::GET, "/api/rarete", &jeton, None).await
+}
+
+/// Relire une sauvegarde « pokearchive-1 ».
+///
+/// C'est la pièce qui manquait : le format était produit des deux côtés — par
+/// l'application et par le site — et relu par aucun. Sans elle, on ne pouvait
+/// ni venir d'ailleurs, ni passer du site à l'application, ni récupérer après
+/// un vidage de navigateur.
+///
+/// La fusion se fait côté API : c'est elle qui tient le dex et le journal, et
+/// une union calculée ici puis renvoyée écraserait tout ce qui aurait bougé
+/// entre la lecture et l'écriture.
+#[tauri::command]
+async fn importer(
+    etat: State<'_, Etat>,
+    contenu: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(reqwest::Method::POST, "/api/import", &jeton, Some(contenu)).await
+}
+
 /// Les connexions ouvertes. Une session dure quatre-vingt-dix jours, et rien
 /// ne les montrait — donc rien à faire après s'être connecté chez un ami.
 #[tauri::command]
@@ -777,6 +808,63 @@ async fn amis_vu(etat: State<'_, Etat>, jusqua: i64) -> Result<serde_json::Value
     .await
 }
 
+/// Les raccourcis globaux du compteur de chasse.
+///
+/// POURQUOI GLOBAUX, ET PAS SEULEMENT DANS LA FENÊTRE. Un compteur se frappe
+/// cent fois par heure, et la fenêtre de PokéArchive n'est PAS au premier plan
+/// pendant ce temps-là : le jeu l'est. Un raccourci qui ne marche que fenêtre
+/// active ne sert que pendant les pauses, c'est-à-dire jamais.
+///
+/// CTRL+ALT+FLÈCHES, et non des lettres. Un code de touche est physique : une
+/// lettre ne tombe pas au même endroit sur un clavier AZERTY, QWERTY ou QWERTZ,
+/// une flèche si. C'est aussi une combinaison qu'aucun jeu ne réclame.
+///
+/// UN ÉCHEC NE FAIT PAS TOMBER L'APPLICATION. Une autre application peut déjà
+/// tenir la combinaison ; on le note dans la console et on continue. Les
+/// raccourcis de la page Chasse, eux, marchent de toute façon.
+#[cfg(desktop)]
+fn poser_raccourcis(app: &tauri::AppHandle) {
+    use tauri::Emitter;
+    use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+
+    let plus = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::ArrowUp);
+    let moins = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::ArrowDown);
+
+    let plugin = tauri_plugin_global_shortcut::Builder::new()
+        .with_handler(move |app, raccourci, evenement| {
+            // Seulement à l'enfoncement : sans ce test, chaque frappe compterait
+            // deux fois — une à la descente, une à la remontée.
+            if evenement.state() != ShortcutState::Pressed {
+                return;
+            }
+            let pas = if raccourci == &plus {
+                1
+            } else if raccourci == &moins {
+                -1
+            } else {
+                return;
+            };
+            // L'interface décide ce que « +1 » veut dire : quelle chasse, et
+            // quoi enregistrer. Ici, on ne fait que dire qu'on a appuyé.
+            let _ = app.emit("chasse-pas", pas);
+        })
+        .build();
+
+    if let Err(e) = app.plugin(plugin) {
+        eprintln!("raccourcis globaux indisponibles : {e}");
+        return;
+    }
+    for (r, nom) in [(plus, "Ctrl+Alt+Haut"), (moins, "Ctrl+Alt+Bas")] {
+        if let Err(e) = app.global_shortcut().register(r) {
+            eprintln!("raccourci {nom} deja pris : {e}");
+        }
+    }
+}
+
+/// Sur une cible sans raccourcis globaux, il n'y a rien a poser.
+#[cfg(not(desktop))]
+fn poser_raccourcis(_app: &tauri::AppHandle) {}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_process::init())
@@ -797,11 +885,14 @@ pub fn run() {
                 .filter(|s| !s.jeton.is_empty());
 
             app.manage(presence::Presence::new());
+            app.manage(overlay::Overlay::new());
 
             app.manage(Etat {
                 session: Mutex::new(session),
                 fichier,
             });
+
+            poser_raccourcis(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -821,6 +912,8 @@ pub fn run() {
             dex_de,
             changer_pseudo,
             exporter,
+            importer,
+            rarete,
             sessions,
             fermer_session,
             fermer_les_autres,
@@ -836,7 +929,11 @@ pub fn run() {
             amis_nouveautes,
             amis_vu,
             presence::presence_maj,
-            presence::presence_effacer
+            presence::presence_effacer,
+            overlay::overlay_demarrer,
+            overlay::overlay_arreter,
+            overlay::overlay_etat,
+            overlay::overlay_adresse
         ])
         .run(tauri::generate_context!())
         .expect("erreur au lancement de PokéArchive");

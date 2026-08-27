@@ -123,3 +123,129 @@ function demarrerComparaison(nomAmi, dexDistant, modeAmi, niveauAmi){
   majBarreComparaison();
   renderList(true);
 }
+
+// ---- L'entraide --------------------------------------------------------------
+//
+// La barre de comparaison disait depuis toujours « il a 47 que tu n'as pas ».
+// C'est un score, pas une action : personne n'a jamais échangé un chiffre.
+//
+// Pokédex Tracker met exactement cette promesse sur sa page d'accueil — « see
+// how you can help each other out » — et PokéArchive en était à une
+// soustraction : les deux collections sont déjà en mémoire, l'une dans
+// activeSet(), l'autre dans amiProgression. Il ne manquait que la liste.
+//
+// LA LISTE EST NOMMÉE, ET CLIQUABLE. Un nom seul ne dit pas où le trouver ni
+// s'il est échangeable ; ouvrir sa fiche répond aux deux, et la fiche existe.
+//
+// LE PÉRIMÈTRE EST CELUI DE L'ÉCRAN. Sur le Pokédex d'Écarlate, l'entraide ne
+// parle que d'Écarlate — c'est là qu'un échange a lieu. Sur HOME, elle parle
+// de tout. C'est scopeEntries qui décide, comme partout ailleurs.
+
+const echangeOverlay = document.getElementById('echangeOverlay');
+const echangeBtn = document.getElementById('echangeBtn');
+const echangeFermer = document.getElementById('echangeFermer');
+const echangeNote = document.getElementById('echangeNote');
+const echangeLui = document.getElementById('echangeLui');
+const echangeMoi = document.getElementById('echangeMoi');
+const echangeTitreLui = document.getElementById('echangeTitreLui');
+const echangeTitreMoi = document.getElementById('echangeTitreMoi');
+const echangeEyebrow = document.getElementById('echangeEyebrow');
+
+// Au-delà, la fenêtre devient un annuaire qu'on ne lit pas. La ligne du bas
+// dit combien restent, ce qui est plus honnête qu'une liste tronquée en
+// silence.
+const ECHANGE_MAX = 60;
+
+function ligneEchange(entry){
+  const l = document.createElement('button');
+  l.type = 'button';
+  l.className = 'echange-ligne';
+  l.title = 'Ouvrir la fiche de ' + nomAffiche(entry);
+
+  const cadre = document.createElement('span');
+  cadre.className = 'echange-sprite';
+  const img = document.createElement('img');
+  img.loading = 'lazy';
+  img.alt = '';
+  img.src = pokeosHomeUrl(entry.id, shinyView);
+  img.addEventListener('error', function(){
+    img.src = officialArtworkUrl(entry.id, shinyView);
+  });
+  cadre.appendChild(img);
+  l.appendChild(cadre);
+
+  const nom = document.createElement('span');
+  nom.className = 'echange-nom';
+  nom.textContent = nomAffiche(entry);
+  l.appendChild(nom);
+
+  const no = document.createElement('span');
+  no.className = 'echange-no';
+  no.textContent = '#' + String(entry.speciesId || entry.id).padStart(4, '0');
+  l.appendChild(no);
+
+  l.addEventListener('click', function(){
+    fermerEchanges();
+    openPreview(entry, null);
+  });
+  return l;
+}
+
+function remplirColonne(cible, liste){
+  cible.innerHTML = '';
+  if(!liste.length){
+    cible.innerHTML = '<div class="state-msg">Rien de ce côté-là.</div>';
+    return;
+  }
+  liste.slice(0, ECHANGE_MAX).forEach(function(e){ cible.appendChild(ligneEchange(e)); });
+  if(liste.length > ECHANGE_MAX){
+    const reste = document.createElement('p');
+    reste.className = 'echange-reste';
+    reste.textContent = 'et ' + (liste.length - ECHANGE_MAX) + ' de plus.';
+    cible.appendChild(reste);
+  }
+}
+
+function ouvrirEchanges(){
+  if(!echangeOverlay || !amiProgression) return;
+  const moi = activeSet();
+  const sienne = shinyView ? amiProgression.shiny : amiProgression.caught;
+
+  const lui = [], mien = [];
+  scopeEntries.forEach(function(e){
+    const a = moi.has(e.name), b = sienne.has(e.name);
+    if(b && !a) lui.push(e);
+    if(a && !b) mien.push(e);
+  });
+
+  const forme = shinyView ? 'chromatique' : 'normale';
+  echangeEyebrow.textContent = 'Entraide  ·  forme ' + forme;
+  echangeTitreLui.textContent = amiProgression.joueur + ' peut te donner  ·  ' + lui.length;
+  echangeTitreMoi.textContent = 'Tu peux lui donner  ·  ' + mien.length;
+  echangeNote.textContent = 'Sur ' + currentDexLabel() + '. '
+    + 'Ces listes disent qui possède quoi, pas ce qui est échangeable : un '
+    + 'Pokémon offert par le scénario ne se donne qu\'en double. Clique un nom '
+    + 'pour ouvrir sa fiche.';
+
+  remplirColonne(echangeLui, lui);
+  remplirColonne(echangeMoi, mien);
+
+  echangeOverlay.style.display = 'flex';
+  setTimeout(function(){ echangeFermer.focus(); }, 10);
+}
+
+function fermerEchanges(){
+  if(echangeOverlay) echangeOverlay.style.display = 'none';
+}
+
+if(echangeBtn) echangeBtn.addEventListener('click', ouvrirEchanges);
+if(echangeFermer) echangeFermer.addEventListener('click', fermerEchanges);
+if(echangeOverlay){
+  echangeOverlay.addEventListener('click', function(e){
+    if(e.target === echangeOverlay) fermerEchanges();
+  });
+}
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && echangeOverlay
+     && echangeOverlay.style.display === 'flex') fermerEchanges();
+});

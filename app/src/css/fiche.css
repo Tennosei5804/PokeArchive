@@ -584,6 +584,148 @@ table.paliers-table{
 .repro-note{ margin:7px 0 0; font-size:11px; line-height:1.5; color:var(--ink-faint); }
 
 /* ---- 7. Ou l'obtenir -------------------------------------------- */
+/* ---- La rarete ----
+   Une ligne, dans la bande d'identite. La couleur porte le palier : on la lit
+   avant le chiffre, et le chiffre precise. */
+.fiche-rarete{
+  margin:7px 0 0; align-self:flex-start;
+  padding:3px 9px 4px; border-radius:999px;
+  border:1px solid var(--card-border); background:var(--card);
+  font-family:var(--font-data); font-size:10px; letter-spacing:.03em;
+  color:var(--ink-soft);
+}
+.fiche-rarete.unique,
+.fiche-rarete.tres-rare{ color:var(--gold); border-color:var(--gold); }
+.fiche-rarete.rare{ color:var(--dex-red); border-color:var(--dex-red); }
+.fiche-rarete.commun{ color:var(--ink-faint); }
+
+/* ---- La fiche de capture ----
+   Repliee derriere une poignee discrete : c'est le seul endroit de la fiche
+   qui parle de TON exemplaire et non de l'espece, et il ne doit pas se
+   confondre avec le reste. Un debutant ne la croise jamais — elle n'existe
+   que sur une entree deja cochee. */
+/* ---- Ou il est en ce moment ----
+   Trois boutons, un seul clic. C'est le champ qu'on met a jour le plus
+   souvent — a chaque transfert — et il merite d'etre devant, pas au fond
+   d'une fiche repliee. */
+.capture-ou{
+  display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-top:10px;
+}
+.capture-ou[hidden]{ display:none; }
+.capture-ou-titre{
+  font-family:var(--font-data); font-size:8.5px; font-weight:600;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint);
+  margin-right:3px;
+}
+.capture-ou-btn{
+  padding:4px 10px 5px; cursor:pointer;
+  border:1px solid var(--card-border); border-radius:999px;
+  background:var(--card); color:var(--ink-soft);
+  font-family:var(--font-data); font-size:10px; white-space:nowrap;
+}
+.capture-ou-btn:hover{ border-color:var(--teinte); color:var(--ink); }
+.capture-ou-btn:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+.capture-ou-btn.actif{
+  background:var(--teinte); border-color:var(--teinte); color:var(--card);
+}
+/* La Banque est une impasse depuis mars 2023 : le dire par la couleur, pas
+   seulement dans l'infobulle. */
+.capture-ou-btn.actif.bloque{
+  background:var(--danger); border-color:var(--danger); color:#fff;
+}
+/* Tant qu'elle fonctionne, la Banque est un avertissement et non une erreur. */
+.capture-ou-btn.actif.sursis{
+  background:var(--gold); border-color:var(--gold); color:#231d05;
+}
+
+.capture-poignee{
+  align-self:flex-start; margin-top:9px;
+  padding:5px 11px 6px; cursor:pointer;
+  border:1px dashed var(--card-border); border-radius:999px;
+  background:transparent; color:var(--ink-soft);
+  font-family:var(--font-data); font-size:10.5px; letter-spacing:.03em;
+}
+.capture-poignee:hover{ border-color:var(--gold); color:var(--gold); }
+.capture-poignee:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+.capture-poignee[aria-expanded="true"]{
+  border-style:solid; border-color:var(--gold); color:var(--gold);
+}
+
+.capture-bloc{
+  margin-top:9px; padding:12px 13px 13px;
+  background:var(--card); border:1px solid var(--card-border);
+  border-left:3px solid var(--gold); border-radius:11px;
+  /* A GAUCHE, EXPLICITEMENT. .preview-card porte text-align:center — ce qui
+     convient a un nom et a deux boutons, mais pas a un formulaire : les
+     etiquettes se centraient au-dessus de champs alignes a gauche, et chaque
+     ligne partait d'un endroit different. Le meme piege avait deja attrape le
+     bloc des changelogs, qui porte la meme correction. */
+  text-align:left;
+}
+.capture-note{
+  margin:0 0 10px; font-size:11px; line-height:1.5; color:var(--ink-faint);
+}
+.capture-grille{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:9px;
+}
+.capture-champ{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+.capture-champ.large{ grid-column:1 / -1; }
+.capture-label{
+  font-family:var(--font-data); font-size:8.5px; font-weight:600;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint);
+}
+.capture-saisie{
+  width:100%; height:31px; padding:0 8px; min-width:0;
+  border:1px solid var(--card-border); border-radius:8px;
+  background:var(--screen); color:var(--ink);
+  font-family:var(--font-body); font-size:12.5px;
+}
+.capture-saisie:focus-visible{ outline:2px solid var(--dex-red); outline-offset:1px; }
+.capture-vider{ margin-top:11px; font-size:11.5px; padding:5px 11px; }
+
+/* ---- Comment le faire remonter ----
+   Le meme modele que « Ou l'obtenir » : une ligne par chemin, le liseré a
+   gauche disant si le chemin est ouvert (vert), ferme (rouge) ou inexistant
+   (gris). La couleur porte l'information, pas seulement le texte. */
+.transfert{ display:flex; flex-direction:column; gap:8px; }
+.transfert-ligne{
+  background:var(--card); border-radius:9px; padding:9px 11px;
+  border:1px solid var(--card-border);
+  border-left:3px solid var(--ink-faint);
+}
+.transfert-ligne.ouvert{ border-left-color:var(--caught); }
+/* En sursis : or, comme tout ce qui demande une action dans l'application. Le
+   rouge est reserve a ce qui est perdu — le confondre ferait renoncer a un
+   chemin qui marche encore. */
+.transfert-ligne.sursis{ border-left-color:var(--gold); }
+.transfert-ligne.ferme{ border-left-color:var(--danger); }
+.transfert-depuis{
+  font-size:12.5px; font-weight:700; color:var(--ink); line-height:1.45;
+}
+.transfert-chemin{
+  display:flex; align-items:center; flex-wrap:wrap; gap:5px; margin-top:5px;
+  font-family:var(--font-data); font-size:11px; color:var(--ink-soft);
+}
+.transfert-pas{
+  border:1px solid var(--card-border); border-radius:999px; padding:2px 8px 3px;
+  background:var(--screen);
+}
+/* Un service ferme se barre : la phrase l'explique, le trait le montre. */
+.transfert-pas.barre{
+  text-decoration:line-through; color:var(--danger); border-color:var(--danger);
+}
+/* Un service en sursis se souligne : il marche, mais pas pour toujours. */
+.transfert-pas.compte{
+  color:var(--gold); border-color:var(--gold);
+  text-decoration:underline; text-decoration-style:dotted; text-underline-offset:3px;
+}
+.transfert-fleche{ color:var(--ink-faint); }
+.transfert-note{
+  margin-top:6px; font-size:11.5px; line-height:1.5; color:var(--ink-soft);
+}
+.transfert-ligne.ferme .transfert-note{ color:var(--danger); }
+.transfert-ligne.sursis .transfert-note{ color:var(--gold); }
+
 .obtention{ display:flex; flex-direction:column; gap:8px; max-height:330px; overflow-y:auto; }
 .obt-ligne{
   background:var(--card); border-radius:9px; padding:8px 11px;

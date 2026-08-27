@@ -256,6 +256,19 @@ function construireDex(){
     dex: charge.dex,
     captures: charge.caught,
     shiny: charge.shiny,
+    // LES CHASSES NE PARTAIENT PAS. buildSavePayload() les écrivait depuis le
+    // début, progressFromJSON() savait les relire, et cette fonction — la
+    // seule qui parle au serveur — les laissait sur le quai. Elles vivaient
+    // donc dans le localStorage de la machine et nulle part ailleurs : changer
+    // d'aventure les effaçait, changer d'ordinateur aussi, et le LISEZMOI
+    // promettait le contraire depuis le premier jour.
+    //
+    // Le tableau de chasse et les objectifs suivent le même chemin, pour la
+    // même raison : ils appartiennent à l'aventure.
+    chasses: charge.chasses,
+    chassesFinies: charge.chassesFinies,
+    objectifs: charge.objectifs,
+    detailsCapture: charge.detailsCapture,
   };
 }
 
@@ -343,6 +356,11 @@ async function demarrerProfils(){
   // ouvrirProfil charge le dex du serveur : c'est par là que la progression
   // arrive sur une machine où l'on n'a jamais joué.
   await ouvrirProfil(defaut);
+
+  // Un compte tout neuf a droit à deux questions plutôt qu'à dix onglets et
+  // un compteur à zéro. depart.js décide lui-même s'il y a lieu — il ne
+  // s'ouvre que sur une aventure unique et vide, et une seule fois.
+  if(typeof peutEtrePremierLancement === 'function') peutEtrePremierLancement();
 }
 
 async function perdreSession(){
@@ -361,8 +379,24 @@ async function perdreSession(){
 }
 
 // Discord calcule l'avatar par défaut à partir de l'identifiant.
+// Le portrait de qui n'a pas de compte Discord : une Poké Ball, dessinée dans
+// l'adresse elle-même. Sans elle, le site allait chercher l'avatar par défaut
+// de Discord — une requête vers cdn.discordapp.com pour quelqu'un qui n'a
+// jamais touché à Discord, sur une application qui se veut hors ligne.
+const AVATAR_LOCAL = 'data:image/svg+xml;utf8,'
+  + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
+      + '<circle cx="32" cy="32" r="30" fill="#e8e9f0"/>'
+      + '<path d="M2 32a30 30 0 0 1 60 0z" fill="#b5211f"/>'
+      + '<rect x="2" y="29" width="60" height="6" fill="#1c1e29"/>'
+      + '<circle cx="32" cy="32" r="10" fill="#1c1e29"/>'
+      + '<circle cx="32" cy="32" r="6" fill="#f6f5f0"/>'
+      + '</svg>');
+
 function avatarDiscord(discordId, hash, taille){
   taille = taille || 64;
+  // Pas d'identifiant Discord : rien à demander à Discord.
+  if(!discordId) return AVATAR_LOCAL;
   if(hash){
     const ext = hash.indexOf('a_') === 0 ? 'gif' : 'png';
     return 'https://cdn.discordapp.com/avatars/' + discordId + '/' + hash + '.' + ext
@@ -1238,7 +1272,12 @@ function dessinerIdentite(){
 
   const sous = document.createElement('div');
   sous.className = 'profil-identite-sous';
-  sous.textContent = 'Compte Discord · ' + profilsConnus.length
+  // « Compte Discord » était écrit en dur, et c'était faux sur le site : il n'y
+  // a là ni Discord ni compte — la collection tient dans le navigateur. Le
+  // dresseur porte un identifiant Discord quand il en vient d'un ; sinon, on
+  // dit ce qui est.
+  const origine = dresseurCourant.discordId ? 'Compte Discord' : 'Carnet local';
+  sous.textContent = origine + ' · ' + profilsConnus.length
     + (profilsConnus.length > 1 ? ' aventures' : ' aventure');
   bloc.appendChild(sous);
 

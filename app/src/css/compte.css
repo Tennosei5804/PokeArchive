@@ -648,6 +648,130 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   font-variant-numeric:tabular-nums;
 }
 
+/* ---- La barre des outils ----
+   Stratégie, Reproduction et Transferts partagent un onglet de nav. La
+   sous-barre est recopiee en tete des trois sections : chacune doit pouvoir
+   s'afficher seule, et une barre unique posee ailleurs aurait demande de
+   deplacer les trois pages sous un meme parent. */
+.outils-nav{
+  display:flex; flex-wrap:wrap; gap:6px;
+  margin-bottom:14px; padding-bottom:12px;
+  border-bottom:1px solid var(--card-border);
+}
+.outils-onglet{
+  padding:7px 14px; cursor:pointer;
+  border:1px solid var(--card-border); border-radius:999px;
+  background:var(--card); color:var(--ink-soft);
+  font-family:var(--font-body); font-size:13px; font-weight:600;
+}
+.outils-onglet:hover{ border-color:var(--ink-faint); color:var(--ink); }
+.outils-onglet.active{
+  background:var(--dex-red); border-color:var(--dex-red); color:#fff;
+}
+.outils-onglet:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+
+.transferts-resume{
+  margin:0 0 14px;
+  font-family:var(--font-data); font-size:11.5px; line-height:1.6;
+  color:var(--ink-soft);
+}
+.transferts-resume b{ color:var(--ink); font-variant-numeric:tabular-nums; }
+
+/* ---- Accueil : les objectifs sur mesure ----
+   Une carte par objectif, avec sa jauge. La croix se detache du bloc
+   cliquable : on ne supprime pas par megarde ce qu'on voulait ouvrir. */
+.objectifs{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:10px;
+}
+.objectif-carte{
+  display:grid; grid-template-columns:minmax(0,1fr) 24px; gap:6px;
+  align-items:start;
+  padding:11px 12px 12px;
+  background:var(--card); border:1px solid var(--card-border);
+  border-left:3px solid var(--gold); border-radius:11px;
+}
+.objectif-carte.fini{ border-left-color:var(--caught); }
+.objectif-ouvrir{
+  display:flex; flex-direction:column; gap:6px; min-width:0;
+  padding:0; border:none; background:none; cursor:pointer; text-align:left;
+  font-family:var(--font-body);
+}
+.objectif-haut{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+.objectif-nom{
+  font-size:14px; font-weight:700; color:var(--ink); letter-spacing:-.01em;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.objectif-chiffre{
+  font-family:var(--font-data); font-size:12px; color:var(--ink-soft);
+  font-variant-numeric:tabular-nums; flex:none;
+}
+.objectif-barre{
+  display:block; height:5px; border-radius:4px;
+  background:var(--screen); overflow:hidden;
+  box-shadow:inset 0 0 0 1px var(--card-border);
+}
+.objectif-barre i{ display:block; height:100%; border-radius:4px; background:var(--gold); }
+.objectif-carte.fini .objectif-barre i{ background:var(--caught); }
+.objectif-bas{
+  font-family:var(--font-data); font-size:10px; color:var(--ink-faint);
+  line-height:1.45;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.objectif-ouvrir:hover .objectif-nom{ color:var(--dex-red); }
+.objectif-ouvrir:focus-visible{ outline:2px solid var(--dex-red); outline-offset:3px; border-radius:6px; }
+.objectif-oter{
+  width:24px; height:24px; padding:0; line-height:1; cursor:pointer;
+  border:1px solid var(--card-border); border-radius:7px;
+  background:transparent; color:var(--ink-faint);
+}
+.objectif-oter:hover{ border-color:var(--danger); color:var(--danger); }
+.objectif-oter:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+
+/* ---- Accueil : le programme du soir ----
+   Une ligne par cible : le sprite, le nom, l'endroit, et le bouton qui coche.
+   La carte se lit en diagonale — on l'ouvre la console dans l'autre main. */
+.programme-quoi{
+  margin:0 0 9px;
+  font-family:var(--font-data); font-size:11px; color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;
+}
+.programme-quoi:empty{ display:none; }
+.programme{ display:flex; flex-direction:column; gap:8px; }
+.prog-carte{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:9px 13px;
+  background:var(--card); border:1px solid var(--card-border);
+  border-left:3px solid var(--caught); border-radius:11px;
+}
+.prog-sprite{
+  width:46px; height:46px; flex-shrink:0; display:grid; place-items:center;
+  background:var(--screen); border-radius:9px;
+}
+.prog-sprite img{ max-width:100%; max-height:100%; }
+.prog-corps{ flex:1; min-width:170px; display:flex; flex-direction:column; gap:3px; }
+.prog-nom{
+  align-self:flex-start; padding:0; border:none; background:none; cursor:pointer;
+  font-family:var(--font-body); font-size:14px; font-weight:700;
+  letter-spacing:-.01em; color:var(--ink); text-align:left;
+}
+.prog-nom:hover{ color:var(--dex-red); }
+.prog-nom:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; border-radius:4px; }
+.prog-ou{
+  font-family:var(--font-data); font-size:10.5px; color:var(--ink-soft);
+  line-height:1.45;
+}
+.prog-puces{ display:flex; flex-wrap:wrap; gap:4px; margin-top:2px; }
+.prog-puce{
+  font-family:var(--font-data); font-size:9px; letter-spacing:.04em;
+  border:1px solid var(--card-border); border-radius:999px;
+  padding:2px 7px; color:var(--ink-faint); background:var(--screen);
+}
+.prog-pris{ flex-shrink:0; font-size:12px; padding:6px 12px; white-space:nowrap; }
+
+@media (max-width:560px){
+  .prog-pris{ width:100%; }
+}
+
 /* ---- Accueil : les dernières captures ---- */
 .accueil-journal{ min-height:0; padding:6px 8px; }
 .journal-tout{
@@ -767,6 +891,78 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 
 .chasse-actions{ display:flex; flex-direction:column; gap:5px; flex-shrink:0; }
 .chasse-actions .toggle-btn{ font-size:12px; padding:6px 11px; white-space:nowrap; }
+
+/* La chasse que le clavier vise. Elle ne se distingue que s'il y a un choix a
+   faire : avec une seule chasse ouverte, aucune carte ne porte ce liseré. */
+.chasse-carte.visee{
+  border-color:var(--gold); box-shadow:0 0 0 1px var(--gold);
+}
+.chasse-carte{ cursor:default; }
+.chasse-liste .chasse-carte:hover{ border-color:var(--card-border); }
+.chasse-liste .chasse-carte.visee:hover{ border-color:var(--gold); }
+
+/* Les raccourcis. Une ligne de rappel, pas un mode d'emploi : elle nomme la
+   chasse visée, ce qui est la seule chose qu'on ne devine pas. */
+.chasse-clavier{
+  margin:0 0 12px; padding:8px 12px;
+  border:1px dashed var(--card-border); border-radius:10px;
+  font-family:var(--font-data); font-size:10.5px; line-height:1.6;
+  color:var(--ink-faint); background:transparent;
+}
+.chasse-clavier b{
+  color:var(--ink); font-weight:600;
+  background:var(--screen); border:1px solid var(--card-border);
+  border-radius:5px; padding:1px 5px;
+}
+.chasse-clavier i{ font-style:normal; color:var(--ink-faint); opacity:.75; }
+
+/* ---- Le tableau de chasse ----
+   Ce que les chasses abouties racontent. Les chiffres d'abord, la liste
+   ensuite : on vient y chercher un total avant un détail. */
+.chasse-tableau{ display:flex; flex-direction:column; gap:12px; }
+.tableau-chiffres{
+  display:grid; gap:9px;
+  grid-template-columns:repeat(auto-fit, minmax(132px, 1fr));
+}
+.tableau-chiffre{
+  display:flex; flex-direction:column; gap:3px;
+  padding:12px 14px; border-radius:11px;
+  background:var(--card); border:1px solid var(--card-border);
+}
+.tableau-chiffre b{
+  font-family:var(--font-data); font-size:22px; font-weight:600; line-height:1;
+  color:var(--ink); font-variant-numeric:tabular-nums;
+}
+.tableau-chiffre span{
+  font-family:var(--font-data); font-size:9.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--ink-faint);
+}
+.tableau-chiffre.chanceux b{ color:var(--caught); }
+.tableau-chiffre.malchanceux b{ color:var(--gold); }
+
+.tableau-liste{ display:flex; flex-direction:column; gap:6px; }
+.tableau-ligne{
+  display:flex; align-items:center; gap:11px; flex-wrap:wrap;
+  padding:8px 12px; border-radius:10px;
+  background:var(--card); border:1px solid var(--card-border);
+}
+.tableau-sprite{
+  width:34px; height:34px; flex-shrink:0; display:grid; place-items:center;
+  background:var(--screen); border-radius:7px;
+}
+.tableau-sprite img{ max-width:100%; max-height:100%; }
+.tableau-nom{ font-size:13px; font-weight:600; color:var(--ink); }
+.tableau-meta{
+  flex:1; min-width:150px;
+  font-family:var(--font-data); font-size:10px; color:var(--ink-faint);
+}
+.tableau-compteur{
+  font-family:var(--font-data); font-size:15px; font-weight:600;
+  color:var(--gold); font-variant-numeric:tabular-nums;
+}
+.tableau-reste{
+  margin:0; font-family:var(--font-data); font-size:10px; color:var(--ink-faint);
+}
 
 @media (max-width:640px){
   .chasse-carte{ gap:11px; }
@@ -1131,7 +1327,7 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   /* minmax(0,1fr) et non 1fr : une colonne de grille refuse par defaut de
      descendre sous la taille de son contenu, et un pseudo long l elargirait
      jusqu a pousser les chiffres dehors au lieu d etre coupe. */
-  display:grid; grid-template-columns:26px minmax(0, 1fr) auto 26px;
+  display:grid; grid-template-columns:26px minmax(0, 1fr) auto 26px 26px;
   align-items:center; gap:10px;
   padding:9px 12px;
   border:1px solid var(--card-border); border-radius:10px;
@@ -1159,6 +1355,16 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   border:1px solid var(--card-border); border-radius:7px;
   background:transparent; color:var(--ink-faint); cursor:pointer;
 }
+/* L'entraide, a cote du retrait : deux boutons de meme taille, l'un qui
+   ouvre et l'autre qui ferme. Le premier se colore au survol, le second non —
+   on ne met pas en avant ce qu'on n'encourage pas. */
+.ami-entraide{
+  width:26px; height:26px; padding:0; line-height:1; font-size:13px;
+  border:1px solid var(--card-border); border-radius:7px;
+  background:transparent; cursor:pointer;
+}
+.ami-entraide:hover{ border-color:var(--caught); }
+.ami-entraide:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
 .ami-retirer:hover{ color:#fff; background:var(--danger); border-color:var(--danger); }
 .ami-retirer:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
 

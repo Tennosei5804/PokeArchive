@@ -705,6 +705,176 @@
 }
 .nouv-points strong{ color:var(--ink); font-weight:600; }
 
+/* ---- Le premier lancement ---------------------------------------------
+   Deux questions, une fenetre plus large que les autres : on y choisit
+   parmi vingt-trois bannieres, pas entre deux boutons. */
+.depart-card{ max-width:820px; width:min(820px, 95vw); }
+.depart-sous{
+  margin:10px auto 0; max-width:56ch;
+  font-size:12.5px; line-height:1.6; color:var(--ink-soft);
+}
+.depart-jeux{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));
+  gap:9px; margin-top:18px;
+  max-height:52vh; overflow-y:auto; padding:2px;
+  text-align:left;
+}
+.depart-jeu{
+  display:flex; flex-direction:column; gap:7px;
+  padding:9px; cursor:pointer;
+  border:1px solid var(--card-border); border-radius:11px;
+  background:var(--card); font-family:var(--font-body);
+  transition:border-color 120ms, transform 90ms;
+}
+.depart-jeu:hover{ border-color:var(--dex-red); transform:translateY(-2px); }
+.depart-jeu:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+.depart-jaquette{
+  display:block; border-radius:8px; overflow:hidden; background:var(--screen);
+  min-height:34px;
+}
+.depart-jaquette img{ display:block; width:100%; height:auto; }
+.depart-jeu-nom{
+  font-size:12px; font-weight:600; color:var(--ink); line-height:1.35;
+}
+.depart-aucun{ justify-content:center; align-items:flex-start; min-height:86px; }
+.depart-aucun-note{
+  font-family:var(--font-data); font-size:10px; color:var(--ink-faint);
+}
+
+.depart-modes{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:10px; margin-top:18px; text-align:left;
+}
+.depart-mode{
+  display:flex; flex-direction:column; gap:7px;
+  padding:15px 16px 16px; cursor:pointer;
+  border:1px solid var(--card-border); border-radius:11px;
+  background:var(--card); font-family:var(--font-body);
+  transition:border-color 120ms, transform 90ms;
+}
+.depart-mode:hover{ border-color:var(--dex-red); transform:translateY(-2px); }
+.depart-mode:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+.depart-mode-titre{ font-size:15px; font-weight:700; color:var(--ink); }
+.depart-mode-aide{ font-size:12px; line-height:1.5; color:var(--ink-soft); }
+/* L'exemple du Bulbizarre : c'est lui qui rend les trois modes evidents, et
+   il merite de se distinguer du reste de la carte. */
+.depart-mode-exemple{
+  font-family:var(--font-data); font-size:10.5px; line-height:1.5;
+  color:var(--ink-faint);
+  border-top:1px solid var(--card-border); padding-top:7px; margin-top:2px;
+}
+
+/* ---- L'entraide -------------------------------------------------------
+   Deux colonnes, deux listes : ce qu'il peut te donner, ce que tu peux lui
+   donner. Cote a cote, parce qu'un echange se pense dans les deux sens. */
+.echange-card{ max-width:760px; width:min(760px, 95vw); }
+.echange-note{
+  margin:10px 0 0; text-align:left;
+  font-size:11.5px; line-height:1.55; color:var(--ink-faint);
+}
+.echange-colonnes{
+  display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px;
+  margin-top:14px; text-align:left;
+}
+@media (max-width:620px){
+  .echange-colonnes{ grid-template-columns:minmax(0, 1fr); }
+}
+.echange-titre{
+  font-family:var(--font-data); font-size:9.5px; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--ink-faint); margin-bottom:7px;
+}
+.echange-liste{
+  display:flex; flex-direction:column; gap:4px;
+  max-height:46vh; overflow-y:auto; padding-right:3px;
+}
+.echange-ligne{
+  display:grid; grid-template-columns:32px minmax(0,1fr) auto;
+  align-items:center; gap:9px; width:100%;
+  padding:5px 9px; cursor:pointer; text-align:left;
+  border:1px solid var(--card-border); border-radius:9px;
+  background:var(--card); font-family:var(--font-body);
+}
+.echange-ligne:hover{ border-color:var(--dex-red); }
+.echange-ligne:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+.echange-sprite{
+  width:32px; height:32px; display:grid; place-items:center;
+  background:var(--screen); border-radius:7px;
+}
+.echange-sprite img{ max-width:100%; max-height:100%; }
+.echange-nom{ font-size:12.5px; font-weight:600; color:var(--ink); }
+.echange-no{
+  font-family:var(--font-data); font-size:9.5px; color:var(--ink-faint);
+  font-variant-numeric:tabular-nums;
+}
+.echange-reste{
+  margin:4px 0 0; font-family:var(--font-data); font-size:10px; color:var(--ink-faint);
+}
+
+/* ---- Le lexique -------------------------------------------------------
+   Le meme modele que les changelogs : une modale qui se lit, dont la liste
+   defile dans sa carte. A gauche, comme eux : .modal-card centre, et un
+   paragraphe centre ne se lit pas. */
+.lexique-card{ max-width:620px; width:min(620px, 94vw); }
+.lexique-q{
+  width:100%; height:36px; margin-top:12px; padding:0 12px;
+  border:1px solid var(--card-border); border-radius:10px;
+  background:var(--screen); color:var(--ink);
+  font-family:var(--font-body); font-size:13px;
+}
+.lexique-q:focus-visible{ outline:2.5px solid var(--dex-red); outline-offset:1px; }
+.lexique{
+  display:flex; flex-direction:column; gap:14px;
+  max-height:60vh; overflow-y:auto; padding-right:4px; margin-top:14px;
+  text-align:left;
+}
+.lex-groupe{
+  font-family:var(--font-data); font-size:9.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-faint);
+  margin-top:6px;
+}
+.lex-groupe:first-child{ margin-top:0; }
+.lex-terme{
+  border:1px solid var(--card-border); border-radius:11px;
+  padding:13px 15px 14px;
+  background:var(--card);
+  transition:border-color 200ms ease, background 200ms ease;
+}
+/* Le terme qu'une pastille « ? » vient d'ouvrir. La surbrillance retombe
+   seule : elle sert a le retrouver, pas a le marquer. */
+.lex-terme.vise{ border-color:var(--dex-red); background:var(--screen); }
+.lex-tete{ display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 10px; }
+.lex-tete h3{ margin:0; font-size:14px; font-weight:600; color:var(--ink); }
+.lex-court{
+  font-family:var(--font-data); font-size:10px; color:var(--ink-faint);
+  letter-spacing:.02em;
+}
+.lex-texte{ margin:8px 0 0; font-size:12.5px; line-height:1.6; color:var(--ink-soft); }
+.lex-texte b{ color:var(--ink); font-weight:600; }
+.lex-points{ margin:8px 0 0; padding-left:17px; }
+.lex-points li{ font-size:12px; line-height:1.55; color:var(--ink-soft); margin-bottom:4px; }
+.lex-points b{ color:var(--ink); font-weight:600; }
+.lex-voir{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.lex-lien{
+  font-family:var(--font-data); font-size:10px; line-height:1;
+  padding:5px 9px 6px; cursor:pointer;
+  border:1px solid var(--card-border); border-radius:999px;
+  background:transparent; color:var(--ink-soft);
+}
+.lex-lien:hover{ border-color:var(--dex-red); color:var(--ink); }
+.lex-lien:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+
+/* La pastille « ? » posee a cote d'un reglage. Discrete par defaut : elle est
+   la pour qui la cherche, et ne dispute rien au reglage qu'elle explique. */
+.lex-pastille{
+  flex:none; width:18px; height:18px; padding:0; margin-left:2px;
+  border:1px solid var(--card-border); border-radius:999px;
+  background:transparent; color:var(--ink-faint);
+  font-family:var(--font-data); font-size:10px; line-height:1; cursor:pointer;
+  align-self:center;
+}
+.lex-pastille:hover{ border-color:var(--dex-red); color:var(--dex-red); }
+.lex-pastille:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+
 /* La pastille du bouton : un point, pas un compte — le nombre de versions non
    lues n interesse personne, seul le fait qu il y en ait compte. */
 .maj-btn.a-du-neuf{ position:relative; }

@@ -80,7 +80,14 @@ function buildSavePayload(){
     // Les chasses en cours voyagent avec le reste : elles appartiennent à
     // l'aventure, et changer de machine doit les retrouver. Aucune table ni
     // route de plus — la sauvegarde du profil les emporte.
-    chasses: (typeof chasses !== 'undefined') ? chasses : []
+    chasses: (typeof chasses !== 'undefined') ? chasses : [],
+    // Et les chasses abouties : le tableau de chasse n'a pas d'autre source.
+    // Elles suivent le même chemin que les autres — aucune table de plus.
+    chassesFinies: (typeof chassesFinies !== 'undefined') ? chassesFinies : [],
+    // Les objectifs sur mesure : un filtre nomme, fige en liste de noms.
+    objectifs: (typeof objectifs !== 'undefined') ? objectifs : [],
+    // Les fiches de capture : ce que chaque exemplaire a de particulier.
+    detailsCapture: (typeof detailsCapture !== 'undefined') ? detailsCapture : {}
   };
 }
 

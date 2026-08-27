@@ -1901,7 +1901,7 @@ function chargerLieux(){
     el.src = cheminReserve('donnees-lieux.js');
     el.onload = function(){
       if(typeof DONNEES_LIEUX === 'undefined') rejeter(new Error('réserve illisible'));
-      else tenir(DONNEES_LIEUX);
+      else { majEtatReleve(); tenir(DONNEES_LIEUX); }
     };
     el.onerror = function(){ rejeter(new Error('réserve introuvable')); };
     document.head.appendChild(el);
@@ -1924,7 +1924,7 @@ function chargerCobblemon(){
     el.src = cheminReserve('donnees-cobblemon.js');
     el.onload = function(){
       if(typeof DONNEES_COBBLEMON === 'undefined') rejeter(new Error('réserve illisible'));
-      else tenir(DONNEES_COBBLEMON);
+      else { majEtatReleve(); tenir(DONNEES_COBBLEMON); }
     };
     el.onerror = function(){ rejeter(new Error('réserve introuvable')); };
     document.head.appendChild(el);
@@ -1983,7 +1983,7 @@ function chargerAttaques(){
     el.src = cheminAttaques();
     el.onload = function(){
       if(typeof DONNEES_ATTAQUES === 'undefined') rejeter(new Error('réserve illisible'));
-      else tenir(DONNEES_ATTAQUES);
+      else { majEtatReleve(); tenir(DONNEES_ATTAQUES); }
     };
     el.onerror = function(){ rejeter(new Error('réserve introuvable')); };
     document.head.appendChild(el);
@@ -2010,7 +2010,7 @@ function chargerDescriptions(){
     el.src = cheminDescriptions();
     el.onload = function(){
       if(typeof DONNEES_DESCRIPTIONS === 'undefined') rejeter(new Error('réserve illisible'));
-      else tenir(DONNEES_DESCRIPTIONS);
+      else { majEtatReleve(); tenir(DONNEES_DESCRIPTIONS); }
     };
     el.onerror = function(){ rejeter(new Error('réserve introuvable')); };
     document.head.appendChild(el);
@@ -2994,6 +2994,11 @@ async function remplirFiche(entry){
   dessinerLieuxReleves(entry);
   dessinerSpawnsCobblemon(entry);
   dessinerAttaques(entry);
+
+
+  // La rareté arrive par le réseau : la fiche s'affiche sans l'attendre, et la
+  // ligne se remplit quand la table est là.
+  if(typeof assurerRarete === 'function') assurerRarete(entry);
 
   // « Disponible dans » n'a de sens que sur le Pokédex Pokémon HOME : sur
   // l'onglet d'un jeu, la réponse est le jeu lui-même. On masque le bloc ici,

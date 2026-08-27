@@ -292,6 +292,12 @@
   }
   .card:hover{ transform:translateY(-2px); box-shadow:0 10px 20px -12px rgba(20,20,30,0.35); }
   .card:focus-visible{ outline:2.5px solid var(--dex-red); outline-offset:2px; }
+  /* Le focus vit sur la case à cocher, mais c'est la CARTE qu'on doit voir :
+     un liseré de 14 px de haut au bas d'une carte de 190 ne se repère pas
+     quand on traverse la grille aux flèches. */
+  .card:has(.chip-check input:focus-visible){
+    outline:2.5px solid var(--dex-red); outline-offset:2px;
+  }
   /* « Possédé » se lit dans la forme du mode actif : vert en normal, or en
      shiny. Une carte ne porte donc jamais deux états contradictoires. */
   /* Les deux teintes de « possédé » se déduisent de la palette : codées en
@@ -464,6 +470,10 @@
   }
   .credit-folder.connected{ color:#c9f5d6; }
   .credit-folder.unsupported{ color:rgba(255,255,255,0.55); }
+  /* L'age du releve : une provenance, pas un etat. Elle se lit quand on la
+     cherche et ne dispute rien aux deux lignes du dessus. */
+  .credit-releve{ color:rgba(255,255,255,0.5); }
+  .credit-releve:empty{ display:none; }
 
 @media (max-width:520px){
     .dex-title{ font-size:21px; }
@@ -920,6 +930,81 @@
    qu'un ovale démesuré. */
 @media (max-width:820px){
   .obtention-legende{ border-radius:11px; }
+}
+
+/* ---- La vue boites -----------------------------------------------------
+   Six colonnes fixes et trente cases, comme la console. Le « auto-fill » de
+   la grille ordinaire ne convient pas ici : c'est la RANGEE DE SIX qui permet
+   de compter les cases a l'oeil et de retrouver la meme place dans le jeu. */
+.grid.en-boites{
+  grid-template-columns:repeat(6, 1fr);
+  max-height:none;
+}
+/* Sous 700 px, six colonnes donnent des cartes de 40 px : on passe a trois,
+   et la boite se lit alors sur deux ecrans plutot que sur un timbre-poste. */
+@media (max-width:700px){
+  .grid.en-boites{ grid-template-columns:repeat(3, 1fr); }
+}
+
+/* Le numero de case. Il ne se deduit ni du numero national ni de celui du
+   jeu : c'est lui, et lui seul, qu'on vient chercher dans cette vue. */
+/* En bas a DROITE : le coin en bas a gauche est deja pris par la pastille
+   d'obtention, et deux pastilles superposees ne se lisent ni l'une ni l'autre. */
+.card-case{
+  position:absolute; right:6px; bottom:6px; z-index:2;
+  font-family:var(--font-data); font-size:9px; font-weight:600;
+  color:var(--ink-faint); background:var(--screen);
+  border:1px solid var(--card-border); border-radius:5px;
+  padding:1px 5px; font-variant-numeric:tabular-nums;
+}
+
+.boite-nav{
+  display:flex; align-items:center; flex-wrap:wrap; gap:8px;
+  margin-bottom:9px;
+}
+.boite-fleche{
+  width:30px; height:30px; flex:none; cursor:pointer;
+  border:1px solid var(--card-border); border-radius:8px;
+  background:var(--card); color:var(--ink);
+  font-family:var(--font-body); font-size:16px; line-height:1;
+}
+.boite-fleche:hover:not(:disabled){ border-color:var(--dex-red); color:var(--dex-red); }
+.boite-fleche:disabled{ opacity:.35; cursor:default; }
+.boite-fleche:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+/* Un menu natif : il est cree a chaque dessin, et enhanceSelect() ne passe
+   qu'une fois au chargement. On l'habille donc a la main plutot que de
+   l'inscrire dans une liste qui grossirait a chaque changement de boite. */
+.boite-choix{
+  height:30px; padding:0 8px; cursor:pointer;
+  border:1px solid var(--card-border); border-radius:8px;
+  background:var(--card); color:var(--ink);
+  font-family:var(--font-data); font-size:11.5px;
+  font-variant-numeric:tabular-nums;
+}
+.boite-choix:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+.boite-note{
+  font-family:var(--font-data); font-size:10px; color:var(--ink-faint);
+  letter-spacing:.02em;
+}
+
+/* ---- Ce que la recherche a compris ------------------------------------
+   Une pastille par jeton reconnu. Elle ne s'affiche que lorsqu'il y en a :
+   une ligne vide au-dessus de la grille ne dirait rien et prendrait la
+   place d'une rangée de cartes. */
+.recherche-jetons{
+  display:flex; flex-wrap:wrap; align-items:center; gap:6px;
+  margin:0 0 8px; padding:0;
+}
+.recherche-jetons .jeton-titre{
+  font-family:var(--font-data); font-size:9.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-faint); margin-right:2px;
+}
+.recherche-jetons .jeton{
+  font-family:var(--font-data); font-size:11px; line-height:1;
+  padding:5px 9px 6px;
+  border:1px solid var(--card-border); border-radius:999px;
+  background:var(--card); color:var(--ink-soft);
+  white-space:nowrap;
 }
 
 /* ---- La page des lieux -----------------------------------------------

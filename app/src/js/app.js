@@ -113,6 +113,7 @@ async function init(){
     updateProgress();
     renderList(true);
     majEtatCache();
+    majEtatReleve();
     return;
   }
 
@@ -124,6 +125,7 @@ async function init(){
     updateProgress();
     renderList(true);
     majEtatCache();
+    majEtatReleve();
   }catch(err){
     stateMsg.textContent = "Connexion au PokéAPI impossible, et aucune donnée en réserve. "
       + "Connecte-toi une fois : tout sera ensuite disponible hors ligne.";

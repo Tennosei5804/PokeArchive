@@ -337,6 +337,25 @@ function markActiveFilters(){
 
 // Met en évidence l'onglet courant. Sorti de showPage parce que la page des
 // dresseurs en a besoin sans passer par toute la mécanique du Pokédex.
+// Les trois écrans que l'onglet « Outils » réunit. Ils gardent chacun leur
+// page — ce sont des écrans à part entière, pas des panneaux — et partagent
+// seulement une barre et une entrée de nav.
+const EST_UN_OUTIL = ['strategie', 'reproduction', 'transferts'];
+
+// La sous-barre est recopiée en tête des trois sections : chacune doit pouvoir
+// s'afficher seule. On allume donc la bonne dans TOUTES, et pas seulement dans
+// celle qui est visible — sinon la barre de la page suivante garde l'ancienne.
+function majSousNavOutils(name){
+  document.querySelectorAll('.outils-onglet').forEach(function(b){
+    b.classList.toggle('active', b.dataset.outils === name);
+  });
+}
+
+document.addEventListener('click', function(e){
+  const b = e.target.closest && e.target.closest('.outils-onglet');
+  if(b) showPage(b.dataset.outils);
+});
+
 function marquerOnglet(name){
   pageNav.querySelectorAll('.page-tab').forEach(function(tab){
     const on = tab.dataset.page === name;
@@ -355,12 +374,25 @@ function vueShiny(valeur){
 }
 
 function showPage(name){
+  // Un objectif ouvert ne survit pas à un changement de page : sa liste est
+  // figée pour UN Pokédex, et la garder ailleurs viderait la grille sans que
+  // rien ne l'explique. Il se repose après coup — voir ouvrirObjectif().
+  if(typeof objectifAffiche !== 'undefined' && objectifAffiche){
+    objectifAffiche = null;
+    if(typeof majBarreObjectif === 'function') majBarreObjectif();
+  }
+
   // La page des dresseurs n'est pas un Pokédex : ni périmètre, ni collection,
   // ni filtres. On la traite avant tout le reste — sinon useDexProgress
   // créerait une collection pour un Pokédex qui n'existe pas.
+  // « Outils » n'est pas une page : c'est le nom que porte la nav pour trois
+  // écrans qui partagent une sous-barre. On entre par la Stratégie, qui est le
+  // plus consulté des trois.
+  if(name === 'outils') name = 'strategie';
+
   if(name === 'dresseurs' || name === 'profil' || name === 'chasse'
      || name === 'cadeaux' || name === 'strategie' || name === 'reproduction'
-     || name === 'amis' || name === 'lieux'){
+     || name === 'transferts' || name === 'amis' || name === 'lieux'){
     currentPage = name;
     pageHomeEl.classList.remove('active');
     pageDexEl.classList.remove('active');
@@ -373,7 +405,11 @@ function showPage(name){
     if(pageCadeauxEl) pageCadeauxEl.classList.toggle('active', name === 'cadeaux');
     if(pageStrategieEl) pageStrategieEl.classList.toggle('active', name === 'strategie');
     if(pageReproductionEl) pageReproductionEl.classList.toggle('active', name === 'reproduction');
-    marquerOnglet(name);
+    if(pageTransfertsEl) pageTransfertsEl.classList.toggle('active', name === 'transferts');
+    // Les trois écrans d'outils allument le même onglet : c'est de là qu'on
+    // vient, et c'est là qu'on retourne.
+    marquerOnglet(EST_UN_OUTIL.indexOf(name) !== -1 ? 'outils' : name);
+    majSousNavOutils(name);
     if(name === 'dresseurs' && typeof chargerDresseurs === 'function') chargerDresseurs();
     if(name === 'amis' && typeof chargerAmis === 'function') chargerAmis();
     if(name === 'lieux' && typeof chargerPageLieux === 'function') chargerPageLieux();
@@ -384,6 +420,7 @@ function showPage(name){
     if(name === 'cadeaux' && typeof dessinerCadeaux === 'function') dessinerCadeaux();
     if(name === 'strategie' && typeof dessinerStrategie === 'function') dessinerStrategie();
     if(name === 'reproduction' && typeof dessinerReproduction === 'function') dessinerReproduction();
+    if(name === 'transferts' && typeof dessinerTransferts === 'function') dessinerTransferts();
     return;
   }
 
@@ -505,7 +542,9 @@ function updateHome(){
     : 'il te manque ' + missing + ' Pokémon en forme normale, et ' + toHunt
       + ' que tu possèdes en normal attendent encore leur version shiny.');
   renderHomeGens(total, home);
+  if(typeof dessinerObjectifs === 'function') dessinerObjectifs();
   renderAPortee();
+  renderProgramme();
   // Definies dans compte.js, charge apres celui-ci : au premier appel elles
   // existent deja, l'accueil n'etant dessine qu'une fois l'application prete.
   if(typeof majAccueilAventure === 'function') majAccueilAventure();
@@ -651,3 +690,250 @@ function isShinyLocked(entry){
   return SHINY_LOCKED.has(entry.speciesId);
 }
 
+
+// ---- Le programme du soir ----------------------------------------------------
+//
+// « À portée » répond à « quel jeu est près de finir ». Ce n'est pas la même
+// question que « je fais quoi maintenant », et c'est la seconde qu'on se pose
+// en rallumant la console.
+//
+// LE BLOC NE DEMANDE AUCUNE DONNÉE NOUVELLE. Le relevé des lieux couvre les
+// vingt-deux jeux avec la sous-zone, l'heure, la météo et la saison : il suffit
+// de croiser ce qu'il dit de capturable avec ce qui manque à l'aventure.
+//
+// TIRAGE STABLE DANS LA JOURNÉE. Le hasard est tiré de la date et de la clé du
+// jeu, jamais de Math.random() : une liste qui change à chaque rafraîchissement
+// ferait perdre celui qu'on était en train de chercher, et c'est le genre de
+// détail qui décide si l'on se sert d'un écran ou non.
+
+const PROGRAMME_MAX = 4;
+
+const programmeEl = document.getElementById('programme');
+const programmeQuoi = document.getElementById('programmeQuoi');
+
+// Un générateur pseudo-aléatoire à graine (mulberry32) : trente octets, aucune
+// dépendance, et la même suite pour la même graine.
+function semeur(graine){
+  let a = graine >>> 0;
+  return function(){
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function hachage(texte){
+  let h = 2166136261;
+  for(let i = 0; i < texte.length; i++){
+    h ^= texte.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function jourCourant(){
+  const d = new Date();
+  const p = function(n){ return String(n).padStart(2, '0'); };
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+
+// Une entrée par identifiant du relevé : la forme d'abord, l'espèce à défaut,
+// comme partout ailleurs — le relevé donne sa propre clé à Rattata d'Alola.
+function entreeParIdentifiant(id){
+  return allEntries.find(function(e){ return e.id === id; })
+      || allEntries.find(function(e){ return e.speciesId === id; })
+      || null;
+}
+
+// Ce que les mentions du relevé disent en clair. Seules celles qui changent la
+// façon de s'y prendre figurent : « offert » ou « évolution » ne sont pas des
+// conseils de chasse, et ces lignes-là sont déjà écartées.
+const MENTIONS_UTILES = {
+  rare: '💧 rare', fixe: '📍 fixe', troupeau: '👥 troupeau', raid: '⚔️ raid',
+  apparition: '🌟 apparition', 'poke-radar': '📡 Poké Radar',
+  distorsion: '🌀 distorsion', peche: '🎣 pêche', surf: '🌊 surf',
+  meteo: '🌦 selon la météo', jour: '☀️ le jour', nuit: '🌙 la nuit',
+  saison: '🍂 selon la saison'
+};
+
+/**
+ * Ce qu'il reste à capturer dans ce jeu, d'après le relevé.
+ *
+ * Seule la catégorie « sauvage » est retenue : un programme du soir qui
+ * proposerait « fais évoluer ton Bulbizarre » n'envoie nulle part.
+ */
+function ciblesDuJeu(cleJeu){
+  if(typeof DONNEES_LIEUX === 'undefined') return [];
+  const table = DONNEES_LIEUX.jeux[cleJeu];
+  if(!table) return [];
+  const b = bucketFor(cleJeu);
+  const out = [];
+  Object.keys(table).forEach(function(id){
+    const ligne = table[id];
+    if(DONNEES_LIEUX.categories[ligne[1]] !== 'sauvage') return;
+    const mentions = (ligne[2] || []).map(function(i){ return DONNEES_LIEUX.mentions[i]; });
+    if(mentions.indexOf('introuvable') !== -1) return;
+    const texte = DONNEES_LIEUX.textes[ligne[0]] || '';
+    // Le relevé range parfois sous « sauvage » une ligne dont le texte dit
+    // « À transférer par Pokémon HOME » — Zamazenta dans Écarlate, par
+    // exemple. La catégorie ne suffit donc pas : envoyer chercher dans
+    // l'herbe un Pokémon qui n'y est pas serait la pire des propositions.
+    if(texte.indexOf('À transférer') === 0) return;
+    const entry = entreeParIdentifiant(parseInt(id, 10));
+    if(!entry || b.caught.has(entry.name)) return;
+    out.push({ entry: entry, texte: texte, mentions: mentions });
+  });
+  return out;
+}
+
+// Le relevé sépare les lieux d'une même espèce par des retours à la ligne, et
+// certaines espèces en ont onze. Une carte de programme en montre deux : elle
+// dit où aller, pas tout ce que la source sait. Le reste est dans l'infobulle,
+// et la fiche a la liste entière.
+const PROGRAMME_LIEUX_MONTRES = 2;
+
+function lieuxCourts(texte){
+  const lignes = String(texte || '').split('\n').filter(Boolean);
+  if(!lignes.length) return { court: '', reste: 0 };
+  return {
+    court: lignes.slice(0, PROGRAMME_LIEUX_MONTRES).join('  ·  '),
+    reste: Math.max(0, lignes.length - PROGRAMME_LIEUX_MONTRES)
+  };
+}
+
+/**
+ * Le jeu du soir : celui qu'on a commencé, qu'on n'a pas fini, et où il reste
+ * quelque chose à ATTRAPER.
+ *
+ * Le dernier point compte : un jeu à qui il ne manque que des évolutions et
+ * des échanges est « à portée » mais n'a rien à proposer ce soir.
+ */
+function jeuDuSoir(){
+  const candidats = [];
+  GAMES.forEach(function(g){
+    const b = bucketFor(g.key);
+    if(!b.caught.size) return;                   // jamais commencé
+    const cibles = ciblesDuJeu(g.key);
+    if(!cibles.length) return;                   // fini, ou plus rien à capturer
+    candidats.push({ jeu: g, cibles: cibles });
+  });
+  if(!candidats.length) return null;
+  // Le plus près d'être bouclé d'abord : c'est là qu'une soirée se voit.
+  candidats.sort(function(a, b){ return a.cibles.length - b.cibles.length; });
+  return candidats[0];
+}
+
+function carteProgramme(cible, cleJeu){
+  const carte = document.createElement('div');
+  carte.className = 'prog-carte';
+
+  const cadre = document.createElement('div');
+  cadre.className = 'prog-sprite';
+  const img = document.createElement('img');
+  img.loading = 'lazy';
+  img.alt = '';
+  img.src = pokeosHomeUrl(cible.entry.id, false);
+  img.addEventListener('error', function(){
+    img.src = officialArtworkUrl(cible.entry.id, false);
+  });
+  cadre.appendChild(img);
+  carte.appendChild(cadre);
+
+  const corps = document.createElement('div');
+  corps.className = 'prog-corps';
+
+  const nom = document.createElement('button');
+  nom.type = 'button';
+  nom.className = 'prog-nom';
+  nom.textContent = nomAffiche(cible.entry);
+  nom.title = 'Ouvrir sa fiche';
+  nom.addEventListener('click', function(){ openPreview(cible.entry, null); });
+  corps.appendChild(nom);
+
+  const ou = document.createElement('div');
+  ou.className = 'prog-ou';
+  const lieux = lieuxCourts(cible.texte);
+  ou.textContent = (lieux.court || 'Lieu non précisé par le relevé')
+    + (lieux.reste ? '  ·  +' + lieux.reste + ' autre' + (lieux.reste > 1 ? 's' : '') : '');
+  if(cible.texte) ou.title = cible.texte;
+  corps.appendChild(ou);
+
+  const utiles = cible.mentions.filter(function(m){ return MENTIONS_UTILES[m]; });
+  if(utiles.length){
+    const puces = document.createElement('div');
+    puces.className = 'prog-puces';
+    utiles.forEach(function(m){
+      const p = document.createElement('span');
+      p.className = 'prog-puce';
+      p.textContent = MENTIONS_UTILES[m];
+      puces.appendChild(p);
+    });
+    corps.appendChild(puces);
+  }
+  carte.appendChild(corps);
+
+  const pris = document.createElement('button');
+  pris.type = 'button';
+  pris.className = 'toggle-btn prog-pris';
+  pris.textContent = '✓ Attrapé';
+  pris.title = 'Le cocher dans le Pokédex de ce jeu, sans quitter l\'accueil';
+  pris.addEventListener('click', function(){
+    bucketFor(cleJeu).caught.add(cible.entry.name);
+    queueSave();
+    // L'accueil entier se recalcule : la jauge, « À portée » et le programme
+    // parlent tous du même chiffre, et n'en laisser bouger qu'un serait faux.
+    updateHome();
+  });
+  carte.appendChild(pris);
+
+  return carte;
+}
+
+function renderProgramme(){
+  if(!programmeEl) return;
+
+  // Le relevé pèse 1,9 Mo et ne se charge pas au démarrage. On le demande, et
+  // l'accueil se redessine tout seul quand il arrive — comme le fait déjà la
+  // grille pour ses pastilles d'obtention.
+  if(typeof DONNEES_LIEUX === 'undefined'){
+    programmeEl.innerHTML = '<div class="state-msg">Lecture du relevé des lieux…</div>';
+    if(programmeQuoi) programmeQuoi.textContent = '';
+    if(typeof chargerLieux === 'function' && !renderProgramme.demande){
+      renderProgramme.demande = true;
+      chargerLieux().then(function(){ renderProgramme(); })
+                    .catch(function(){
+                      renderProgramme.demande = false;
+                      programmeEl.innerHTML = '<div class="state-msg">'
+                        + 'Le relevé des lieux n\'a pas pu être lu.</div>';
+                    });
+    }
+    return;
+  }
+
+  const choix = jeuDuSoir();
+  if(!choix){
+    if(programmeQuoi) programmeQuoi.textContent = '';
+    programmeEl.innerHTML = '<div class="state-msg">Rien à proposer pour l\'instant. '
+      + 'Ouvre le Pokédex d\'un jeu et coche ce que tu as déjà : le programme '
+      + 'saura alors quoi te sortir.</div>';
+    return;
+  }
+
+  // Le tirage : stable pour la journée, et propre à ce jeu.
+  const tirer = semeur(hachage(jourCourant() + '|' + choix.jeu.key));
+  const melange = choix.cibles.map(function(c){ return { c: c, r: tirer() }; })
+                              .sort(function(a, b){ return a.r - b.r; })
+                              .map(function(x){ return x.c; })
+                              .slice(0, PROGRAMME_MAX);
+
+  if(programmeQuoi){
+    programmeQuoi.textContent = 'Ce soir, dans ' + choix.jeu.tab
+      + '  ·  il te reste ' + choix.cibles.length
+      + (choix.cibles.length > 1 ? ' Pokémon à y capturer' : ' Pokémon à y capturer')
+      + '  ·  la liste change demain.';
+  }
+
+  programmeEl.innerHTML = '';
+  melange.forEach(function(c){ programmeEl.appendChild(carteProgramme(c, choix.jeu.key)); });
+}

@@ -340,6 +340,13 @@ app.get('/api/dresseurs/:pseudo/succes', route(async (req, res) => {
   res.json(r);
 }));
 
+// La rarete de chaque entree : combien de dresseurs la possedent. Calculee sur
+// les collections deja publiques, et mise en cache douze heures — voir rarete().
+app.get('/api/rarete', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json(await comptes.rarete());
+}));
+
 // Ce que le journal raconte une fois compte : jours, jeux, total.
 app.get('/api/retrospective', route(async (req, res) => {
   const d = await exiger(req, res); if (!d) return;
@@ -397,6 +404,19 @@ app.post('/api/deconnexion', route(async (req, res) => {
 }));
 
 // --- Emporter ses donnees ---------------------------------------------------
+
+// Relire une sauvegarde. Le corps est plus gros que partout ailleurs : un
+// export complet porte le dex ET le journal de chaque aventure, et la limite
+// de 2 Mo posée plus haut le refuserait dès la deuxième année de collection.
+// Elle ne vaut QUE pour cette route — les autres n'ont aucune raison de
+// recevoir douze mégaoctets.
+app.post('/api/import', express.json({ limit: '16mb' }), route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  const r = await comptes.importer(d.id, req.body);
+  journal(`import : ${d.pseudo} — ${r.aventures} aventure(s), `
+    + `${r.gagnees} capture(s) gagnée(s), ${r.journalisees} ligne(s) de journal`);
+  res.json(r);
+}));
 
 app.get('/api/export', route(async (req, res) => {
   const d = await exiger(req, res); if (!d) return;

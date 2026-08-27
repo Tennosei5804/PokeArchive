@@ -20,6 +20,68 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.20.0', date: '2026-08-27',
+    titre: 'Relire une sauvegarde, ranger en boîtes, et s’entraider',
+    points: [
+      '**Importer une sauvegarde.** L’application exportait depuis toujours sans '
+      + 'jamais savoir relire. Le bouton **⬆ Importer** de ton profil avale un '
+      + 'fichier de l’application ou du site : les collections **se réunissent**, '
+      + 'rien n’est écrasé, rien n’est décoché. Importer deux fois le même '
+      + 'fichier ne change rien la seconde fois.',
+      '**🤝 Entraide.** En comparant ton dex avec quelqu’un, un bouton donne la '
+      + 'liste **nommée** de ce que vous pouvez vous apporter — pas seulement le '
+      + 'nombre. Le même bouton figure sur chaque ami.',
+      '**📦 Vue boîtes.** Trente par boîte, six par rangée, comme la console. En '
+      + 'Living Dex, la question n’est pas « est-ce que je l’ai » mais « dans '
+      + 'quelle boîte, quelle case ».',
+      '**Le programme du soir**, sur l’accueil : trois à cinq Pokémon qui te '
+      + 'manquent et que tu peux vraiment attraper ce soir, avec la route, '
+      + 'l’heure, la météo et le taux. La liste change demain.',
+      '**🎯 Objectifs sur mesure.** Tes filtres deviennent un but nommé, avec sa '
+      + 'propre jauge sur l’accueil : « tous les Spectre chromatiques », « les '
+      + '151 de Kanto dans Écarlate ».',
+      '**🎴 Fiche de capture.** Sur un Pokémon déjà coché : la Ball, la nature, '
+      + 'le surnom, le ruban, le dresseur d’origine. Repliée par défaut — c’est '
+      + 'pour qui la cherche.',
+      '**Une page Transferts**, dans le nouvel onglet 🧰 Outils : par quel chemin '
+      + 'un Pokémon rejoint Pokémon HOME depuis chaque jeu, et **combien de temps '
+      + 'il reste**. Les seize jeux 3DS passent tous par la Banque Pokémon, qui '
+      + 's’arrête — la page compte les mois qui restent pour les faire remonter.',
+      '**Stratégie, Reproduction et Transferts** tiennent désormais sous un seul '
+      + 'onglet, **🧰 Outils** : la barre du haut débordait, elle tient de nouveau '
+      + 'sur une rangée.',
+      '**📍 Où il est**, sur la fiche d’un Pokémon coché : dans le jeu, dans la '
+      + 'Banque, ou déjà dans HOME. Un clic — c’est ce qu’on met à jour à chaque '
+      + 'transfert.',
+      '**La recherche comprend plus qu’un nom** : un numéro, un type (« feu »), '
+      + 'une génération (« gen3 »), un état (« manquants ») ou un mot-clé '
+      + '(« légendaire », « starter », « méga »). Une ligne dit ce qui a été '
+      + 'compris, et les accents ne comptent plus.',
+      '**La grille se parcourt aux flèches**, se coche à l’espace, s’ouvre à '
+      + 'Entrée. « / » saute à la recherche.',
+      '**Un tableau de chasse.** Tes chromatiques trouvés ne disparaissent plus : '
+      + 'la plus longue chasse, la plus courte, et si tu es au-dessus ou en '
+      + 'dessous de la moyenne. **Espace**, **Retour arrière** et **Entrée** '
+      + 'comptent au clavier — et **Ctrl+Alt+↑ / ↓** même pendant que tu joues, '
+      + 'fenêtre en arrière-plan.',
+      '**📺 Overlay OBS** : une adresse locale à coller en source navigateur. Le '
+      + 'sprite, le compteur, le taux et la probabilité cumulée, sur fond '
+      + 'transparent.',
+      '**📖 Lexique**, en haut de la fenêtre : vingt mots de l’écran expliqués, '
+      + 'et une pastille « ? » là où ils apparaissent.',
+      '**Deux questions au premier lancement** plutôt que dix onglets et un '
+      + 'compteur à zéro : à quoi tu joues, et ce que tu comptes.',
+      '**🖼 Une image à partager** de ta collection, depuis ton profil.',
+      '**La rareté** : la fiche dit combien de dresseurs possèdent cette entrée, '
+      + 'et un tri met tes pièces rares en tête.',
+      '**Le relevé dit son âge** en bas de fenêtre. Toute la matière vient d’un '
+      + 'jour précis, et rien ne le disait.',
+      '**Corrigé :** tes chasses ne quittaient jamais cet ordinateur — elles '
+      + 'vivaient dans son stockage local et nulle part ailleurs. Elles partent '
+      + 'maintenant avec le reste, et se retrouvent sur une autre machine.',
+    ],
+  },
+  {
     version: '0.19.0', date: '2026-08-26', titre: 'Ta présence Discord, quand tu le veux',
     points: [
       'Un réglage **Ma présence Discord** dans ton profil, avec trois choix. '

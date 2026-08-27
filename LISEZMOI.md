@@ -52,7 +52,8 @@ PokéArchive/
     │       ├── donnees-pokedex.js    → RELEVÉ : les Pokédex de jeux, pour le banc
     │       └── evenements.js         → À LA MAIN : les distributions françaises
     ├── outils/           → la génération des réserves, les deux relevés, et les
-    │                       deux vérifications : verifier.py et banc.py
+    │                       trois vérifications : verifier.py (statique),
+    │                       banc.py (le verdict) et verif.py (le rendu)
     └── src-tauri/        → le cœur Rust
         ├── src/lib.rs    → commandes, connexion Discord, appels à l'API
         └── tauri.conf.json
@@ -775,6 +776,236 @@ forme et jamais quand elle est passée : les dates vivent ici, et les écrire au
 deux endroits les fait diverger. C'est déjà arrivé — la casquette partenaire y
 était datée de 2019, alors que la France l'a eue en 2017 puis en 2020.
 
+## Relire une sauvegarde
+
+C'était la pièce qui manquait. `pokearchive-1` est défini par `exporter()`,
+versionné, complet, et **produit des deux côtés** — l'application et le site.
+Il n'était lu par personne : le site et l'application ne pouvaient pas se
+rejoindre, un vidage de navigateur effaçait tout sans recours, et quiconque
+venait d'ailleurs devait recocher neuf cents cases à la main.
+
+`POST /api/import` verse un fichier dans le compte. La fusion se fait **côté
+serveur** — c'est lui qui tient le dex et le journal, et une union calculée
+dans l'application puis renvoyée écraserait tout ce qui aurait bougé entre la
+lecture et l'écriture.
+
+Trois règles, celles que `site/LISEZMOI.md` spécifiait déjà :
+
+- **le dex se réunit**, il ne se remplace pas. Cocher est monotone : on ajoute
+  des captures, on n'en retire pratiquement jamais. Un décochage volontaire est
+  donc perdu par cette règle — choix assumé, perdre une correction se répare en
+  deux clics, perdre trois mois de cochage non ;
+- **l'historique se dédoublonne** sur `(pokemon, dex, chromatique, ajoute_le)`.
+  C'est ce qui rend l'import **rejouable** : le même fichier deux fois ne
+  double pas le journal, et le banc le vérifie ;
+- **`maj_le` départage** ce qui ne se réunit pas — le nom, le mode, le niveau
+  de formes.
+
+L'import n'écrit **pas** par `ecrireDex()` : celle-ci journalise la différence
+à la date du jour, et un import porte ses propres dates. Les faire toutes
+tomber aujourd'hui effacerait justement ce que le fichier avait gardé.
+
+Le site fait la même chose dans `pont.js`, avec la même règle. **Les deux se
+modifient ensemble** : une union qui diffère d'un côté ferait diverger les deux
+collections dès le premier aller-retour, et c'est cet aller-retour que l'import
+existe pour permettre.
+
+## La vue boîtes
+
+En Living Dex, la question n'est pas « est-ce que je l'ai » mais **« dans
+quelle boîte, quelle case »**. Le mode existait — `pa_profils.mode` vaut
+`living` —, le rangement non.
+
+Trente par boîte, six par rangée, comme la console. Ce n'est pas une
+coquetterie : c'est la rangée de six qui permet de compter les cases à l'œil et
+de retrouver la même place dans le jeu.
+
+**Les filtres ne s'appliquent pas dans cette vue**, et c'est le point délicat.
+Une boîte se lit par la *place* d'un Pokémon ; masquer les manquants décalerait
+tout le monde d'un cran et la vue ne servirait plus à rien. Un manquant occupe
+donc sa case, simplement décoché — exactement comme la case vide qu'il laisse
+dans le jeu. La barre le dit, plutôt que de laisser croire à un filtre en panne.
+
+Les cartes sont celles de la grille : `renderCard()` sait déjà cocher, dessiner
+la pastille d'obtention et le verrou des shiny-lockés. Une carte de boîte à part
+aurait fait deux rendus à tenir d'accord, et ils auraient divergé.
+
+## Le programme du soir
+
+« À portée » répond à *quel jeu est près de finir*. Ce n'est pas la même
+question que *je fais quoi maintenant*, et c'est la seconde qu'on se pose en
+rallumant la console.
+
+Le bloc ne demande **aucune donnée nouvelle** : le relevé des lieux couvre les
+vingt-deux jeux avec la sous-zone, l'heure, la météo et la saison. Il suffit de
+croiser ce qu'il dit de capturable avec ce qui manque à l'aventure.
+
+Le tirage est **stable dans la journée** — une graine tirée de la date et de la
+clé du jeu, jamais `Math.random()`. Une liste qui change à chaque
+rafraîchissement ferait perdre celui qu'on était en train de chercher.
+
+Deux filtres tiennent à la source, pas au code : seule la catégorie `sauvage`
+est retenue, et les lignes dont le texte commence par « À transférer » sont
+écartées — le relevé range parfois sous `sauvage` un Zamazenta qui ne se trouve
+nulle part dans Écarlate.
+
+## Les transferts, et l'onglet « Outils »
+
+« Où l'obtenir » dit où le Pokémon vit. Il ne disait jamais par quel chemin il
+arrive jusqu'à la boîte d'aujourd'hui — et pour un dex national, c'est là qu'est
+la vraie difficulté.
+
+**C'est une page, pas un bloc de fiche.** Ces règles dépendent du JEU et jamais
+de l'espèce : le chemin de Rubis est le même pour Nidoran que pour Rayquaza. Les
+répéter sur mille deux cent quatre-vingt-une fiches, c'était faire relire
+vingt-deux fois la même chose à quelqu'un qui cherchait autre chose. La première
+version les mettait dans la fiche ; c'était le mauvais endroit.
+
+**Un seul onglet pour trois écrans.** Stratégie, Reproduction et Transferts
+répondent à la même question — « avant d'y aller, qu'est-ce que je dois
+savoir » — et partagent donc l'onglet 🧰 Outils et une sous-barre. À dix
+entrées la nav débordait sur deux rangées, ce qui avait déjà fait sortir les
+jeux de la barre ; elle tient de nouveau sur une seule.
+
+La table `TRANSFERTS` de `transferts.js` est **écrite à la main**, comme les
+distributions du Cadeau Mystère : ce sont des règles de service, pas des données
+de jeu. Une quinzaine d'arêtes, et elles ne bougent qu'à l'ouverture ou à la
+fermeture d'un service. `routeVersHome()` en tire le chemin par un parcours en
+largeur, et la page groupe les jeux qui empruntent le même.
+
+Sur la fiche, il reste **📍 Où il est** — dans le jeu, dans la Banque, ou déjà
+dans HOME. Celui-là appartient bien à l'exemplaire, et c'est la seule chose que
+l'application ne pouvait pas deviner : sans elle, le chemin part toujours du
+jeu, même quand le Pokémon dort dans la Banque depuis 2019.
+
+Ce qu'elle dit de plus qu'une flèche : **un service peut avoir une date de
+fin**. La Banque Pokémon est le seul pont entre les seize jeux 3DS et Pokémon
+HOME, et elle s'arrête.
+
+**Trois états, et non deux.** « Ouvert » et « fermé » ne suffisaient pas : entre
+les deux il y a le *sursis*, qui est le seul moment où l'information sert encore
+à quelque chose. Un chemin qu'on annonce fermé alors qu'il fonctionne fait
+renoncer pour rien ; un chemin qu'on annonce ouvert sans dire qu'il s'arrête
+laisse rater la fenêtre. La page compte donc les mois qui restent, et range
+l'urgent en tête.
+
+La date vit dans `BANQUE_FERME_LE`, en haut de `transferts.js`, et **nulle part
+ailleurs** : elle se corrige d'une ligne. À ne pas confondre avec le 27 mars
+2023, qui est la fermeture de l'eShop 3DS — le jour où la Banque est devenue
+*gratuite*, pas celui où elle s'arrête. La première version de ce code prenait
+l'une pour l'autre et annonçait fermé un service qui tournait encore.
+
+## Les objectifs sur mesure
+
+Les vingt-quatre collections sont données d'avance. Rien ne permettait de suivre
+« le living dex de Johto en balls d'Apricorne » ou « les 151 de Kanto, mais dans
+Écarlate ».
+
+Presque rien à écrire : la barre de filtres produit **déjà** l'ensemble. Il
+manquait un bouton pour figer le résultat.
+
+**L'ensemble est figé à la création**, pas recalculé. On garde la liste des noms
+plutôt que les filtres, pour deux raisons : un objectif ne doit pas bouger sous
+les pieds de celui qui se l'est fixé — le jour où le relevé gagne une ligne,
+« les 151 de Kanto » restent cent cinquante-et-un — et le calcul devient une
+intersection d'ensembles, instantanée et hors ligne.
+
+Douze objectifs par aventure, deux mille entrées chacun. Au-delà, ce n'est plus
+un objectif mais une seconde collection, et les Pokédex la comptent mieux.
+
+## La fiche de capture
+
+Un collectionneur ne possède pas « un Ronflex ». Il possède *un Ronflex en Honor
+Ball, attrapé dans Cristal en 2001, avec son ruban*. La progression ne gardait
+que le nom et le chromatique.
+
+Huit champs facultatifs — Ball, nature, surnom, jeu d'origine, date, ruban,
+dresseur d'origine, note — rangés par Pokédex puis par nom dans
+`donnees.detailsCapture`. **Aucune table de plus** : ils voyagent dans la
+sauvegarde du dex, l'API les range verbatim, `compterEspeces()` les ignore, et
+`pokearchive-1` les emporte gratuitement.
+
+**Repliée par défaut, et absente tant que l'entrée n'est pas cochée.** C'est la
+condition pour que ça n'abîme rien : quelqu'un qui découvre l'application ne
+doit pas se voir demander une Ball au troisième clic.
+
+## La rareté
+
+Le classement compte le **nombre**. Il ne disait rien de la rareté : avoir un
+Mew et avoir un Roucool y pesaient pareil.
+
+`GET /api/rarete` compte, entrée par entrée, combien de dresseurs la possèdent —
+sur les collections **déjà publiques**, et une par dresseur : son aventure
+principale. C'est exactement la règle du classement, et la reprendre évite deux
+vérités différentes sur la même page.
+
+Le dex est un bloc JSON et non des lignes : compter demande de relire chaque
+collection. D'où un cache de douze heures — une rareté ne bouge pas dans la
+journée.
+
+**Rien ne s'affiche sous cinq collections.** « Un dresseur sur deux » n'est pas
+une rareté, c'est un hasard, et l'API renvoie alors une table vide.
+
+## Le site installable
+
+C'est sur le téléphone posé à côté de la Switch qu'on coche. Le site s'adaptait
+déjà à la fenêtre ; il ne s'installait pas, ne s'ouvrait pas hors ligne, et
+vivait dans un onglet qu'on perd.
+
+`assembler.py` écrit maintenant un manifeste, quatre icônes reprises de celles
+de Tauri, et un service worker. Tout est côté `site/` : une application de
+bureau n'a ni manifeste ni service worker, et lui en poser un ne ferait que du
+bruit dans sa console.
+
+Deux stratégies :
+
+- **la coquille** — `index.html`, les feuilles, les scripts du premier
+  chargement, les polices, les bannières — est mise en cache à l'installation.
+  La liste se **lit** dans la page qu'on vient d'écrire, elle ne se tient pas à
+  la main : un script ajouté à `index.html` y entre sans que personne n'ait à y
+  penser ;
+- **les réserves à la demande** — les lieux, les attaques, les notices,
+  Cobblemon, 5,3 Mo à elles seules — entrent en cache au premier usage. Les
+  précharger triplerait l'installation pour des panneaux qu'on n'ouvre pas
+  toujours : c'est le raisonnement qui les avait déjà sorties du démarrage.
+
+La version du cache est celle des **fichiers**, pas un numéro tenu à la main.
+Un numéro s'oublie, et un cache qu'on oublie de purger sert du code mort en
+croyant bien faire.
+
+## L'overlay de chasse
+
+Une page servie sur `127.0.0.1`, à coller en source navigateur dans OBS : le
+sprite, le compteur, le taux et la probabilité cumulée, sur fond transparent.
+
+Aucune dépendance de plus : `tiny_http` était déjà là pour recevoir le retour de
+connexion Discord. La plage d'écoute est distincte (8760-8779) — les deux
+peuvent tourner en même temps, et un port partagé ferait échouer l'un des deux
+sans qu'on sache lequel.
+
+Rien ne démarre tout seul, l'écoute n'est ouverte qu'après un clic, et seulement
+sur la boucle locale. Ce qui y passe, ce sont les chiffres d'une chasse : c'est
+destiné à être diffusé en direct.
+
+## Les raccourcis globaux
+
+`Ctrl+Alt+↑` et `Ctrl+Alt+↓` comptent une rencontre, **fenêtre en
+arrière-plan**. C'est le point : pendant qu'on chasse, la fenêtre de PokéArchive
+n'est pas au premier plan — le jeu l'est. Un raccourci de fenêtre ne servirait
+que pendant les pauses.
+
+Des flèches et non des lettres : un code de touche est physique, et une lettre
+ne tombe pas au même endroit sur AZERTY, QWERTY ou QWERTZ.
+
+Un échec ne fait pas tomber l'application : une autre application peut déjà
+tenir la combinaison, on le note dans la console et on continue. Les raccourcis
+de la page Chasse — Espace, Retour arrière, Entrée — marchent de toute façon.
+
+`tauri-plugin-global-shortcut` est déclaré en **dépendance ordinaire** et non
+sous `cfg(desktop)` : c'est ainsi que le script de compilation de Tauri trouve
+ses fichiers de permission. Sous une table de cible, `global-shortcut:default`
+reste introuvable et la compilation s'arrête.
+
 ## Le cache local
 
 `cache.js` garde les listes de référence dans `localStorage` pour que
@@ -794,13 +1025,30 @@ en pratique.
 
 ## Se relire, et se vérifier
 
-Deux outils, aucune dépendance, rien à installer.
+Trois outils, aucune dépendance, rien à installer.
 
 ```
 cd app
 py outils/verifier.py     # relecture statique, deux secondes
 py outils/banc.py         # l'application tourne et se vérifie
+py outils/verif.py        # l'application tourne et SE MONTRE
 ```
+
+Les deux premiers répondent à « est-ce que ça marche » et rendent un verdict.
+**`verif.py`** répond à « qu'est-ce que ça donne » et rend la main : il sert
+l'application sur le port 8126 avec un panneau à droite, une ligne par
+nouveauté — ce qu'il faut regarder, un témoin vert ou rouge pour ce qui se
+vérifie tout seul, et un bouton qui amène l'écran à l'endroit exact.
+
+Il sert un **compte déjà commencé** — trois Pokédex entamés, deux chasses en
+cours, trois abouties, deux objectifs, deux fiches de capture, une amie et une
+table de rareté. Sans collection, la moitié des écrans n'affichent que leur état
+vide : le programme du soir n'a rien à proposer, le tableau de chasse est
+absent, la rareté se tait. On ne vérifierait alors que des messages
+d'indisponibilité.
+
+Comme le banc, il remplace le pont Tauri par des réponses en mémoire : aucune
+connexion Discord, aucune écriture en base, et l'état meurt avec la page.
 
 **`verifier.py`** lit les fichiers sans rien lancer. Il attrape trois choses :
 un `getElementById` qui vise un identifiant absent du HTML, un appel à une
@@ -1423,6 +1671,33 @@ dépôt.
 - [ ] héberger l'API quelque part de joignable en permanence.
 
 ### Fait depuis
+
+- [x] **l'import de `pokearchive-1`**, des deux côtés. C'était la seule pièce
+      absente pour une synchro par fichier : le format était produit par
+      l'application ET par le site, et relu par personne. Le dex se réunit,
+      l'historique se dédoublonne, `maj_le` départage — et l'opération est
+      rejouable, ce que le banc vérifie ;
+- [x] **la vue boîtes**, trente par boîte et six par rangée ; **le programme du
+      soir**, tiré du relevé des lieux ; **les objectifs sur mesure**, qui
+      figent la barre de filtres en but nommé ; **la fiche de capture** — Ball,
+      nature, ruban — repliée derrière une entrée déjà cochée ;
+- [x] **« comment le faire remonter »** sur la fiche, qui dit par quel chemin un
+      Pokémon rejoint HOME depuis chaque jeu, et **quand ce chemin est fermé** ;
+- [x] **l'entraide** : la barre de comparaison disait « il a 47 que tu n'as
+      pas », elle dit maintenant *lesquels* ;
+- [x] **la rareté**, comptée sur les collections publiques et mise en cache
+      douze heures ; **le lexique** ; **les deux questions du premier
+      lancement** ; **la carte à partager** ;
+- [x] **le clavier** : les flèches dans la grille, l'espace sur le compteur de
+      chasse, et `Ctrl+Alt+↑ / ↓` même fenêtre en arrière-plan ;
+- [x] **le site installable et hors ligne** — manifeste, service worker, et une
+      coquille lue dans la page plutôt que tenue à la main ;
+- [x] **l'overlay OBS**, servi en local sur la boucle, sans dépendance de plus ;
+- [x] **corrigé** : `construireDex()` ne transmettait pas les chasses. Elles
+      vivaient dans le `localStorage` de la machine et nulle part ailleurs —
+      changer d'aventure les effaçait, changer d'ordinateur aussi. Le LISEZMOI
+      promettait le contraire depuis le premier jour, et rien ne le
+      contredisait. Le banc s'en charge désormais ;
 
 - [x] **le relevé des lieux refait sur Poképédia**, source unique, après deux
       migrations dans la même journée — Pokékalos, puis Pokébip, puis

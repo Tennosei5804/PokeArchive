@@ -89,6 +89,7 @@ const pageJeuxEl = document.getElementById('page-jeux');
 const pageCadeauxEl = document.getElementById('page-cadeaux');
 const pageStrategieEl = document.getElementById('page-strategie');
 const pageReproductionEl = document.getElementById('page-reproduction');
+const pageTransfertsEl = document.getElementById('page-transferts');
 const ficheEffort = document.getElementById('ficheEffort');
 const ficheOeufs = document.getElementById('ficheOeufs');
 const authOverlay = document.getElementById('authOverlay');
@@ -199,8 +200,14 @@ function resetAllProgress(){
   DEX_KEYS.forEach(bucketFor);
   if(typeof chasses !== 'undefined'){
     chasses = [];
+    if(typeof chassesFinies !== 'undefined') chassesFinies = [];
     if(typeof dessinerChasses === 'function') dessinerChasses();
   }
+  if(typeof objectifs !== 'undefined'){
+    objectifs = [];
+    if(typeof dessinerObjectifs === 'function') dessinerObjectifs();
+  }
+  if(typeof detailsCapture !== 'undefined') detailsCapture = {};
   useDexProgress(typeof currentTab !== 'undefined' ? currentTab : 'national');
 }
 
@@ -240,7 +247,30 @@ function progressFromJSON(data){
     // Les chasses enregistrées avant la refonte des méthodes sont traduites à
     // la lecture : elles gardent leur compteur et retrouvent leur taux.
     if(typeof migrerChasse === 'function') chasses.forEach(migrerChasse);
+    // Les chasses abouties suivent le même chemin. Une sauvegarde antérieure
+    // au tableau de chasse n'en a pas : la liste vide est la bonne réponse,
+    // et non une erreur — on n'a simplement rien gardé de ce temps-là.
+    if(typeof chassesFinies !== 'undefined'){
+      chassesFinies = Array.isArray(data && data.chassesFinies) ? data.chassesFinies : [];
+      if(typeof migrerChasse === 'function') chassesFinies.forEach(migrerChasse);
+    }
     if(typeof dessinerChasses === 'function') dessinerChasses();
+  }
+
+  // Les objectifs sur mesure voyagent avec le dex, pour la meme raison que les
+  // chasses : ils appartiennent a l'aventure, et changer de machine doit les
+  // retrouver. Une sauvegarde anterieure n'en a pas — la liste vide est alors
+  // la bonne reponse, et non une erreur.
+  if(typeof objectifs !== 'undefined'){
+    objectifs = Array.isArray(data && data.objectifs) ? data.objectifs : [];
+    if(typeof dessinerObjectifs === 'function') dessinerObjectifs();
+  }
+
+  // Les fiches de capture, rangées par Pokedex puis par nom. Une sauvegarde
+  // qui n'en a pas rend un objet vide — c'est le cas de toutes celles d'avant.
+  if(typeof detailsCapture !== 'undefined'){
+    const d = data && data.detailsCapture;
+    detailsCapture = (d && typeof d === 'object' && !Array.isArray(d)) ? d : {};
   }
 
   useDexProgress(typeof currentTab !== 'undefined' ? currentTab : 'national');

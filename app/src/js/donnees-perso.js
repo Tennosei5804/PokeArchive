@@ -66,6 +66,153 @@ async function exporterMesDonnees() {
   }
 }
 
+
+// ---- Relire une sauvegarde ---------------------------------------------------
+//
+// L'application exportait depuis toujours sans jamais savoir relire. C'était le
+// seul manque entre le site et l'application : le format « pokearchive-1 » est
+// versionné, complet, et produit des deux côtés — il n'était lu par personne.
+//
+// LA FUSION SE FAIT DE L'AUTRE CÔTÉ, dans l'API ou dans le pont. C'est voulu :
+// c'est là que vivent le dex et le journal, et une union calculée ici puis
+// renvoyée écraserait tout ce qui aurait bougé entre la lecture et l'écriture.
+// Cet écran ne fait donc que trois choses — lire le fichier, dire ce qu'il
+// contient, et demander confirmation.
+//
+// ON DEMANDE AVANT, TOUJOURS. L'union ne perd rien, mais elle ajoute : cocher
+// six cents cases dans l'aventure de quelqu'un sans le prévenir serait le
+// genre de surprise qu'on ne pardonne pas à un outil de collection.
+
+const importBtn = document.getElementById('importBtn');
+const importFichier = document.getElementById('importFichier');
+const importEtat = document.getElementById('importEtat');
+
+// Ce qu'un fichier annonce, avant de toucher à quoi que ce soit. On compte
+// nous-mêmes plutôt que de croire les compteurs du fichier : ils datent de
+// l'export, et rien ne garantit qu'ils correspondent encore à son contenu.
+function resumeDuFichier(contenu) {
+  const aventures = Array.isArray(contenu.aventures) ? contenu.aventures : [];
+  let captures = 0, chromatiques = 0, journal = 0;
+  aventures.forEach(function (a) {
+    const vus = new Set(), brillants = new Set();
+    const ajouter = function (cible, liste) {
+      (Array.isArray(liste) ? liste : []).forEach(function (n) { cible.add(n); });
+    };
+    const d = (a && a.dex) || {};
+    ajouter(vus, d.captures);
+    ajouter(vus, d.caught);
+    ajouter(brillants, d.shiny);
+    Object.keys(d.dex || {}).forEach(function (jeu) {
+      ajouter(vus, d.dex[jeu] && d.dex[jeu].caught);
+      ajouter(brillants, d.dex[jeu] && d.dex[jeu].shiny);
+    });
+    captures += vus.size;
+    chromatiques += brillants.size;
+    journal += (Array.isArray(a && a.historique) ? a.historique.length : 0);
+  });
+  return { aventures: aventures.length, captures: captures,
+           chromatiques: chromatiques, journal: journal,
+           noms: aventures.map(function (a) { return (a && a.nom) || '(sans nom)'; }) };
+}
+
+function lireFichierTexte(fichier) {
+  return new Promise(function (tenir, rejeter) {
+    const lecteur = new FileReader();
+    lecteur.onload = function () { tenir(String(lecteur.result || '')); };
+    lecteur.onerror = function () { rejeter(new Error('Le fichier n\'a pas pu être lu.')); };
+    lecteur.readAsText(fichier);
+  });
+}
+
+async function importerUnFichier(fichier) {
+  if (!fichier) return;
+  importEtat.textContent = 'Lecture…';
+
+  let contenu;
+  try {
+    contenu = JSON.parse(await lireFichierTexte(fichier));
+  } catch (e) {
+    importEtat.textContent = '';
+    prevenirErreur('Fichier illisible',
+      'Ce n\'est pas du JSON valide. Choisis le fichier tel qu\'il a été '
+      + 'téléchargé, sans l\'ouvrir ni le modifier.');
+    return;
+  }
+
+  if (!contenu || contenu.format !== 'pokearchive-1') {
+    importEtat.textContent = '';
+    prevenirErreur('Ce n\'est pas une sauvegarde PokéArchive',
+      'Le fichier doit porter le format « pokearchive-1 ». C\'est celui que '
+      + 'produit le bouton « Télécharger mes données », ici comme sur le site.');
+    return;
+  }
+
+  const r = resumeDuFichier(contenu);
+  const quand = String(contenu.exporteLe || '').slice(0, 10);
+
+  const ok = await demanderConfirmation({
+    eyebrow: 'Importer',
+    titre: 'Verser ce fichier dans ton compte ?',
+    resume: [
+      { cle: r.aventures > 1 ? 'aventures' : 'aventure', valeur: r.aventures },
+      { cle: 'captures', valeur: r.captures },
+      { cle: 'chromatiques', valeur: r.chromatiques },
+      { cle: 'lignes de journal', valeur: r.journal }
+    ],
+    note: 'Les collections SE RÉUNISSENT : rien n\'est écrasé et rien n\'est '
+      + 'décoché. Une aventure du fichier qui porte le nom d\'une des tiennes '
+      + 'la complète ; les autres sont créées à côté, jamais en aventure par '
+      + 'défaut.'
+      + (quand ? ' Ce fichier a été exporté le ' + quand + '.' : '')
+      + ' Aventures : ' + r.noms.slice(0, 6).join(', ')
+      + (r.noms.length > 6 ? ', …' : '') + '.',
+    libelleAction: 'Importer'
+  });
+  if (!ok) { importEtat.textContent = ''; return; }
+
+  importBtn.disabled = true;
+  importEtat.textContent = 'Import en cours…';
+  try {
+    const bilan = await invoke('importer', { contenu: contenu });
+    importEtat.textContent = bilan.gagnees + ' capture'
+      + (bilan.gagnees > 1 ? 's' : '') + ' ajoutée' + (bilan.gagnees > 1 ? 's' : '')
+      + ', ' + bilan.journalisees + ' ligne' + (bilan.journalisees > 1 ? 's' : '')
+      + ' de journal.';
+
+    await prevenir({
+      eyebrow: 'Import terminé',
+      genre: 'succes',
+      titre: 'C\'est versé',
+      resume: [
+        { cle: 'aventures touchées', valeur: bilan.aventures },
+        { cle: 'aventures créées', valeur: bilan.creees },
+        { cle: 'captures gagnées', valeur: bilan.gagnees },
+        { cle: 'journal', valeur: bilan.journalisees }
+      ],
+      note: bilan.gagnees === 0
+        ? 'Rien de neuf : tout ce que porte ce fichier était déjà là. Un import '
+          + 'se rejoue sans risque, c\'est fait pour.'
+        : 'Ton aventure ouverte se recharge pour afficher ce qui vient d\'arriver.',
+      libelleAction: 'Parfait'
+    });
+
+    // On recharge depuis le serveur plutôt que de recoller les morceaux ici :
+    // la fusion a eu lieu là-bas, et deviner son résultat de ce côté serait le
+    // meilleur moyen d'afficher un total qui n'existe nulle part.
+    await demarrerProfils();
+    if (typeof chargerProfil === 'function') await chargerProfil();
+  } catch (e) {
+    if (String(e) === 'SESSION_INVALIDE') { await perdreSession(); return; }
+    importEtat.textContent = '';
+    prevenirErreur('L\'import a échoué', String(e));
+  } finally {
+    importBtn.disabled = false;
+    // Le champ se vide : sans ça, réimporter le MÊME fichier ne déclenche pas
+    // de « change » et le bouton paraît mort.
+    importFichier.value = '';
+  }
+}
+
 // ---- Les connexions ouvertes ------------------------------------------------
 
 function ligneSession(s) {
@@ -216,6 +363,12 @@ async function renommerQuelquun() {
 
 document.addEventListener('DOMContentLoaded', function(){
   if (exportBtn) exportBtn.addEventListener('click', exporterMesDonnees);
+  // Le bouton ouvre le champ ; le champ déclenche l'import. Deux gestes pour
+  // l'utilisateur, un seul pour lui : cliquer, choisir.
+  if (importBtn) importBtn.addEventListener('click', function(){ importFichier.click(); });
+  if (importFichier) importFichier.addEventListener('change', function(){
+    importerUnFichier(importFichier.files && importFichier.files[0]);
+  });
   if (sessionsAutres) sessionsAutres.addEventListener('click', fermerLesAutresSessions);
   if (adminRenommer) adminRenommer.addEventListener('click', renommerQuelquun);
   if (visibleDresseurs) visibleDresseurs.addEventListener('change', basculerVisibilite);

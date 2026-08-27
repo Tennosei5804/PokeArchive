@@ -1,12 +1,15 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Permissions de la fenêtre principale. Les commandes de l'application (connexion, dex, partage) sont définies par nous et n'ont pas besoin d'y figurer ; seuls les plugins réclament une autorisation explicite.",
-  "windows": ["main"],
+  "description": "Permissions de la fenêtre principale. Les commandes de l'application (connexion, dex, partage, overlay) sont définies par nous et n'ont pas besoin d'y figurer ; seuls les plugins réclament une autorisation explicite.",
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
     "updater:default",
     "process:allow-restart",
-    "notification:default"
+    "notification:default",
+    "global-shortcut:default"
   ]
 }

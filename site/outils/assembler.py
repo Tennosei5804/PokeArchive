@@ -4,7 +4,7 @@
     cd site && py outils/assembler.py
 
 UNE SEULE SOURCE, ET C'EST app/src. Le frontend de PokeArchive est deja du web
-ordinaire : sur ses trente-et-un scripts, quatre seulement touchent a Tauri, et
+ordinaire : sur ses trente-sept scripts, cinq seulement nomment __TAURI__, et
 trois se taisent proprement s'il manque. Le recopier a la main dans site/ en
 ferait un second client a maintenir, et deux clients divergent toujours — le
 jour ou l'un gagne un onglet, l'autre l'ignore et personne ne le remarque avant
@@ -20,6 +20,7 @@ C'est pour cette raison qu'on l'efface au debut plutot que de le mettre a jour
 — un fichier supprime de app/src doit disparaitre d'ici, et une copie
 incrementale l'y laisserait pour toujours.
 """
+import json
 import os
 import pathlib
 import re
@@ -97,6 +98,133 @@ def horodater(html: str, racine: pathlib.Path) -> str:
     return html
 
 
+# Les quatre reserves qui se chargent A LA DEMANDE. Elles pesent 5,3 Mo a elles
+# seules : les precharger triplerait l'installation pour des panneaux qu'on
+# n'ouvre pas toujours — c'est exactement le raisonnement qui les avait sorties
+# du demarrage. Le service worker les prend en cache a leur premier usage.
+A_LA_DEMANDE = ("donnees-lieux.js", "donnees-attaques.js",
+                "donnees-descriptions.js", "donnees-cobblemon.js")
+
+# Les icones de l'application Tauri font aussi celles du site : c'est le meme
+# produit, et en tenir deux jeux les ferait diverger a la premiere retouche.
+ICONES = {"32.png": "32x32.png", "128.png": "128x128.png",
+          "256.png": "128x128@2x.png", "512.png": "icon.png"}
+
+
+def coquille(html: str) -> list:
+    """Ce qu'il faut avoir en cache pour que l'application s'ouvre sans reseau.
+
+    La liste se LIT dans la page qu'on vient d'ecrire, elle ne se tient pas a
+    la main : un script ajoute a index.html doit entrer dans la coquille sans
+    que personne n'ait a y penser. Une liste manuelle aurait derive des le
+    premier ajout — c'est deja arrive a la liste des menus deroulants.
+    """
+    fichiers = ["./", "./index.html", "./manifeste.webmanifest"]
+
+    for chemin in re.findall(r'<script src="([^"?]+)', html):
+        if any(chemin.endswith(n) for n in A_LA_DEMANDE):
+            continue
+        fichiers.append("./" + chemin)
+    for chemin in re.findall(r'<link[^>]+href="([^"?]+\.css)', html):
+        fichiers.append("./" + chemin)
+
+    # Les polices, les bannieres et les logos de type : sans eux l'application
+    # s'ouvre hors ligne mais sans son allure, ce qui donne l'impression d'un
+    # chargement rate plutot que d'un mode hors ligne.
+    for dossier in ("polices", "types", "logos", "icones"):
+        d = PUBLIC / dossier
+        if not d.is_dir():
+            continue
+        for f in sorted(d.iterdir()):
+            if f.is_file() and not f.name.startswith("."):
+                fichiers.append("./%s/%s" % (dossier, f.name))
+
+    # Sans doublon, et dans un ordre stable : la version se calcule dessus.
+    vus, sortie = set(), []
+    for f in fichiers:
+        if f not in vus:
+            vus.add(f)
+            sortie.append(f)
+    return sortie
+
+
+def poser_pwa(html: str) -> str:
+    """Le manifeste, les icones, le service worker, et son inscription.
+
+    Tout est ECRIT ICI plutot que dans app/src/index.html : une application de
+    bureau n'a ni manifeste ni service worker, et lui en poser un ne ferait que
+    du bruit dans sa console. C'est exactement la frontiere que site/source
+    existe pour tenir.
+    """
+    # 1. Les icones, reprises de celles de Tauri.
+    cible = PUBLIC / "icones"
+    cible.mkdir(exist_ok=True)
+    origine = SRC.parent / "src-tauri" / "icons"
+    for nom, source in ICONES.items():
+        f = origine / source
+        if f.is_file():
+            shutil.copyfile(f, cible / nom)
+    print("  %-10s icones/ (%d)" % ("+", len(list(cible.iterdir()))))
+
+    # 2. Le manifeste.
+    m = SOURCE / "manifeste.webmanifest"
+    if not m.is_file():
+        print("Manquant : site/source/manifeste.webmanifest")
+        return html
+    shutil.copyfile(m, PUBLIC / "manifeste.webmanifest")
+
+    # 3. Le service worker, sa coquille et sa version.
+    liste = coquille(html)
+    # La version est celle des FICHIERS, pas un numero tenu a la main : un
+    # numero s'oublie, et un cache qu'on oublie de purger sert du code mort en
+    # croyant bien faire.
+    recent = 0
+    for chemin in liste:
+        f = PUBLIC / chemin[2:]
+        try:
+            recent = max(recent, int(f.stat().st_mtime))
+        except OSError:
+            pass
+    version = "%d-%d" % (recent, len(liste))
+
+    gabarit = (SOURCE / "sw.js").read_text(encoding="utf-8")
+    gabarit = (gabarit.replace("__VERSION__", version)
+                      .replace("__COQUILLE__", json.dumps(liste, ensure_ascii=False)))
+    # A LA RACINE, et non dans js/ : un service worker ne controle que les
+    # adresses situees SOUS la sienne. Depose dans js/, il ne verrait ni
+    # index.html ni les feuilles de style, et ne servirait donc a rien.
+    (PUBLIC / "sw.js").write_text(gabarit, encoding="utf-8")
+    print("  %-10s sw.js (%d fichiers en coquille, version %s)" % ("+", len(liste), version))
+
+    # 4. Les balises, et l'inscription.
+    tete = (
+        '<link rel="manifest" href="manifeste.webmanifest">\n'
+        '<meta name="theme-color" content="#b5211f">\n'
+        '<meta name="apple-mobile-web-app-capable" content="yes">\n'
+        '<meta name="apple-mobile-web-app-title" content="PokéArchive">\n'
+        '<link rel="apple-touch-icon" href="icones/256.png">\n'
+    )
+    html = html.replace("</head>", tete + "</head>", 1)
+
+    inscription = (
+        "\n<script>\n"
+        "// Le service worker : l'application s'ouvre alors sans reseau, et\n"
+        "// s'installe sur l'ecran d'accueil. Il ne s'inscrit qu'en HTTP(S) —\n"
+        "// un fichier ouvert directement n'y a pas droit, et le tenter\n"
+        "// remplirait la console d'une erreur sans consequence.\n"
+        "if('serviceWorker' in navigator && location.protocol.indexOf('http') === 0){\n"
+        "  window.addEventListener('load', function(){\n"
+        "    navigator.serviceWorker.register('sw.js').catch(function(e){\n"
+        "      console.warn('Service worker refuse :', e);\n"
+        "    });\n"
+        "  });\n"
+        "}\n"
+        "</script>\n"
+    )
+    html = html.replace("</body>", inscription + "</body>", 1)
+    return html
+
+
 def batir() -> int:
     if not SRC.is_dir():
         print("Introuvable : %s" % SRC)
@@ -126,8 +254,14 @@ def batir() -> int:
 
     # Le pont et la feuille du site rejoignent les dossiers de l'application :
     # les chemins relatifs de index.html marchent alors sans exception.
+    # essai.html vit A LA RACINE et non dans un dossier : c'est une page a
+    # part, pas un morceau de l'application. Elle sert a poser un jeu d'essai
+    # dans le localStorage — sans collection, la moitie des ecrans n'affichent
+    # que leur etat vide, et on ne verifie alors que des messages
+    # d'indisponibilite.
     for source, dest in [("pont.js", PUBLIC / "js" / "pont.js"),
-                         ("site.css", PUBLIC / "css" / "site.css")]:
+                         ("site.css", PUBLIC / "css" / "site.css"),
+                         ("essai.html", PUBLIC / "essai.html")]:
         f = SOURCE / source
         if not f.is_file():
             print("Manquant : site/source/%s" % source)
@@ -154,10 +288,11 @@ def batir() -> int:
     #    quelque part alors qu'elle tient dans un localStorage.
     bandeau = (
         '<div class="site-bandeau" role="status">'
-        '<b>Version web</b> — tout ce que tu coches reste dans ce navigateur. '
-        'Rien n\'est envoyé, rien n\'est partagé, et vider les données du site '
-        'efface la collection. Le bouton <b>Exporter mes données</b> du Profil '
-        "rend un fichier que l'application sait lire."
+        '<b>Version web — aucun compte à créer.</b> Tout ce que tu coches reste '
+        'dans ce navigateur : rien n\'est envoyé, rien n\'est partagé, et vider '
+        'les données du site efface la collection. Le bouton <b>Exporter mes '
+        "données</b> du Profil rend un fichier que l'application sait relire — "
+        "et depuis l'import, l'inverse est vrai aussi."
         '</div>'
     )
     # Mesure : body est en display:flex, flex-direction:row, pour centrer le
@@ -171,6 +306,10 @@ def batir() -> int:
     html = html.replace(ancre_dex, ancre_dex + "\n" + bandeau, 1)
 
     html = horodater(html, PUBLIC)
+
+    # 4. De quoi s'installer et s'ouvrir hors ligne. Voir poser_pwa().
+    html = poser_pwa(html)
+
     (PUBLIC / "index.html").write_text(html, encoding="utf-8")
 
     print()

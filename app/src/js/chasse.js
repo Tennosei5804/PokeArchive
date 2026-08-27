@@ -10,6 +10,15 @@
 
 let chasses = [];
 
+// Les chasses ABOUTIES. Elles vivaient l'espace d'une fenêtre de félicitations
+// puis disparaissaient : le compteur, la durée, la méthode, tout partait avec.
+// C'est pourtant la seule chose qu'un chasseur ait envie de relire — « ma plus
+// longue », « ma plus courte », « est-ce que je suis chanceux cette année ».
+//
+// Elles voyagent avec le dex, comme les chasses en cours : voir
+// buildSavePayload() dans serveur.js et progressFromJSON() dans noyau.js.
+let chassesFinies = [];
+
 // Les Pokémon chromatiques n'existent qu'à partir de la deuxième génération :
 // Rouge, Bleu et Jaune n'ont aucune méthode, et le disent.
 const SANS_CHROMATIQUES = ['rby', 'jaune'];
@@ -215,6 +224,9 @@ function dessinerChasses(){
     chasseListe.innerHTML = '<div class="state-msg">Aucune chasse en cours. '
       + 'Clique sur « Créer une chasse » pour en commencer une — le compteur te suivra '
       + 'd\'un ordinateur à l\'autre.</div>';
+    // Le tableau, lui, survit aux chasses : c'est même tout son objet.
+    if(typeof majLigneClavier === 'function') majLigneClavier();
+    if(typeof dessinerTableauChasse === 'function') dessinerTableauChasse();
     return;
   }
 
@@ -224,7 +236,18 @@ function dessinerChasses(){
     const p = probabiliteCumulee(c.compteur, taux);
 
     const carte = document.createElement('div');
-    carte.className = 'chasse-carte';
+    // La chasse que le clavier vise. Un seul liseré à l'écran, et il ne
+    // s'affiche que s'il y a un choix à faire : sur une chasse unique, désigner
+    // la seule qui existe n'apprend rien.
+    const visee = chasses.length > 1
+      && typeof chasseActiveOuPremiere === 'function'
+      && chasseActiveOuPremiere() === c;
+    carte.className = 'chasse-carte' + (visee ? ' visee' : '');
+    // Cliquer ailleurs que sur un bouton désigne la chasse au clavier.
+    carte.addEventListener('click', function(e){
+      if(e.target.closest('button')) return;
+      if(typeof choisirChasseActive === 'function') choisirChasseActive(c);
+    });
 
     // Le sprite, en version chromatique : c'est ce qu'on cherche.
     const cadre = document.createElement('div');
@@ -351,6 +374,12 @@ function dessinerChasses(){
 
     chasseListe.appendChild(carte);
   });
+
+  if(typeof majLigneClavier === 'function') majLigneClavier();
+  if(typeof dessinerTableauChasse === 'function') dessinerTableauChasse();
+  // L'overlay suit la chasse visée : sans ce rappel, il resterait sur le
+  // compteur d'il y a trois clics, ce qui se verrait en direct.
+  if(typeof pousserOverlay === 'function') pousserOverlay();
 }
 
 /**
@@ -371,6 +400,22 @@ function conclureChasse(c){
   // Un chromatique attrapé est aussi un Pokémon possédé : cocher l'un sans
   // l'autre laisserait une incohérence que personne ne penserait à corriger.
   cible.caught.add(e.name);
+
+  // On garde l'histoire AVANT de retirer la chasse : une fois ôtée de la
+  // liste, il n'y a plus ni compteur ni méthode à recopier. Le taux est figé
+  // ici plutôt que recalculé plus tard — les règles d'un jeu peuvent être
+  // corrigées, et une chasse d'il y a six mois s'est jouée contre le taux
+  // qu'on affichait ce jour-là.
+  chassesFinies.push({
+    pokemon: c.pokemon,
+    dex: c.dex,
+    methode: c.methode,
+    bonus: (c.bonus || []).slice(),
+    compteur: c.compteur || 0,
+    taux: tauxDeChasse(c.methode, c.dex, c.bonus) || 0,
+    debut: c.debut || null,
+    fin: new Date().toISOString()
+  });
 
   chasses = chasses.filter(function(x){ return x !== c; });
   dessinerChasses();
@@ -660,3 +705,359 @@ chasseOverlay.addEventListener('click', function(e){
 if(chasseJeu) chasseJeu.addEventListener('change', majMethodesDisponibles);
 // Changer de méthode ne change pas les bonus proposés, mais bien le taux.
 if(chasseMethode) chasseMethode.addEventListener('change', majTauxAffiche);
+
+// ---- Le tableau de chasse ---------------------------------------------------
+//
+// Une chasse aboutie disparaissait entièrement : le compteur, la durée, la
+// méthode partaient avec la fenêtre de félicitations. C'est pourtant la seule
+// chose qu'un chasseur relit — et probabiliteCumulee() calculait déjà tout ce
+// qu'il faut pour en tirer un chiffre honnête.
+//
+// LE RAPPORT À LA MOYENNE. Une chasse suit une loi géométrique : son espérance
+// est exactement le taux. On compare donc la somme des rencontres à la somme
+// des taux — 0,7 × veut dire qu'on a mis 30 % de rencontres en moins que ce que
+// la moyenne demandait. Ce rapport n'a de sens qu'à partir de quelques chasses :
+// sur une seule, il ne dit rien de plus que le compteur lui-même.
+const TABLEAU_MIN_POUR_CHANCE = 3;
+const TABLEAU_LIGNES = 8;
+
+const chasseTableau = document.getElementById('chasseTableau');
+const tableauTitre = document.getElementById('tableauTitre');
+
+function chiffreTableau(valeur, libelle, note){
+  const bloc = document.createElement('div');
+  bloc.className = 'tableau-chiffre';
+  const v = document.createElement('b');
+  v.textContent = valeur;
+  const l = document.createElement('span');
+  l.textContent = libelle;
+  bloc.appendChild(v);
+  bloc.appendChild(l);
+  if(note) bloc.title = note;
+  return bloc;
+}
+
+function dessinerTableauChasse(){
+  if(!chasseTableau) return;
+  const vide = !chassesFinies.length;
+  chasseTableau.hidden = vide;
+  if(tableauTitre) tableauTitre.hidden = vide;
+  if(vide){ chasseTableau.innerHTML = ''; return; }
+
+  const total = chassesFinies.reduce(function(n, c){ return n + (c.compteur || 0); }, 0);
+  // Les chasses sans taux connu — une méthode retirée depuis, un import venu
+  // d'ailleurs — sortent du rapport plutôt que d'y compter pour zéro.
+  const chiffrables = chassesFinies.filter(function(c){ return c.taux > 0; });
+  const attendu = chiffrables.reduce(function(n, c){ return n + c.taux; }, 0);
+  const vecu = chiffrables.reduce(function(n, c){ return n + (c.compteur || 0); }, 0);
+  const plusLongue = chassesFinies.reduce(function(a, b){
+    return (b.compteur || 0) > (a.compteur || 0) ? b : a; });
+  const plusCourte = chassesFinies.reduce(function(a, b){
+    return (b.compteur || 0) < (a.compteur || 0) ? b : a; });
+
+  chasseTableau.innerHTML = '';
+
+  const chiffres = document.createElement('div');
+  chiffres.className = 'tableau-chiffres';
+  chiffres.appendChild(chiffreTableau(
+    String(chassesFinies.length),
+    chassesFinies.length > 1 ? 'chromatiques trouvés' : 'chromatique trouvé'));
+  chiffres.appendChild(chiffreTableau(
+    total.toLocaleString('fr-FR'), 'rencontres en tout'));
+  chiffres.appendChild(chiffreTableau(
+    (plusLongue.compteur || 0).toLocaleString('fr-FR'), 'la plus longue',
+    nomDeChasse(plusLongue)));
+  if(chassesFinies.length > 1){
+    chiffres.appendChild(chiffreTableau(
+      (plusCourte.compteur || 0).toLocaleString('fr-FR'), 'la plus courte',
+      nomDeChasse(plusCourte)));
+  }
+  if(chiffrables.length >= TABLEAU_MIN_POUR_CHANCE && attendu > 0){
+    const rapport = vecu / attendu;
+    const bloc = chiffreTableau(
+      '×' + rapport.toFixed(2).replace('.', ','),
+      rapport < 1 ? 'de la moyenne — chanceux' : 'de la moyenne',
+      'La somme de tes rencontres, divisée par la somme des taux. Une chasse '
+      + 'demande en moyenne autant de rencontres que son taux : sous 1, tu as '
+      + 'mis moins que la moyenne. Calculé sur ' + chiffrables.length + ' chasses.');
+    bloc.classList.add(rapport < 1 ? 'chanceux' : 'malchanceux');
+    chiffres.appendChild(bloc);
+  }
+  chasseTableau.appendChild(chiffres);
+
+  // Les dernières, de la plus récente à la plus ancienne.
+  const liste = document.createElement('div');
+  liste.className = 'tableau-liste';
+  chassesFinies.slice().reverse().slice(0, TABLEAU_LIGNES).forEach(function(c){
+    const ligne = document.createElement('div');
+    ligne.className = 'tableau-ligne';
+
+    const e = entreeDeChasse(c);
+    const cadre = document.createElement('span');
+    cadre.className = 'tableau-sprite';
+    if(e){
+      const img = document.createElement('img');
+      img.src = pokeosHomeUrl(e.id, true);
+      img.alt = '';
+      img.loading = 'lazy';
+      img.addEventListener('error', function(){ img.src = officialArtworkUrl(e.id, true); });
+      cadre.appendChild(img);
+    }
+    ligne.appendChild(cadre);
+
+    const nom = document.createElement('span');
+    nom.className = 'tableau-nom';
+    nom.textContent = nomDeChasse(c);
+    ligne.appendChild(nom);
+
+    const meta = document.createElement('span');
+    meta.className = 'tableau-meta';
+    const m = METHODES[c.methode];
+    meta.textContent = (gameByKey[c.dex] ? gameByKey[c.dex].tab : '🏡 Pokémon HOME')
+      + '  ·  ' + (m ? m.nom : c.methode)
+      + (c.taux ? '  ·  1/' + Math.round(c.taux) : '');
+    ligne.appendChild(meta);
+
+    const n = document.createElement('span');
+    n.className = 'tableau-compteur';
+    n.textContent = (c.compteur || 0).toLocaleString('fr-FR');
+    n.title = c.fin ? 'Trouvé ' + depuisQuand(c.fin) : '';
+    ligne.appendChild(n);
+
+    liste.appendChild(ligne);
+  });
+  chasseTableau.appendChild(liste);
+
+  if(chassesFinies.length > TABLEAU_LIGNES){
+    const reste = document.createElement('p');
+    reste.className = 'tableau-reste';
+    reste.textContent = 'et ' + (chassesFinies.length - TABLEAU_LIGNES)
+      + ' de plus, plus anciennes.';
+    chasseTableau.appendChild(reste);
+  }
+}
+
+// ---- Le clavier -------------------------------------------------------------
+//
+// Un compteur se frappe cent fois par heure, la manette dans l'autre main.
+// Aller chercher un bouton de trente-quatre pixels à la souris entre deux
+// rencontres est exactement ce qu'on ne veut pas faire.
+//
+// UNE CHASSE ACTIVE. Avec plusieurs chasses ouvertes, « +1 » doit savoir
+// laquelle. La première l'est par défaut ; un clic sur une carte la désigne, et
+// la carte le montre. Sans cela la touche agirait sur une chasse au hasard —
+// et un compteur faussé ne se répare pas, on ne sait plus où il en était.
+let chasseActive = null;
+
+function chasseActiveOuPremiere(){
+  if(chasseActive && chasses.indexOf(chasseActive) !== -1) return chasseActive;
+  return chasses[0] || null;
+}
+
+function choisirChasseActive(c){
+  chasseActive = c;
+  dessinerChasses();
+}
+
+const chasseClavier = document.getElementById('chasseClavier');
+
+function majLigneClavier(){
+  if(!chasseClavier) return;
+  const c = chasseActiveOuPremiere();
+  chasseClavier.hidden = !c;
+  if(!c) return;
+  chasseClavier.innerHTML = '<b>Espace</b> +1  ·  <b>Retour arrière</b> −1  ·  '
+    + '<b>Entrée</b> trouvé  —  sur <b>' + escapeHtml(nomDeChasse(c)) + '</b>'
+    + (raccourcisGlobaux
+        ? '<br><b>Ctrl+Alt+↑</b> et <b>Ctrl+Alt+↓</b> comptent même fenêtre '
+          + 'en arrière-plan, pendant que tu joues.'
+        : '')
+    + (chasses.length > 1 ? '  <i>(clique une autre carte pour la viser)</i>' : '');
+}
+
+function compterAuClavier(pas){
+  const c = chasseActiveOuPremiere();
+  if(!c) return;
+  c.compteur = Math.max(0, (c.compteur || 0) + pas);
+  chasseActive = c;
+  enregistrerChasses();
+}
+
+document.addEventListener('keydown', function(e){
+  if(currentPage !== 'chasse') return;
+  if(e.ctrlKey || e.altKey || e.metaKey) return;
+  // Pas pendant qu'on écrit, ni derrière une modale : celle de création a son
+  // propre champ de recherche, et l'espace y est un espace.
+  const ou = document.activeElement;
+  const nom = ou && ou.tagName;
+  if(nom === 'INPUT' || nom === 'TEXTAREA' || nom === 'SELECT'
+     || (ou && ou.isContentEditable)) return;
+  if(document.querySelector('.modal-overlay[style*="flex"]')) return;
+  if(!chasseActiveOuPremiere()) return;
+
+  if(e.key === ' ' || e.code === 'Space'){ e.preventDefault(); compterAuClavier(1); return; }
+  if(e.key === 'Backspace'){ e.preventDefault(); compterAuClavier(-1); return; }
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    conclureChasse(chasseActiveOuPremiere());
+  }
+});
+
+// ---- L'overlay OBS -----------------------------------------------------------
+//
+// Une page servie en local, à coller en source navigateur dans OBS : le sprite,
+// le compteur, le taux et la probabilité cumulée, sur fond transparent.
+//
+// C'EST UNE PETITE FONCTION TRÈS VISIBLE. Chaque diffusion devient une
+// démonstration de l'application, et PokéPC cite le cas nommément — « if you
+// are also a streamer ». L'infrastructure était déjà là : l'écoute locale qui
+// reçoit le retour de connexion Discord se sert de la même bibliothèque.
+//
+// RÉSERVÉ À L'APPLICATION DE BUREAU. Un navigateur ne peut pas ouvrir de port,
+// et il ne le doit pas. Le bouton reste caché sur le site plutôt que d'y
+// proposer quelque chose qui échouerait.
+
+const overlayBtn = document.getElementById('overlayBtn');
+const overlayEtat = document.getElementById('overlayEtat');
+let overlayAdresse = '';
+
+function overlayPossible(){
+  // window.PONT_WEB n'existe que sur le site : sa présence dit qu'on n'est pas
+  // dans Tauri, quand bien même window.__TAURI__ est là — le pont le pose.
+  return !!(window.__TAURI__ && !window.PONT_WEB);
+}
+
+function majBoutonOverlay(){
+  if(!overlayBtn) return;
+  overlayBtn.hidden = !overlayPossible();
+  if(overlayBtn.hidden) return;
+  overlayBtn.textContent = overlayAdresse ? '📺 Arrêter l\'overlay' : '📺 Overlay OBS';
+  overlayBtn.setAttribute('aria-pressed', String(!!overlayAdresse));
+  if(overlayEtat){
+    overlayEtat.textContent = overlayAdresse
+      ? 'Source navigateur dans OBS : ' + overlayAdresse
+      : '';
+  }
+}
+
+/**
+ * Ce que l'overlay doit afficher : la chasse visée, ou rien.
+ *
+ * Poussé à chaque dessin de la page. Ce n'est pas un gaspillage : l'appel est
+ * local, il ne fait que déposer une chaîne dans un Mutex, et c'est ce qui
+ * garantit que l'overlay ne montre jamais un compteur d'il y a trois clics.
+ */
+function pousserOverlay(){
+  if(!overlayAdresse || !overlayPossible()) return;
+  const c = (typeof chasseActiveOuPremiere === 'function') ? chasseActiveOuPremiere() : null;
+  if(!c){
+    invoke('overlay_etat', { etat: { actif: false } }).catch(function(){});
+    return;
+  }
+  const taux = tauxDeChasse(c.methode, c.dex, c.bonus);
+  const e = entreeDeChasse(c);
+  const methode = METHODES[c.methode] || METHODES['autre'];
+  const coches = (c.bonus || []).filter(function(b){ return estPourCeJeu(BONUS[b], c.dex); })
+    .map(function(b){ return BONUS[b].nom; });
+
+  invoke('overlay_etat', {
+    etat: {
+      actif: true,
+      nom: nomDeChasse(c),
+      // Le sprite chromatique : c'est ce qu'on cherche, et c'est ce que le
+      // spectateur veut voir tomber.
+      sprite: e ? pokeosHomeUrl(e.id, true) : '',
+      compteur: c.compteur || 0,
+      meta: (gameByKey[c.dex] ? gameByKey[c.dex].tab : '🏡 Pokémon HOME')
+        + '  ·  ' + methode.nom
+        + (coches.length ? '  +  ' + coches.join(' + ') : '')
+        + (taux ? '  ·  1/' + Math.round(taux) : ''),
+      chance: probabiliteCumulee(c.compteur, taux)
+    }
+  }).catch(function(){});
+}
+
+async function basculerOverlay(){
+  if(!overlayBtn) return;
+  overlayBtn.disabled = true;
+  try{
+    if(overlayAdresse){
+      await invoke('overlay_arreter');
+      overlayAdresse = '';
+      majBoutonOverlay();
+      return;
+    }
+    overlayAdresse = await invoke('overlay_demarrer');
+    majBoutonOverlay();
+    pousserOverlay();
+
+    // L'adresse se recopie à la main dans OBS : on la met dans le
+    // presse-papiers ET on l'affiche, parce qu'un presse-papiers silencieux
+    // laisse croire qu'il ne s'est rien passé.
+    let copiee = false;
+    try{
+      await navigator.clipboard.writeText(overlayAdresse);
+      copiee = true;
+    }catch(e){ /* refusé : l'adresse reste lisible à l'écran */ }
+
+    await prevenir({
+      eyebrow: 'Overlay OBS',
+      genre: 'succes',
+      titre: 'L\'overlay est en ligne',
+      resume: [{ cle: 'adresse', valeur: overlayAdresse }],
+      note: (copiee ? 'Elle est déjà dans ton presse-papiers. ' : '')
+        + 'Dans OBS : Sources → + → Navigateur, colle cette adresse, et coche '
+        + '« Rafraîchir le navigateur quand la scène devient active ». Le fond '
+        + 'est transparent, il n\'y a rien à découper. Elle n\'écoute que sur '
+        + 'cette machine, et s\'éteint quand tu fermes PokéArchive.',
+      libelleAction: 'Compris'
+    });
+  }catch(e){
+    overlayAdresse = '';
+    majBoutonOverlay();
+    prevenirErreur('L\'overlay n\'a pas pu démarrer', String(e));
+  }finally{
+    overlayBtn.disabled = false;
+  }
+}
+
+// ---- Le raccourci global -----------------------------------------------------
+//
+// Rust émet « chasse-pas » avec 1 ou −1 ; l'interface décide ce que ça veut
+// dire — quelle chasse, et quoi enregistrer. Voir poser_raccourcis() dans
+// lib.rs.
+//
+// LE POINT DE TOUT CECI est que la fenêtre n'a pas besoin d'être au premier
+// plan : c'est le jeu qui l'est pendant qu'on chasse. Un raccourci de fenêtre
+// ne servirait que pendant les pauses.
+let raccourcisGlobaux = false;
+
+(function(){
+  const T = window.__TAURI__;
+  // Le site n'a pas d'événements Tauri : window.PONT_WEB le dit, et .event
+  // manque de toute façon. On se tait plutôt que d'échouer bruyamment.
+  if(!T || !T.event || window.PONT_WEB) return;
+  try{
+    T.event.listen('chasse-pas', function(e){
+      const pas = Number(e && e.payload) || 0;
+      if(pas && typeof compterAuClavier === 'function') compterAuClavier(pas);
+    });
+    raccourcisGlobaux = true;
+  }catch(e){
+    console.warn('Raccourcis globaux indisponibles :', e);
+  }
+})();
+
+if(overlayBtn) overlayBtn.addEventListener('click', basculerOverlay);
+
+// À l'ouverture : le serveur tourne peut-être déjà — on a pu changer d'onglet
+// entre-temps. Sans cette relecture, le bouton proposait de démarrer une
+// écoute déjà ouverte.
+if(overlayPossible()){
+  invoke('overlay_adresse').then(function(a){
+    overlayAdresse = a || '';
+    majBoutonOverlay();
+  }).catch(function(){ majBoutonOverlay(); });
+} else {
+  majBoutonOverlay();
+}

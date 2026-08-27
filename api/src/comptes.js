@@ -684,6 +684,321 @@ export async function exporter(dresseurId) {
   };
 }
 
+
+
+// --- La rarete ---------------------------------------------------------------
+//
+// Le classement ne compte QUE le nombre. Il ne dit rien de la rarete : avoir un
+// Mew et avoir un Roucool y pesent pareil, ce qui est faux pour tout le monde
+// sauf pour le compteur.
+//
+// Or la base sait deja repondre : il suffit de compter, entree par entree,
+// combien de dresseurs la possedent. Une seule lecture, et trois ecrans y
+// gagnent — la fiche (« 3 dresseurs sur 240 l'ont »), un tri « mes pieces
+// rares », et un classement qui recompense autre chose que la quantite.
+//
+// QUELLES COLLECTIONS COMPTENT. Celles qui sont deja publiques, et une par
+// dresseur : son aventure principale. C'est exactement la regle du classement,
+// et la reprendre evite deux verites differentes sur la meme page. Personne
+// n'apparait dans ce calcul sans y etre deja.
+//
+// POURQUOI UN CACHE, ET POURQUOI DOUZE HEURES. Le dex est un bloc JSON, pas des
+// lignes : compter demande de relire chaque collection. C'est peu couteux a
+// vingt joueurs et deraisonnable a chaque ouverture de fiche. Douze heures
+// suffisent — une rarete ne bouge pas dans la journee, et personne ne regarde
+// ce chiffre pour le voir changer.
+
+const RARETE_TTL = 12 * 3600_000;
+const RARETE_MAX_DEX = 2000;
+
+let rareteCache = { quand: 0, valeur: null };
+
+/** Tous les noms d'un dex, sans doublon — racine et Pokedex de jeux confondus. */
+function nomsDuDex(donnees) {
+  const vus = new Set();
+  const ajouter = (l) => { for (const n of l || []) vus.add(String(n)); };
+  ajouter(donnees.captures || donnees.caught);
+  const parJeu = donnees.dex || {};
+  for (const cle of Object.keys(parJeu)) ajouter(parJeu[cle]?.caught);
+  return vus;
+}
+
+export async function rarete() {
+  if (rareteCache.valeur && Date.now() - rareteCache.quand < RARETE_TTL) {
+    return rareteCache.valeur;
+  }
+
+  const lignes = await lire(
+    `SELECT x.donnees FROM pa_dex x
+       JOIN pa_profils p ON p.id = x.profil_id
+       JOIN pa_dresseurs d ON d.id = p.dresseur_id
+      WHERE p.public = 1 AND p.par_defaut = 1 AND d.visible = 1
+      LIMIT ${RARETE_MAX_DEX}`);
+
+  const compte = Object.create(null);
+  let dresseurs = 0;
+  for (const l of lignes) {
+    let donnees;
+    try { donnees = JSON.parse(l.donnees); } catch { continue; }
+    if (!donnees || typeof donnees !== 'object') continue;
+    dresseurs++;
+    for (const nom of nomsDuDex(donnees)) {
+      compte[nom] = (compte[nom] || 0) + 1;
+    }
+  }
+
+  // Sous cinq dresseurs, le chiffre ne dit rien : « 1 sur 2 » n'est pas une
+  // rarete, c'est un hasard. On rend alors un ensemble vide, et l'application
+  // n'affiche rien plutot que d'annoncer une statistique qui n'en est pas une.
+  const valeur = dresseurs >= 5
+    ? { dresseurs, entrees: compte, calculeLe: horodatage() }
+    : { dresseurs, entrees: {}, calculeLe: horodatage(),
+        note: 'Trop peu de collections publiques pour en tirer une rareté.' };
+
+  rareteCache = { quand: Date.now(), valeur };
+  return valeur;
+}
+
+// --- Relire une sauvegarde ---------------------------------------------------
+//
+// C'est la piece qui manquait. « pokearchive-1 » etait produit des deux cotes —
+// par l'application et par le site — et relu par aucun : le site et
+// l'application ne pouvaient pas se rejoindre, un vidage de navigateur effacait
+// tout sans recours, et quiconque venait d'ailleurs devait recocher neuf cents
+// cases a la main. Personne ne le fait.
+//
+// LA REGLE DE FUSION, telle que site/LISEZMOI.md la specifie :
+//
+//   · LE DEX SE REUNIT, il ne se remplace pas. Cocher est monotone : on ajoute
+//     des captures, on n'en retire pratiquement jamais. L'union des deux cotes
+//     est presque toujours la bonne reponse. Un decochage volontaire serait
+//     perdu par cette regle — c'est un choix assume : perdre une correction se
+//     repare en deux clics, perdre trois mois de cochage ne se repare pas.
+//
+//   · L'HISTORIQUE SE DEDOUBLONNE sur (pokemon, dex, chromatique, ajoute_le).
+//     Deux fois la meme capture le meme jour dans le meme jeu est la meme
+//     capture. C'est ce qui rend l'import REJOUABLE : importer deux fois le
+//     meme fichier ne double pas le journal.
+//
+//   · MAJ_LE DEPARTAGE ce qui ne se reunit pas — le nom d'une aventure, son
+//     mode, son niveau de formes. La le plus recent gagne.
+//
+// L'IMPORT N'ECRIT PAS PAR ecrireDex(), et c'est volontaire : celui-ci
+// journalise la difference a la date du jour. Un import porte ses propres
+// dates, et les faire toutes tomber aujourd'hui effacerait justement ce que le
+// fichier avait garde.
+
+// Un fichier peut porter des annees de journal. On borne, sans quoi une
+// sauvegarde forgee ferait ecrire un million de lignes.
+const IMPORT_MAX_LIGNES = 20_000;
+const IMPORT_MAX_AVENTURES = 20;
+
+/** L'union de deux dex, dans la forme de la sauvegarde. */
+function reunirDex(ancien, nouveau) {
+  const sortie = { ...(ancien || {}) };
+  const listes = (o, cle) => (Array.isArray(o?.[cle]) ? o[cle] : []);
+
+  // Les deux listes historiques de la racine : elles alimentent la collection
+  // Pokemon HOME dans les vieux exports, et des applications plus anciennes
+  // les relisent encore.
+  for (const cle of ['captures', 'caught', 'shiny']) {
+    const reunion = new Set([...listes(ancien, cle), ...listes(nouveau, cle)]);
+    if (reunion.size) sortie[cle] = [...reunion];
+  }
+
+  const parJeu = { ...(ancien?.dex || {}) };
+  for (const jeu of Object.keys(nouveau?.dex || {})) {
+    const a = parJeu[jeu] || {};
+    const b = nouveau.dex[jeu] || {};
+    parJeu[jeu] = {
+      caught: [...new Set([...listes(a, 'caught'), ...listes(b, 'caught')])],
+      shiny: [...new Set([...listes(a, 'shiny'), ...listes(b, 'shiny')])],
+    };
+  }
+  if (Object.keys(parJeu).length) sortie.dex = parJeu;
+
+  // Les chasses ne se reunissent pas ligne a ligne : ce sont des compteurs, et
+  // additionner deux compteurs de la meme chasse donnerait un nombre faux. On
+  // garde celles du cote qui en a le plus — c'est le plus avance des deux.
+  const chassesA = Array.isArray(ancien?.chasses) ? ancien.chasses : [];
+  const chassesB = Array.isArray(nouveau?.chasses) ? nouveau.chasses : [];
+  sortie.chasses = chassesB.length > chassesA.length ? chassesB : chassesA;
+
+  // Les fiches de capture se reunissent par cle, et LA VALEUR EXISTANTE GAGNE.
+  // C'est la meme regle que le dex : un import ajoute, il n'ecrase pas. Une
+  // Ball notee ici et une autre dans le fichier ne se departagent pas — on
+  // garde celle qui etait deja la, et l'autre n'est pas perdue puisque le
+  // fichier, lui, existe toujours.
+  const details = { ...(nouveau?.detailsCapture || {}) };
+  for (const jeu of Object.keys(ancien?.detailsCapture || {})) {
+    details[jeu] = { ...(details[jeu] || {}), ...ancien.detailsCapture[jeu] };
+  }
+  if (Object.keys(details).length) sortie.detailsCapture = details;
+
+  // Les chasses ABOUTIES, elles, se reunissent : chacune est un evenement
+  // date, pas un compteur. On dedoublonne sur (pokemon, dex, fin).
+  const finies = new Map();
+  for (const c of [...(ancien?.chassesFinies || []), ...(nouveau?.chassesFinies || [])]) {
+    if (!c || typeof c !== 'object') continue;
+    finies.set(`${c.pokemon}|${c.dex}|${c.fin}`, c);
+  }
+  if (finies.size) sortie.chassesFinies = [...finies.values()];
+
+  return sortie;
+}
+
+/** Une ligne de journal venue d'un fichier, ramenee a ce que la base accepte. */
+function ligneImportable(l) {
+  if (!l || typeof l !== 'object') return null;
+  const pokemon = String(l.pokemon || '').slice(0, 64);
+  const dex = String(l.dex || '').slice(0, 32);
+  const quand = String(l.ajoute_le || l.ajouteLe || '').slice(0, 64);
+  if (!pokemon || !dex || !quand) return null;
+  return { pokemon, dex, chromatique: l.chromatique ? 1 : 0, quand };
+}
+
+/**
+ * Verse le contenu d'un fichier « pokearchive-1 » dans le compte.
+ *
+ * Rend le detail de ce qui s'est passe, aventure par aventure : un import qui
+ * annonce seulement « termine » ne dit pas si le fichier a servi a quelque
+ * chose, et c'est la premiere question qu'on se pose.
+ */
+export async function importer(dresseurId, contenu) {
+  if (!contenu || typeof contenu !== 'object' || Array.isArray(contenu)) {
+    throw new ErreurCompte('Fichier illisible.');
+  }
+  if (contenu.format !== 'pokearchive-1') {
+    throw new ErreurCompte(
+      'Ce fichier n\'est pas une sauvegarde PokéArchive (format « pokearchive-1 » attendu).');
+  }
+  const aventures = Array.isArray(contenu.aventures) ? contenu.aventures : [];
+  if (!aventures.length) throw new ErreurCompte('Ce fichier ne contient aucune aventure.');
+  if (aventures.length > IMPORT_MAX_AVENTURES) {
+    throw new ErreurCompte(`Ce fichier contient ${aventures.length} aventures : c'est trop.`);
+  }
+
+  const existants = await lire(
+    'SELECT id, nom, nom_cle, mode, niveau_formes, maj_le FROM pa_profils WHERE dresseur_id = ?',
+    [dresseurId]);
+  const parCle = new Map(existants.map((p) => [p.nom_cle, p]));
+  let combien = existants.length;
+
+  const maintenant = horodatage();
+  const detail = [];
+
+  for (const a of aventures) {
+    if (!a || typeof a !== 'object') continue;
+
+    // Un nom refuse ne doit pas faire echouer l'import entier : on le repli
+    // sur un nom neutre plutot que de perdre le dex qui va avec.
+    let nom;
+    try { nom = nettoyerNomProfil(a.nom); }
+    catch { nom = `Import ${detail.length + 1}`; }
+    const cle = normaliser(nom);
+
+    let cible = parCle.get(cle);
+    let creee = false;
+
+    if (!cible) {
+      if (combien >= IMPORT_MAX_AVENTURES) {
+        detail.push({ nom, ignoree: 'Vingt aventures suffisent : celle-ci n\'a pas été créée.' });
+        continue;
+      }
+      const r = await ecrire(
+        `INSERT INTO pa_profils
+           (dresseur_id, nom, nom_cle, public, par_defaut, mode, niveau_formes, cree_le, maj_le)
+         VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?)`,
+        // Jamais par defaut d'office : une aventure importee ne doit pas
+        // prendre la place de celle qu'on est en train de jouer. Sauf s'il n'y
+        // en avait aucune — il en faut bien une.
+        [dresseurId, nom, cle, combien === 0 ? 1 : 0,
+         modeValide(a.mode), niveauValide(a.niveau_formes),
+         String(a.cree_le || maintenant).slice(0, 64), maintenant]);
+      cible = { id: r.insertId, nom, nom_cle: cle,
+                mode: modeValide(a.mode), niveau_formes: niveauValide(a.niveau_formes),
+                maj_le: null };
+      parCle.set(cle, cible);
+      combien++;
+      creee = true;
+    } else if (a.maj_le && (!cible.maj_le || String(a.maj_le) > String(cible.maj_le))) {
+      // Le fichier est plus recent : c'est lui qui dit le mode et le niveau.
+      await ecrire('UPDATE pa_profils SET mode = ?, niveau_formes = ? WHERE id = ?',
+        [modeValide(a.mode), niveauValide(a.niveau_formes), cible.id]);
+    }
+
+    // --- Le dex : l'union ---
+    let precedent = null;
+    const ligne = await une('SELECT donnees FROM pa_dex WHERE profil_id = ?', [cible.id]);
+    if (ligne) { try { precedent = JSON.parse(ligne.donnees); } catch { precedent = null; } }
+
+    const avant = compterEspeces(precedent || {}, 'caught');
+    const reuni = reunirDex(precedent, a.dex);
+    const captures = compterEspeces(reuni, 'caught');
+    const shiny = compterEspeces(reuni, 'shiny');
+
+    const brut = JSON.stringify(reuni);
+    if (brut.length > TAILLE_MAX_DEX) {
+      throw new ErreurCompte(`L'aventure « ${nom} » dépasse la taille maximale une fois fusionnée.`, 413);
+    }
+    await ecrire(
+      `INSERT INTO pa_dex (profil_id, dresseur_id, donnees, captures, shiny, maj_le)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE donnees = VALUES(donnees), captures = VALUES(captures),
+         shiny = VALUES(shiny), maj_le = VALUES(maj_le)`,
+      [cible.id, dresseurId, brut, captures, shiny, maintenant]);
+    await ecrire('UPDATE pa_profils SET maj_le = ? WHERE id = ?', [maintenant, cible.id]);
+
+    // --- Le journal : dedoublonne sur les quatre colonnes ---
+    let journalisees = 0;
+    const brutes = Array.isArray(a.historique) ? a.historique.slice(0, IMPORT_MAX_LIGNES) : [];
+    if (brutes.length) {
+      const deja = new Set((await lire(
+        'SELECT pokemon, dex, chromatique, ajoute_le FROM pa_historique WHERE profil_id = ?',
+        [cible.id])).map((l) => `${l.pokemon}|${l.dex}|${l.chromatique}|${l.ajoute_le}`));
+
+      const aEcrire = [];
+      for (const b of brutes) {
+        const l = ligneImportable(b);
+        if (!l) continue;
+        const empreinte = `${l.pokemon}|${l.dex}|${l.chromatique}|${l.quand}`;
+        if (deja.has(empreinte)) continue;
+        deja.add(empreinte);      // le fichier peut aussi se repeter lui-meme
+        aEcrire.push(l);
+      }
+
+      // Par lots : une seule requete de vingt mille lignes depasse la taille de
+      // paquet que MySQL accepte par defaut.
+      const LOT = 500;
+      for (let i = 0; i < aEcrire.length; i += LOT) {
+        const lot = aEcrire.slice(i, i + LOT);
+        const valeurs = lot.map(() => '(?, ?, ?, ?, ?)').join(', ');
+        const params = [];
+        for (const l of lot) params.push(cible.id, l.pokemon, l.dex, l.chromatique, l.quand);
+        await ecrire(
+          `INSERT INTO pa_historique (profil_id, pokemon, dex, chromatique, ajoute_le)
+           VALUES ${valeurs}`, params);
+      }
+      journalisees = aEcrire.length;
+    }
+
+    detail.push({
+      nom, creee, captures, shiny,
+      gagnees: Math.max(0, captures - avant),
+      journalisees,
+    });
+  }
+
+  return {
+    ok: true,
+    aventures: detail.length,
+    creees: detail.filter((d) => d.creee).length,
+    gagnees: detail.reduce((n, d) => n + (d.gagnees || 0), 0),
+    journalisees: detail.reduce((n, d) => n + (d.journalisees || 0), 0),
+    detail,
+  };
+}
+
 // --- Les sessions ouvertes --------------------------------------------------
 
 /**

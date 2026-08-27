@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PokéArchive — jeu d'essai</title>
+<link rel="stylesheet" href="css/polices.css">
+<style>
+/* Cette page ne charge PAS les feuilles de l'application : elle vit à côté,
+   pas dedans, et une page d'outil n'a pas à hériter du décor du boîtier. On
+   reprend seulement les jetons — c'est le même produit. */
+:root{
+  --dex-red:#8e2b2b; --dex-red-deep:#671b1b;
+  --ink:#e8e9f0; --ink-soft:#a0a4b4; --ink-faint:#6e7385;
+  --screen:#12141b; --card:#1b1e26; --bord:#2b2f3d;
+  --caught:#3fae74; --gold:#e0a63a; --danger:#e4665a;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; padding:40px 20px 70px; background:var(--screen); color:var(--ink);
+  font-family:"Outfit",-apple-system,"Segoe UI",sans-serif; line-height:1.6;
+}
+.boite{max-width:720px; margin:0 auto}
+.sur{font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--dex-red); margin:0 0 10px}
+h1{font-size:32px; letter-spacing:-.02em; margin:0 0 12px}
+p{color:var(--ink-soft); margin:0 0 14px}
+b{color:var(--ink)}
+.carte{background:var(--card); border:1px solid var(--bord); border-radius:12px;
+  padding:20px 22px; margin:22px 0}
+.carte h2{font-size:15px; margin:0 0 12px}
+ul{margin:0; padding-left:19px; color:var(--ink-soft); font-size:14px}
+li{margin-bottom:5px}
+li b{color:var(--ink)}
+.actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:20px}
+button{
+  font-family:inherit; font-size:14px; font-weight:600; cursor:pointer;
+  border-radius:10px; padding:12px 20px; border:1px solid var(--bord);
+  background:var(--card); color:var(--ink);
+}
+button.primaire{background:var(--dex-red-deep); border-color:var(--dex-red-deep); color:#fff}
+button.primaire:hover{background:var(--dex-red)}
+button.danger{color:var(--danger); border-color:var(--danger)}
+button:hover{border-color:var(--gold)}
+button:focus-visible{outline:2px solid var(--gold); outline-offset:2px}
+.avert{
+  border-left:3px solid var(--gold); background:rgba(224,166,58,.07);
+  border-radius:0 10px 10px 0; padding:12px 16px; font-size:13.5px;
+}
+#etat{margin-top:18px; font-family:"JetBrains Mono",monospace; font-size:12.5px;
+  color:var(--caught); min-height:1.6em}
+#etat.raté{color:var(--danger)}
+a{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="boite">
+  <p class="sur">Version web · outil</p>
+  <h1>Un jeu d'essai</h1>
+  <p>De quoi <b>essayer l'application pour de vrai</b> sans passer trois heures à
+     cocher. Sans collection, la moitié des écrans n'affichent que leur état
+     vide : le programme du soir n'a rien à proposer, le tableau de chasse est
+     absent, les objectifs n'existent pas.</p>
+
+  <div class="carte">
+    <h2>Ce que le bouton écrit</h2>
+    <ul>
+      <li><b>Deux aventures</b> — « Aventure 1 » en Pokédex, « Living Dex » vide à côté</li>
+      <li><b>~150 Pokémon cochés</b>, répartis sur Écarlate/Violet, Épée/Bouclier,
+          Diamant Étincelant et la collection HOME — dont six chromatiques</li>
+      <li><b>Deux chasses en cours</b> — Griknot à 1 847 rencontres, Moumouton à 212</li>
+      <li><b>Trois chasses abouties</b>, de quoi remplir le tableau de chasse et
+          calculer ton rapport à la moyenne</li>
+      <li><b>Deux objectifs</b> — l'un terminé, l'autre à peine entamé</li>
+      <li><b>Deux fiches de capture</b> — Ronflex en Honor Ball, avec son ruban</li>
+      <li><b>Un journal</b> étalé sur trois mois, pour la rétrospective et les succès</li>
+    </ul>
+  </div>
+
+  <div class="avert">
+    <b>Ça remplace ce qu'il y a dans ce navigateur.</b> Si tu as déjà commencé
+    une vraie collection ici, télécharge-la d'abord depuis <b>Profil → Télécharger
+    mes données</b> : l'import saura la relire ensuite.
+  </div>
+
+  <div class="actions">
+    <button type="button" class="primaire" id="remplir">Remplir, puis ouvrir l'app</button>
+    <button type="button" id="ouvrir">Ouvrir l'app sans rien changer</button>
+    <button type="button" class="danger" id="vider">Tout effacer</button>
+  </div>
+  <p id="etat"></p>
+</div>
+
+<script>
+// La réserve du site, dans sa forme exacte — voir VIDE dans js/pont.js. Écrire
+// à côté du pont plutôt qu'à travers lui est assumé : cette page ne charge pas
+// l'application, et la faire tourner en entier pour poser un jeu d'essai
+// coûterait huit mégaoctets de scripts pour trois clés de localStorage.
+//
+// LE PRIX DE CE CHOIX : si la forme de la réserve change dans pont.js, elle
+// doit changer ici. C'est la seule chose à savoir avant d'y toucher.
+var CLE = 'pokearchive-site-v1';
+
+var SV = ['sprigatito','floragato','meowscarada','fuecoco','crocalor','skeledirge',
+  'quaxly','quaxwell','quaquaval','lechonk','tarountula','spidops','nymble','lokix',
+  'pawmi','pawmo','pawmot','tandemaus','fidough','dachsbun','smoliv','dolliv','arboliva',
+  'nacli','naclstack','garganacl','charcadet','armarouge','ceruledge','tadbulb',
+  'bellibolt','wattrel','kilowattrel','maschiff','mabosstiff','shroodle','grafaiai',
+  'bramblin','brambleghast','toedscool'];
+var SWSH = ['grookey','thwackey','rillaboom','scorbunny','raboot','cinderace','sobble',
+  'drizzile','inteleon','skwovet','greedent','rookidee','corvisquire','corviknight',
+  'blipbug','dottler','orbeetle','nickit','thievul','gossifleur','eldegoss','wooloo',
+  'dubwool','chewtle','drednaw','yamper','boltund','rolycoly','carkol','coalossal'];
+var BDSP = ['turtwig','grotle','torterra','chimchar','monferno','infernape','piplup',
+  'prinplup','empoleon','starly','staravia','staraptor','bidoof','bibarel','shinx',
+  'luxio','luxray'];
+var CLASSIQUES = ['bulbasaur','ivysaur','venusaur','charmander','charmeleon','charizard',
+  'squirtle','wartortle','blastoise','pikachu','raichu','eevee','vaporeon','jolteon',
+  'flareon','snorlax','dragonite','mew','mewtwo','lugia','ho-oh','celebi','rayquaza',
+  'giratina-altered','arceus','gengar','lucario','garchomp','tyranitar','metagross'];
+var SHINY = ['pikachu','eevee','celebi','garchomp','corviknight','arboliva'];
+
+function sansDoublon(l){
+  var vus = {}, out = [];
+  l.forEach(function(n){ if(!vus[n]){ vus[n] = 1; out.push(n); } });
+  return out;
+}
+var NATIONAL = sansDoublon([].concat(SV, SWSH, BDSP, CLASSIQUES));
+
+function jourMoins(n){
+  var d = new Date();
+  d.setDate(d.getDate() - n);
+  var p = function(x){ return String(x).padStart(2, '0'); };
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+
+/**
+ * Un journal étalé dans le temps.
+ *
+ * Il ne se déduit PAS du dex : la rétrospective compte des jours, les succès
+ * comptent des séries, et tout dater d'aujourd'hui donnerait « 150 captures en
+ * un jour » — un chiffre qui existe, mais qui ne raconte rien.
+ */
+function batirJournal(profilId){
+  var lignes = [], id = 0;
+  var lots = [
+    { noms: CLASSIQUES, dex: 'national', depuis: 92, sur: 70 },
+    { noms: BDSP,       dex: 'bdsp',     depuis: 54, sur: 30 },
+    { noms: SWSH,       dex: 'swsh',     depuis: 31, sur: 22 },
+    { noms: SV,         dex: 'sv',       depuis: 16, sur: 15 },
+  ];
+  lots.forEach(function(lot){
+    lot.noms.forEach(function(nom, i){
+      var recul = lot.depuis - Math.floor((i / lot.noms.length) * lot.sur);
+      lignes.push({ id: ++id, profilId: profilId, jour: jourMoins(recul),
+                    pokemon: nom, dex: lot.dex, chromatique: 0 });
+    });
+  });
+  SHINY.forEach(function(nom, i){
+    lignes.push({ id: ++id, profilId: profilId, jour: jourMoins(3 + i * 9),
+                  pokemon: nom, dex: 'national', chromatique: 1 });
+  });
+  return lignes;
+}
+
+function batir(){
+  var maintenant = new Date().toISOString();
+  var journal = batirJournal(1);
+  return {
+    dresseur: { pseudo: 'Dresseur' },
+    profils: [
+      { id: 1, nom: 'Aventure 1', public: 0, par_defaut: 1, mode: 'capture',
+        niveau_formes: 3, captures: NATIONAL.length, shiny: SHINY.length,
+        cree_le: new Date(Date.now() - 95 * 86400000).toISOString(), maj_le: maintenant },
+      { id: 2, nom: 'Living Dex', public: 0, par_defaut: 0, mode: 'living',
+        niveau_formes: 3, captures: 0, shiny: 0,
+        cree_le: new Date(Date.now() - 20 * 86400000).toISOString(), maj_le: null },
+    ],
+    dex: {
+      1: {
+        version: 1, player: 'Dresseur', exportedAt: maintenant,
+        dex: {
+          national: { caught: NATIONAL, shiny: SHINY },
+          sv:   { caught: SV,   shiny: ['arboliva'] },
+          swsh: { caught: SWSH, shiny: ['corviknight'] },
+          bdsp: { caught: BDSP, shiny: [] },
+        },
+        captures: NATIONAL, shiny: SHINY,
+        chasses: [
+          { pokemon: 'gible', dex: 'bdsp', methode: 'rencontre', bonus: ['charme'],
+            compteur: 1847, debut: new Date(Date.now() - 16 * 86400000).toISOString() },
+          { pokemon: 'wooloo', dex: 'swsh', methode: 'masuda', bonus: ['charme'],
+            compteur: 212, debut: new Date(Date.now() - 3 * 86400000).toISOString() },
+        ],
+        chassesFinies: [
+          { pokemon: 'pikachu', dex: 'swsh', methode: 'masuda', bonus: ['charme'],
+            compteur: 412, taux: 585, fin: jourMoins(64) + 'T21:12:00Z' },
+          { pokemon: 'eevee', dex: 'sv', methode: 'apparition', bonus: ['sandwich'],
+            compteur: 96, taux: 136, fin: jourMoins(38) + 'T23:40:00Z' },
+          { pokemon: 'corviknight', dex: 'swsh', methode: 'rencontre', bonus: [],
+            compteur: 5203, taux: 4096, fin: jourMoins(12) + 'T19:05:00Z' },
+        ],
+        objectifs: [
+          { id: 101, nom: 'Les starters de Paldea',
+            quoi: '🔮 Écarlate / Violet · « starter »', dex: 'sv', shiny: false,
+            entrees: SV.slice(0, 9), cree: jourMoins(50) + 'T10:00:00Z' },
+          { id: 102, nom: 'Mes légendes en brillant',
+            quoi: '🏡 Pokémon HOME · ✨ · « légendaire »', dex: 'national', shiny: true,
+            entrees: ['mew','mewtwo','lugia','ho-oh','celebi','rayquaza','arceus'],
+            cree: jourMoins(26) + 'T10:00:00Z' },
+        ],
+        detailsCapture: { national: {
+          snorlax: { ball: 'Honor Ball', nature: 'Relax', surnom: 'Gros Dodo',
+                     origine: 'Pokémon Cristal', date: '2001-04-14',
+                     ruban: 'Ruban Souvenir', ot: 'Dresseur',
+                     note: 'Le tout premier. Il a survécu à trois transferts.' },
+          celebi: { ball: 'Poké Ball', nature: 'Timide', origine: 'Pokémon Cristal',
+                    date: '2001-12-24', note: 'Distribution de Noël.' },
+        } },
+      },
+    },
+    journal: journal,
+    dernierId: 2,
+    dernierJournalId: journal.length,
+  };
+}
+
+function dire(texte, raté){
+  var e = document.getElementById('etat');
+  e.textContent = texte;
+  e.className = raté ? 'raté' : '';
+}
+
+document.getElementById('remplir').addEventListener('click', function(){
+  try{
+    var etat = batir();
+    localStorage.setItem(CLE, JSON.stringify(etat));
+    // Le premier lancement ne doit pas s'ouvrir par-dessus une collection déjà
+    // pleine : il ne s'affiche que sur une aventure unique et vide, mais la
+    // marque évite même la question.
+    localStorage.setItem('pokearchive-depart-fait', JSON.stringify(['Dresseur']));
+    dire('Écrit : ' + NATIONAL.length + ' entrées, ' + etat.journal.length
+       + ' lignes de journal. Ouverture…');
+    setTimeout(function(){ location.href = './'; }, 700);
+  }catch(e){
+    dire('Échec : ' + e + ' — navigation privée, ou stockage plein ?', true);
+  }
+});
+
+document.getElementById('ouvrir').addEventListener('click', function(){
+  location.href = './';
+});
+
+document.getElementById('vider').addEventListener('click', function(){
+  if(!confirm('Effacer la collection de ce navigateur ? Rien ne la récupère.')) return;
+  try{
+    localStorage.removeItem(CLE);
+    localStorage.removeItem('pokearchive-depart-fait');
+    dire('Effacé. L\'application repartira de zéro.');
+  }catch(e){
+    dire('Échec : ' + e, true);
+  }
+});
+</script>
+</body>
+</html>

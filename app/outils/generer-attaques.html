@@ -50,6 +50,8 @@
     </div>
     <button class="lang-btn" id="langBtn" type="button" aria-pressed="false"
             title="Afficher les noms de Pokémon en anglais">Français</button>
+    <button class="maj-btn" id="lexiqueBtn" type="button"
+            title="Lexique — ce que veulent dire les mots de l'écran">📖</button>
     <button class="maj-btn" id="nouveautesBtn" type="button"
             title="Changelogs — ce qui a changé">📋</button>
     <button class="maj-btn" id="majBtn" type="button"
@@ -69,8 +71,12 @@
         <button class="page-tab" type="button" data-page="amis">📣 Amis</button>
         <button class="page-tab" type="button" data-page="chasse">✨ Chasse</button>
         <button class="page-tab" type="button" data-page="cadeaux">🎁 Cadeau Mystère</button>
-        <button class="page-tab" type="button" data-page="strategie">⚔️ Stratégie</button>
-        <button class="page-tab" type="button" data-page="reproduction">🥚 Reproduction</button>
+        <!-- UN SEUL onglet pour trois écrans. À dix entrées la barre débordait
+             sur deux rangées, et c'est déjà ce qui avait fait sortir les jeux
+             de la nav. Stratégie, Reproduction et Transferts répondent à la
+             même question — « avant d'y aller, qu'est-ce que je dois savoir » —
+             et partagent donc une sous-barre. -->
+        <button class="page-tab" type="button" data-page="outils">🧰 Outils</button>
         <button class="page-tab" type="button" data-page="profil">🧑 Profil</button>
       </nav>
 
@@ -124,6 +130,18 @@
         <div class="home-section-title">À portée</div>
         <div class="a-portee" id="aPortee"></div>
 
+        <!-- Les objectifs sur mesure. Masqués tant qu'il n'y en a aucun :
+             un titre sans contenu ne dit rien et prend une rangée. -->
+        <div class="home-section-title" id="objectifsTitre" hidden>Tes objectifs</div>
+        <div class="objectifs" id="objectifsBloc" hidden></div>
+
+        <!-- « À portée » dit quel jeu est près de finir ; celui-ci dit quoi
+             attraper ce soir, et où. Tiré du relevé des lieux, tirage stable
+             dans la journée. Voir renderProgramme() dans accueil.js. -->
+        <div class="home-section-title">Le programme du soir</div>
+        <p class="programme-quoi" id="programmeQuoi"></p>
+        <div class="programme" id="programme"></div>
+
         <div class="home-section-title">Tes dernières captures</div>
         <div class="journal accueil-journal" id="accueilJournal"></div>
 
@@ -168,12 +186,17 @@
       </div>
 
       <div class="toolbar filters-row">
-        <input type="search" id="search" placeholder="Rechercher un Pokémon…" aria-label="Rechercher un Pokémon" autocomplete="off">
+        <input type="search" id="search"
+               placeholder="Un nom, un n°, « feu », « gen3 », « manquants »…"
+               aria-label="Rechercher : un nom, un numéro, un type, une génération, un état ou un mot-clé"
+               title="Se cumulent : un nom, un n° (national ou du jeu), un type (feu, eau…), une génération (gen3, kanto…), un état (manquants, capturés, shiny) et un mot-clé (légendaire, fabuleux, starter, fossile, méga, gigamax, alola, galar, hisui, paldea, shiny-lock). Tout mot inconnu cherche dans le nom."
+               autocomplete="off">
         <select id="sort" aria-label="Trier">
           <option value="game">Tri : N° du jeu</option>
           <option value="id">Tri : N° National</option>
           <option value="gen">Tri : Génération</option>
           <option value="name">Tri : Alphabétique</option>
+          <option value="rarete">Tri : Rareté</option>
         </select>
         <select id="filter" aria-label="Filtrer">
           <option value="all">Tout afficher</option>
@@ -206,19 +229,28 @@
         </select>
       </div>
 
+      <!-- Ce que la recherche a compris dans ce qu'on a tapé. Sans cette
+           ligne, un mot qui filtre en silence est indiscernable d'un mot
+           qui ne fait rien. Remplie par majJetonsRecherche(). -->
+      <p class="recherche-jetons" id="rechercheJetons" hidden></p>
+
       <!-- Ce que veulent dire les pastilles des cartes. Cachée hors du Pokédex
            d'un jeu : là, aucune carte n'en porte. -->
       <p class="obtention-legende" id="legendeObtention" hidden></p>
 
       <div class="toolbar modes-row">
-        <button class="toggle-btn" id="shinyView" type="button" aria-pressed="false">Vue ✨ shiny</button>
-        <select id="niveauFormes" aria-label="Niveau de formes"
+        <button class="toggle-btn" id="shinyView" type="button" aria-pressed="false" data-lexique="chromatique">Vue ✨ shiny</button>
+        <select id="niveauFormes" data-lexique="niveau-formes" aria-label="Niveau de formes"
                 title="Jusqu'où compter les formes d'une même espèce.">
           <option value="1">🧬 Une forme par espèce</option>
           <option value="2">🧬 Avec les régionales</option>
           <option value="3" selected>🧬 Avec les alternatives</option>
           <option value="4">🧬 Avec mâle / femelle</option>
         </select>
+        <button class="toggle-btn" id="objectifBtn" type="button"
+                title="Figer la sélection affichée en objectif nommé, avec sa propre jauge sur l'accueil.">🎯 En faire un objectif</button>
+        <button class="toggle-btn" id="boitesBtn" type="button" aria-pressed="false"
+                title="Ranger la grille en boîtes de trente, comme dans le jeu. En Living Dex, la question n'est pas « est-ce que je l'ai » mais « dans quelle boîte, quelle case ».">📦 Vue boîtes</button>
         <button class="toggle-btn" id="importCodeBtn" type="button"
                 title="Choisir un dresseur et confronter vos collections.">👥 Comparer</button>
         <button class="toggle-btn" id="legendeBtn" type="button" aria-pressed="false"
@@ -235,8 +267,19 @@
         </label>
       </div>
 
+      <!-- Un objectif ouvert : la grille est restreinte à sa liste figée, et
+           les menus n'en disent rien — c'est cette barre qui le dit. -->
+      <div class="compare-bar objectif-bar" id="objectifBarre" style="display:none;">
+        <span class="compare-label" id="objectifLabel"></span>
+        <button class="bulk-btn" id="objectifQuitter" type="button">Quitter l'objectif</button>
+      </div>
+
       <div class="compare-bar" id="compareBar" style="display:none;">
         <span class="compare-label" id="compareLabel"></span>
+        <!-- Le compte ci-contre dit COMBIEN ; celui-ci dit LESQUELS, ce qui
+             est la seule forme actionnable de la même information. -->
+        <button class="bulk-btn" id="echangeBtn" type="button"
+                title="La liste nommée de ce que vous pouvez vous apporter.">🤝 Entraide</button>
         <button class="bulk-btn" id="compareQuit" type="button">Quitter</button>
       </div>
 
@@ -245,6 +288,10 @@
         <button class="bulk-btn" id="bulkCheck" type="button">Tout coché</button>
         <button class="bulk-btn" id="bulkUncheck" type="button">Tout décoché</button>
       </div>
+
+      <!-- La navigation entre boîtes. Vide et masquée hors de la vue boîtes :
+           c'est renderBoites() qui la remplit. -->
+      <div class="boite-nav" id="boiteNav" hidden></div>
 
       <div class="grid" id="list" aria-live="polite">
         <div class="state-msg" id="state-msg">Connexion au PokéAPI…</div>
@@ -272,10 +319,23 @@
 
         <div class="chasse-depart">
           <button class="toggle-btn primary" id="chasseNouvelle" type="button">✨ Créer une chasse</button>
+          <!-- L'overlay OBS. Masqué sur le site : un navigateur ne peut pas
+               ouvrir d'écoute locale. Voir overlay.rs et chasse.js. -->
+          <button class="toggle-btn" id="overlayBtn" type="button" hidden
+                  title="Une page locale à coller en source navigateur dans OBS : le sprite, le compteur, le taux et la probabilité cumulée, sur fond transparent.">📺 Overlay OBS</button>
+          <span class="profil-bloc-etat" id="overlayEtat"></span>
         </div>
 
         <div class="chasse-resume" id="chasseResume"></div>
+        <!-- Les raccourcis : un compteur se frappe cent fois par heure, et la
+             souris n'est pas dans la main qui compte. Voir chasse.js. -->
+        <p class="chasse-clavier" id="chasseClavier" hidden></p>
         <div class="chasse-liste" id="chasseListe"></div>
+
+        <!-- Le tableau de chasse : ce que les chasses terminées racontent une
+             fois qu'elles ne sont plus en cours. Rempli par dessinerTableau(). -->
+        <div class="home-section-title" id="tableauTitre" hidden>Tableau de chasse</div>
+        <div class="chasse-tableau" id="chasseTableau" hidden></div>
       </section>
 
       <section class="page" id="page-cadeaux">
@@ -313,6 +373,26 @@
         </p>
       </section>
 
+      <!-- L'aide aux transferts. Ces règles dépendent du JEU et jamais de
+           l'espèce : les répéter sur mille deux cent quatre-vingt-une fiches
+           faisait relire vingt-deux fois la même chose. Voir js/transferts.js. -->
+      <section class="page" id="page-transferts">
+        <div class="outils-nav" role="tablist" aria-label="Outils">
+          <button class="outils-onglet" type="button" data-outils="strategie">⚔️ Stratégie</button>
+          <button class="outils-onglet" type="button" data-outils="reproduction">🥚 Reproduction</button>
+          <button class="outils-onglet active" type="button" data-outils="transferts">🚚 Transferts</button>
+        </div>
+        <div class="home-hero">
+          <div class="home-eyebrow">Remonter jusqu'à aujourd'hui</div>
+          <h2 class="home-title">Les transferts</h2>
+          <p class="home-sub">Attraper un Pokémon est une chose ; le faire arriver
+            jusqu'à ta boîte d'aujourd'hui en est une autre. Voici par où passe
+            chaque jeu — et ce qui ne passe plus.</p>
+        </div>
+        <p class="transferts-resume" id="transfertsResume"></p>
+        <div class="transfert" id="transfertsListe"></div>
+      </section>
+
       <section class="page" id="page-profil">
         <div class="home-hero">
           <div class="home-eyebrow">Ton compte</div>
@@ -327,7 +407,7 @@
         <div class="profil-creation profil-creation-page">
           <input type="text" id="profilPageNom" maxlength="40"
                  placeholder="Nouvelle aventure — ex. Chasse shiny">
-                <select id="profilPageMode" aria-label="Ce que compte l'aventure">
+                <select id="profilPageMode" data-lexique="mode-aventure" aria-label="Ce que compte l'aventure">
                   <option value="capture">📕 Pokédex — capturer chaque Pokémon</option>
                   <option value="vu">👁️ Pokémon vus — les avoir rencontrés</option>
                   <option value="living">📦 Living Dex — les posséder tous en même temps</option>
@@ -338,6 +418,13 @@
 
         <div class="home-section-title">Ta rétrospective</div>
         <div class="retro" id="retroBloc"></div>
+        <div class="profil-bloc">
+          <p class="profil-bloc-note">Une image de ta collection, à partager. Rien n'en
+            sort tout seul : le fichier se télécharge, et c'est toi qui décides
+            de la suite.</p>
+          <button class="toggle-btn" id="carteBtn" type="button">🖼 Enregistrer une image</button>
+          <span class="profil-bloc-etat" id="carteEtat"></span>
+        </div>
 
         <div class="home-section-title">Tes succès</div>
         <div class="profil-bloc">
@@ -419,6 +506,18 @@
             il ne doit pas retenir ta collection en otage.</p>
           <button class="toggle-btn" id="exportBtn" type="button">⬇ Télécharger mes données</button>
           <span class="profil-bloc-etat" id="exportEtat"></span>
+        </div>
+
+        <div class="profil-bloc">
+          <p class="profil-bloc-note">Un fichier <b>pokearchive-1</b> se relit ici : celui de
+            l'application, celui du site, ou une sauvegarde d'il y a six mois. Les
+            collections <b>se réunissent</b> — rien n'est écrasé, et rien n'est décoché.
+            Importer deux fois le même fichier ne change rien la seconde fois.</p>
+          <!-- Le champ reste caché : un &lt;input type=file&gt; nu est laid et
+               ne se style pas. C'est le bouton qui l'ouvre. -->
+          <input type="file" id="importFichier" accept=".json,application/json" hidden>
+          <button class="toggle-btn" id="importBtn" type="button">⬆ Importer une sauvegarde</button>
+          <span class="profil-bloc-etat" id="importEtat"></span>
         </div>
 
         <div class="home-section-title">Connexions ouvertes</div>
@@ -513,6 +612,11 @@
       </section>
 
       <section class="page" id="page-strategie">
+        <div class="outils-nav" role="tablist" aria-label="Outils">
+          <button class="outils-onglet active" type="button" data-outils="strategie">⚔️ Stratégie</button>
+          <button class="outils-onglet" type="button" data-outils="reproduction">🥚 Reproduction</button>
+          <button class="outils-onglet" type="button" data-outils="transferts">🚚 Transferts</button>
+        </div>
         <div class="home-hero">
           <div class="home-eyebrow">Avant le combat</div>
           <h2 class="home-title">Stratégie</h2>
@@ -584,7 +688,7 @@
             <div class="ev-filtres">
               <label class="dgt-condition">
                 <span>Statistique</span>
-                <select id="evStat" aria-label="Statistique recherchée"></select>
+                <select id="evStat" data-lexique="ev" aria-label="Statistique recherchée"></select>
               </label>
               <label class="dgt-condition">
                 <span>Points donnés</span>
@@ -681,6 +785,11 @@
       </section>
 
       <section class="page" id="page-reproduction">
+        <div class="outils-nav" role="tablist" aria-label="Outils">
+          <button class="outils-onglet" type="button" data-outils="strategie">⚔️ Stratégie</button>
+          <button class="outils-onglet active" type="button" data-outils="reproduction">🥚 Reproduction</button>
+          <button class="outils-onglet" type="button" data-outils="transferts">🚚 Transferts</button>
+        </div>
         <div class="home-hero">
           <div class="home-eyebrow">Élevage</div>
           <h2 class="home-title">Reproduction</h2>
@@ -755,6 +864,10 @@
            s'exécutait dans le vide et « fonctionne hors ligne » restait une
            promesse invisible. -->
       <span class="credit credit-folder" id="cacheLabel"></span>
+      <!-- L'âge du relevé, rempli par majEtatReleve(). Toute la matière de
+           l'application vient d'un relevé daté ; sans cette ligne, le joueur
+           croit lire l'état du monde alors qu'il lit celui d'un jour donné. -->
+      <span class="credit credit-releve" id="releveLabel"></span>
     </div>
   </div>
 </div>
@@ -766,6 +879,67 @@
     <div class="modal-eyebrow" id="succesEyebrow">Tableau de chasse</div>
     <h2 class="modal-title" id="succesTitre">Tes succès</h2>
     <div class="succes-bloc" id="succesBloc"></div>
+  </div>
+</div>
+
+<!-- Le premier lancement. Deux questions, et rien d'autre : le niveau de formes
+     ne s'y demande pas — on ne fait pas choisir avant d'avoir vu.
+     Voir js/depart.js. -->
+<div class="modal-overlay" id="departOverlay" style="display:none;" role="dialog"
+     aria-modal="true" aria-labelledby="departTitre">
+  <div class="modal-card depart-card">
+    <div class="modal-eyebrow" id="departEtape">Première question sur deux</div>
+    <h2 class="modal-title" id="departTitre">À quoi tu joues en ce moment ?</h2>
+    <p class="depart-sous" id="departSous">Ça décide seulement du Pokédex qui s'ouvrira
+      en premier. Tous les autres restent là, et tu peux en changer quand tu veux.</p>
+
+    <div class="depart-jeux" id="departJeux"></div>
+
+    <div class="depart-modes" id="departModes" hidden></div>
+
+    <div class="modal-actions">
+      <button class="toggle-btn" id="departPasser" type="button">Passer</button>
+      <button class="toggle-btn" id="departRetour" type="button" hidden>← Retour</button>
+    </div>
+  </div>
+</div>
+
+<!-- L'entraide. La barre de comparaison dit depuis toujours « il a 47 que tu
+     n'as pas » ; cette fenêtre dit LESQUELS, ce qui est la seule forme
+     utilisable de la même information. Voir ouvrirEchanges() dans partage.js. -->
+<div class="modal-overlay" id="echangeOverlay" style="display:none;" role="dialog"
+     aria-modal="true" aria-labelledby="echangeTitre">
+  <div class="modal-card echange-card">
+    <button class="fiche-fermer" id="echangeFermer" type="button" aria-label="Fermer">✕</button>
+    <div class="modal-eyebrow" id="echangeEyebrow">Entraide</div>
+    <h2 class="modal-title" id="echangeTitre">Ce que vous pouvez vous apporter</h2>
+    <p class="echange-note" id="echangeNote"></p>
+    <div class="echange-colonnes">
+      <div class="echange-colonne">
+        <div class="echange-titre" id="echangeTitreLui">Il peut te donner</div>
+        <div class="echange-liste" id="echangeLui"></div>
+      </div>
+      <div class="echange-colonne">
+        <div class="echange-titre" id="echangeTitreMoi">Tu peux lui donner</div>
+        <div class="echange-liste" id="echangeMoi"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Le lexique. Une seule liste, deux portes : le bouton 📖 de l'en-tête, et
+     les pastilles « ? » que lexique.js pose sur tout élément portant
+     data-lexique. Voir js/lexique.js. -->
+<div class="modal-overlay" id="lexiqueOverlay" style="display:none;" role="dialog"
+     aria-modal="true" aria-labelledby="lexiqueTitre">
+  <div class="modal-card lexique-card">
+    <button class="fiche-fermer" id="lexiqueFermer" type="button" aria-label="Fermer">✕</button>
+    <div class="modal-eyebrow">Les mots de l'écran</div>
+    <h2 class="modal-title" id="lexiqueTitre">Lexique</h2>
+    <input type="search" id="lexiqueQ" class="lexique-q"
+           placeholder="Chercher un mot…" aria-label="Chercher dans le lexique"
+           autocomplete="off">
+    <div class="lexique" id="lexiqueListe"></div>
   </div>
 </div>
 
@@ -796,7 +970,7 @@
     <select id="chasseJeu" aria-label="Jeu de la chasse"></select>
 
     <label class="chasse-label" for="chasseMethode">Avec quelle méthode ?</label>
-    <select id="chasseMethode" aria-label="Méthode de chasse"></select>
+    <select id="chasseMethode" data-lexique="taux-chasse" aria-label="Méthode de chasse"></select>
 
     <div id="chasseBlocBonus" style="display:none;">
       <span class="chasse-label">Bonus cumulables</span>
@@ -842,7 +1016,7 @@
     <p class="modal-error" id="profilErreur" role="alert"></p>
     <div class="profil-creation">
       <input type="text" id="profilNouveauNom" maxlength="40" placeholder="Nouvelle aventure — ex. Chasse shiny">
-                <select id="profilNouveauMode" aria-label="Ce que compte l'aventure">
+                <select id="profilNouveauMode" data-lexique="mode-aventure" aria-label="Ce que compte l'aventure">
                   <option value="capture">📕 Pokédex — capturer chaque Pokémon</option>
                   <option value="vu">👁️ Pokémon vus — les avoir rencontrés</option>
                   <option value="living">📦 Living Dex — les posséder tous en même temps</option>
@@ -962,7 +1136,24 @@
                celui-ci ne dit rien de la place qu'occupe l'espèce dans le jeu
                qu'on a sous la main — n° 149 au national, n° 66 à Kanto. -->
           <div class="dex-regionaux" id="ficheDexRegionaux"></div>
+          <!-- Ce que les autres possèdent. Masquée sous cinq collections
+               publiques : « un dresseur sur deux » n'est pas une rareté.
+               Voir js/rarete.js. -->
+          <p class="fiche-rarete" id="ficheRarete" hidden></p>
           <div class="etats" id="previewStates"></div>
+
+          <!-- La fiche de capture : ce que TON exemplaire a de particulier.
+               Repliée par défaut, et absente tant que l'entrée n'est pas
+               cochée — un débutant ne doit jamais la croiser.
+               Voir js/capture.js. -->
+          <!-- Où l'exemplaire se trouve EN CE MOMENT : dans le jeu, dans la
+               Banque, ou déjà dans HOME. Un clic, pas un menu — c'est ce qu'on
+               met à jour le plus souvent. Rempli par dessinerEmplacement(). -->
+          <div class="capture-ou" id="captureEmplacement" hidden></div>
+
+          <button class="capture-poignee" id="captureOuvrir" type="button" hidden
+                  aria-expanded="false" aria-controls="captureBloc">🎴 Fiche de capture</button>
+          <div class="capture-bloc" id="captureBloc" hidden></div>
         </div>
       </div>
 
@@ -1090,53 +1281,70 @@
   </div>
 </div>
 
-<script src="../src/js/donnees.js?v=1787754309"></script>
+<script src="../src/js/donnees.js?v=1787846273"></script>
 <!-- Généré par outils/generer-donnees.html. Doit précéder cache.js, qui y
      puise quand le stockage local est vide. -->
-<script src="../src/js/donnees-embarquees.js?v=1787754309"></script>
+<script src="../src/js/donnees-embarquees.js?v=1787846273"></script>
 <!-- Les notices du Pokédex, une par espèce et par jeu, relevées sur Poképédia
      par outils/relever-descriptions.py, ne sont PAS déclarées ici : fiche.js va
      les chercher à la première fiche ouverte, comme les attaques et les lieux.
      Une notice par jeu, c'est vingt-deux fois le texte d'une notice par espèce
      — de quoi allonger chaque démarrage pour une carte qu'on ne lit pas
      toujours. -->
-<script src="../src/js/cache.js?v=1787754309"></script>
-<script src="../src/js/noyau.js?v=1787754309"></script>
-<script src="../src/js/confirmer.js?v=1787754309"></script>
-<script src="../src/js/maj.js?v=1787754309"></script>
-<script src="../src/js/nouveautes.js?v=1787754309"></script>
-<script src="../src/js/serveur.js?v=1787754309"></script>
-<script src="../src/js/formes.js?v=1787754309"></script>
-<script src="../src/js/accueil.js?v=1787754309"></script>
-<script src="../src/js/dex.js?v=1787754309"></script>
+<script src="../src/js/cache.js?v=1787846273"></script>
+<script src="../src/js/noyau.js?v=1787846273"></script>
+<script src="../src/js/confirmer.js?v=1787846273"></script>
+<script src="../src/js/maj.js?v=1787846273"></script>
+<script src="../src/js/nouveautes.js?v=1787846273"></script>
+<!-- Le lexique. Autonome : il ne lit rien d'autre que ses propres définitions,
+     et pose ses pastilles au DOMContentLoaded. -->
+<script src="../src/js/lexique.js?v=1787846273"></script>
+<script src="../src/js/serveur.js?v=1787846273"></script>
+<script src="../src/js/formes.js?v=1787846273"></script>
+<script src="../src/js/accueil.js?v=1787846273"></script>
+<script src="../src/js/dex.js?v=1787846273"></script>
 <!-- Les distributions françaises, à la main. Doit précéder cadeaux.js et
      fiche.js, qui y puisent tous les deux. -->
-<script src="../src/js/evenements.js?v=1787754309"></script>
-<script src="../src/js/cadeaux.js?v=1787754309"></script>
-<script src="../src/js/fiche.js?v=1787754309"></script>
-<script src="../src/js/grille.js?v=1787754309"></script>
-<script src="../src/js/lieux.js?v=1787754309"></script>
-<script src="../src/js/chasse.js?v=1787754309"></script>
+<script src="../src/js/evenements.js?v=1787846273"></script>
+<script src="../src/js/cadeaux.js?v=1787846273"></script>
+<script src="../src/js/fiche.js?v=1787846273"></script>
+<script src="../src/js/grille.js?v=1787846273"></script>
+<!-- Après dex.js et grille.js : les objectifs figent currentFiltered. -->
+<script src="../src/js/objectifs.js?v=1787846273"></script>
+<!-- Après grille.js : la fiche de capture complète la fenêtre d'aperçu. -->
+<script src="../src/js/capture.js?v=1787846273"></script>
+<!-- Après compte.js : la rareté demande la table à l'API. -->
+<script src="../src/js/rarete.js?v=1787846273"></script>
+<script src="../src/js/lieux.js?v=1787846273"></script>
+<script src="../src/js/chasse.js?v=1787846273"></script>
 <!-- Les règles de combat, puis l'écran qui s'appuie dessus. Tous deux après
      fiche.js (TYPE_RELATIONS, puceType, decoderBloc) et avant menus.js, qui
      stylise leurs menus déroulants. -->
-<script src="../src/js/combat.js?v=1787754309"></script>
-<script src="../src/js/strategie.js?v=1787754309"></script>
+<script src="../src/js/combat.js?v=1787846273"></script>
+<script src="../src/js/strategie.js?v=1787846273"></script>
 <!-- Après strategie.js : il lui emprunte creerSelecteur. -->
-<script src="../src/js/reproduction.js?v=1787754309"></script>
-<script src="../src/js/partage.js?v=1787754309"></script>
-<script src="../src/js/menus.js?v=1787754309"></script>
+<script src="../src/js/reproduction.js?v=1787846273"></script>
+<!-- Après donnees.js pour GAMES, et après reproduction.js par simple
+     voisinage : les trois partagent la barre « Outils ». -->
+<script src="../src/js/transferts.js?v=1787846273"></script>
+<script src="../src/js/partage.js?v=1787846273"></script>
+<script src="../src/js/menus.js?v=1787846273"></script>
 <!-- Redéfinit la couche de sauvegarde quand l'app tourne dans Tauri.
      Hors Tauri (serveur.py, ou fichier ouvert directement), il ne fait rien. -->
 
-<script src="../src/js/amis.js?v=1787754309"></script>
-<script src="../src/js/retrospective.js?v=1787754309"></script>
-<script src="../src/js/succes.js?v=1787754309"></script>
-<script src="../src/js/donnees-perso.js?v=1787754309"></script>
-<script src="../src/js/presence.js?v=1787754309"></script>
+<script src="../src/js/amis.js?v=1787846273"></script>
+<script src="../src/js/retrospective.js?v=1787846273"></script>
+<script src="../src/js/succes.js?v=1787846273"></script>
+<!-- Après retrospective.js : la carte lit retroDonnees si elle est là, et se
+     passe d'elle sinon. -->
+<script src="../src/js/carte.js?v=1787846273"></script>
+<!-- Après compte.js : le premier lancement lit profilCourant et profilsConnus. -->
+<script src="../src/js/depart.js?v=1787846273"></script>
+<script src="../src/js/donnees-perso.js?v=1787846273"></script>
+<script src="../src/js/presence.js?v=1787846273"></script>
 
-<script src="../src/js/selecteur-couleur.js?v=1787754309"></script>
-<script src="../src/js/apparence.js?v=1787754309"></script>
+<script src="../src/js/selecteur-couleur.js?v=1787846273"></script>
+<script src="../src/js/apparence.js?v=1787846273"></script>
 <script src="generer-attaques.js"></script>
 </body>
 </html>

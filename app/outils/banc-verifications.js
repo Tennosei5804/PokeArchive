@@ -743,6 +743,136 @@ verifier('Les pages de génération',
 
 // ---------------------------------------------------------------------------
 
+
+verifier('La sauvegarde',
+  'Ce que porte le dex arrive vraiment au serveur — chasses comprises',
+  function(){
+    // LE DÉFAUT QU'ELLE SURVEILLE. buildSavePayload() écrivait les chasses
+    // depuis le premier jour, progressFromJSON() savait les relire, et
+    // construireDex() — la SEULE fonction qui parle au serveur — ne les
+    // recopiait pas. Elles vivaient donc dans le localStorage de la machine et
+    // nulle part ailleurs : changer d'aventure les effaçait, changer
+    // d'ordinateur aussi. Le LISEZMOI promettait le contraire depuis toujours,
+    // et rien ne le contredisait.
+    //
+    // La vérification est volontairement bête : ce qui sort de
+    // buildSavePayload() doit se retrouver dans ce que construireDex() envoie.
+    // Un champ ajouté à l'un et oublié dans l'autre est exactement le bug
+    // d'origine, et il se reproduira.
+    if(typeof construireDex !== 'function') return 'ignoré : construireDex absente';
+    const charge = buildSavePayload();
+    const envoye = construireDex();
+    const oublies = ['chasses', 'chassesFinies', 'objectifs', 'detailsCapture']
+      .filter(function(cle){ return envoye[cle] === undefined; });
+    if(oublies.length){
+      return 'échec : ' + oublies.join(', ') + ' ne part(ent) pas au serveur';
+    }
+    // Et le contenu, pas seulement la clé : recopier une liste vide en dur
+    // passerait le test précédent sans rien régler.
+    const avant = chasses.length;
+    chasses = chasses.concat([{ pokemon: 'banc-temoin', dex: 'national',
+                                methode: 'rencontre', bonus: [], compteur: 7 }]);
+    const relu = construireDex();
+    chasses = chasses.slice(0, avant);
+    const temoin = (relu.chasses || []).some(function(c){ return c.pokemon === 'banc-temoin'; });
+    if(!temoin) return 'échec : une chasse ajoutée ne se retrouve pas dans l\'envoi';
+    return '4 champs transmis, témoin retrouvé dans l\'envoi';
+  });
+
+verifier('La sauvegarde',
+  'Un dex relu retrouve ses chasses, ses objectifs et ses fiches de capture',
+  function(){
+    // Le pendant du précédent : progressFromJSON() doit savoir relire tout ce
+    // que buildSavePayload() écrit. Les deux se modifient ensemble, et c'est
+    // précisément ce qui n'avait pas été fait.
+    const memoire = buildSavePayload();
+    const faux = {
+      dex: { national: { caught: ['pikachu'], shiny: [] } },
+      chasses: [{ pokemon: 'gible', dex: 'bdsp', methode: 'rencontre',
+                  bonus: [], compteur: 42 }],
+      chassesFinies: [{ pokemon: 'eevee', dex: 'sv', methode: 'rencontre',
+                        bonus: [], compteur: 900, taux: 4096, fin: '2026-01-02T00:00:00Z' }],
+      objectifs: [{ id: 1, nom: 'Banc', quoi: '', dex: 'national', shiny: false,
+                    entrees: ['pikachu'], cree: '2026-01-01T00:00:00Z' }],
+      detailsCapture: { national: { pikachu: { ball: 'Honor Ball' } } }
+    };
+    progressFromJSON(faux);
+    const lus = {
+      chasses: chasses.length,
+      finies: (typeof chassesFinies !== 'undefined') ? chassesFinies.length : -1,
+      objectifs: (typeof objectifs !== 'undefined') ? objectifs.length : -1,
+      details: (typeof detailsCapture !== 'undefined' && detailsCapture.national)
+        ? Object.keys(detailsCapture.national).length : -1
+    };
+    // On remet ce qui était là : le banc ne doit rien laisser derrière lui.
+    progressFromJSON(memoire);
+    const manques = Object.keys(lus).filter(function(k){ return lus[k] !== 1; });
+    if(manques.length) return 'échec : ' + manques.join(', ') + ' non relu(s)';
+    return 'chasses, tableau, objectifs et fiches relus';
+  });
+
+verifier('La sauvegarde',
+  'Un objectif compte sur sa liste figée, pas sur les filtres du moment',
+  function(){
+    // Le défaut évité : rejouer les filtres à l'ouverture. Le relevé bouge, les
+    // filtres aussi — un objectif qui se recalcule n'est plus le même objectif,
+    // et « les 151 de Kanto » finiraient à 153 sans que personne n'ait rien
+    // demandé.
+    if(typeof avancementObjectif !== 'function') return 'ignoré : objectifs absents';
+    // Des noms qui n'existent pas : la collection du banc en contient déjà de
+    // vrais, et compter dessus ferait dépendre le résultat du jeu d'essai.
+    const b = bucketFor('national');
+    b.caught.add('banc-temoin-a');
+    const a = avancementObjectif({ dex: 'national', shiny: false,
+                                   entrees: ['banc-temoin-a', 'banc-temoin-b', 'banc-temoin-c'] });
+    b.caught.delete('banc-temoin-a');
+    if(a.total !== 3) return 'échec : total ' + a.total + ' au lieu de 3';
+    if(a.pris !== 1) return 'échec : ' + a.pris + ' pris au lieu de 1';
+    return '1 / 3, compté sur la liste enregistrée';
+  });
+
+verifier('La recherche',
+  'Les jetons se cumulent, et un mot inconnu cherche encore dans le nom',
+  function(){
+    // Le risque de la recherche à jetons : qu'un mot non reconnu fasse
+    // disparaître la grille sans qu'on comprenne pourquoi. La règle est qu'il
+    // redevienne un morceau de nom — et c'est ce qui se vérifie ici.
+    if(typeof analyserRecherche !== 'function') return 'ignoré : analyse absente';
+    const q = analyserRecherche('feu gen3 manquants zzzz');
+    if(q.typeId === null) return 'échec : « feu » n\'a pas été reconnu comme type';
+    if(q.gen !== 3) return 'échec : « gen3 » n\'a pas été reconnu';
+    if(!q.tests.length) return 'échec : « manquants » n\'a pas été reconnu';
+    if(q.mots.indexOf('zzzz') === -1) return 'échec : un mot inconnu a été avalé';
+    // Et les accents : personne ne les tape dans un champ de recherche.
+    const r = analyserRecherche('Ptéra');
+    if(r.mots[0] !== 'ptera') return 'échec : les accents ne sont pas ramenés';
+    return '3 jetons reconnus, 1 mot rendu au nom, accents ignorés';
+  });
+
+verifier('Le transfert',
+  'Chaque jeu sait par où remonter jusqu\'à HOME, et ce qui a une échéance',
+  function(){
+    if(typeof routeVersHome !== 'function') return 'ignoré : transferts absents';
+    let sans = [];
+    let fermes = 0;
+    GAMES.forEach(function(g){
+      const r = routeVersHome(g.key);
+      if(r === null){
+        // Cobblemon est le seul cas légitime : un mod Minecraft ne parle à
+        // aucun service Nintendo.
+        if(g.key !== 'cobblemon') sans.push(g.key);
+        return;
+      }
+      if(etatRoute(r) !== 'ouvert') fermes++;
+    });
+    if(sans.length) return 'échec : aucun chemin pour ' + sans.join(', ');
+    // Seize des vingt-deux jeux dépendent de la Banque Pokémon — les six 3DS
+    // et les dix qui passent par eux. Le compte ne doit pas descendre : s'il
+    // descend, c'est qu'une arête a disparu de la table.
+    if(fermes < 10) return 'échec : seulement ' + fermes + ' chemins à échéance, 10 au moins attendus';
+    return '22 jeux routés, ' + fermes + ' par un service à échéance, Cobblemon isolé';
+  });
+
 verifier('Le réseau',
   'Une suppression d\'aventure ne demande jamais deux fois la même chose',
   async function(){

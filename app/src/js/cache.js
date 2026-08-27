@@ -171,6 +171,63 @@ function majEtatCache(){
   el.classList.add('connected');
 }
 
+// ---- L'age du releve ------------------------------------------------------
+//
+// Toute la matiere de l'application vient d'un releve date : les especes et
+// leurs statistiques de PokeAPI, les lieux et les notices de Pokepedia. Rien
+// ne le disait a l'ecran. Un jeu sort, le releve vieillit, et le joueur croit
+// lire l'etat du monde alors qu'il lit celui d'un jour precis.
+//
+// Chaque reserve porte son « genereLe » — c'est deja lui qui declenche la
+// purge du cache. On affiche le plus RECENT de ceux qui sont charges : les
+// reserves a la demande arrivent apres coup, et la ligne se remet a jour
+// quand elles arrivent (fiche.js rappelle la fonction).
+//
+// Les reserves se nomment une par une et non par window[nom] : un « const »
+// de premier niveau ne pose PAS de propriete sur window dans un script
+// classique, et la boucle n'aurait jamais rien trouve.
+function reservesChargees(){
+  const out = [];
+  if(typeof DONNEES_EMBARQUEES   !== 'undefined') out.push(DONNEES_EMBARQUEES);
+  if(typeof DONNEES_LIEUX        !== 'undefined') out.push(DONNEES_LIEUX);
+  if(typeof DONNEES_DESCRIPTIONS !== 'undefined') out.push(DONNEES_DESCRIPTIONS);
+  if(typeof DONNEES_COBBLEMON    !== 'undefined') out.push(DONNEES_COBBLEMON);
+  if(typeof DONNEES_ATTAQUES     !== 'undefined') out.push(DONNEES_ATTAQUES);
+  return out;
+}
+
+const MOIS_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
+                 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+
+// « 2026-08-23T22:37:23.740Z » ou « 2026-08-23 » → « 23 août 2026 ».
+function dateReleve(iso){
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+  if(!m) return null;
+  return parseInt(m[3], 10) + ' ' + MOIS_FR[parseInt(m[2], 10) - 1] + ' ' + m[1];
+}
+
+// La date de la reserve la plus recente parmi celles qui sont chargees, en
+// clair, ou null si aucune ne l'est.
+function releveLePlusRecent(){
+  let meilleur = '';
+  reservesChargees().forEach(function(reserve){
+    const quand = reserve && reserve.genereLe;
+    if(quand && String(quand) > meilleur) meilleur = String(quand);
+  });
+  return meilleur || null;
+}
+
+function majEtatReleve(){
+  const el = document.getElementById('releveLabel');
+  if(!el) return;
+  const quand = dateReleve(releveLePlusRecent());
+  if(!quand){ el.textContent = ''; return; }
+  el.textContent = 'Relevé du ' + quand + ' · Poképédia, PokeAPI'
+    + (typeof DONNEES_COBBLEMON !== 'undefined' ? ', tableur Cobblemon' : '');
+  el.title = 'Les lieux, les notices et les Pokédex viennent d\'un relevé fait '
+    + 'ce jour-là. Un jeu sorti depuis n\'y est pas.';
+}
+
 // Taille approximative occupee par le cache, pour l'afficher a l'utilisateur.
 function cacheTaille(){
   let total = 0;

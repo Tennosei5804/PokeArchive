@@ -5,9 +5,9 @@
 // affiche « Le pont Tauri est absent » et s'arrête là.
 //
 // POURQUOI CE FICHIER SUFFIT. Le frontend de PokéArchive est du web ordinaire :
-// sur ses trente-et-un scripts, quatre seulement touchent à Tauri, et trois le
-// font derrière une garde qui les fait se taire s'il manque. Le seul vrai point
-// de contact est invoke(), trente-deux commandes. Les recréer ici suffit à
+// sur ses trente-sept scripts, cinq seulement nomment window.__TAURI__, et
+// quatre le font derrière une garde qui les fait se taire s'il manque. Le seul vrai point
+// de contact est invoke(), trente-huit commandes. Les recréer ici suffit à
 // faire tourner l'application entière dans un navigateur — c'est déjà ce que
 // fait le banc d'essai avec un jeu de fausses réponses.
 //
@@ -29,7 +29,7 @@
 //
 // LE JOUR OÙ L'API SERA JOIGNABLE, il n'y a qu'un endroit à changer : la
 // fonction repondre() plus bas choisit entre la réserve locale et le réseau.
-// Les trente-deux commandes gardent la même forme des deux côtés, parce que
+// Les trente-huit commandes gardent la même forme des deux côtés, parce que
 // c'est celle que l'application attend — les formes sont copiées de l'API,
 // pas inventées ici.
 
@@ -214,6 +214,61 @@
     return etat;
   }
 
+  /**
+   * L'union de deux dex — la règle de fusion de l'import.
+   *
+   * Recopiée de reunirDex() dans api/src/comptes.js, à la lettre. Les deux se
+   * modifient ensemble : une union qui diffère d'un côté ferait diverger les
+   * deux collections dès le premier aller-retour entre le site et
+   * l'application, et c'est cet aller-retour que l'import existe pour rendre
+   * possible.
+   */
+  function reunirDex(ancien, nouveau){
+    const sortie = Object.assign({}, ancien || {});
+    const listes = (o, cle) => (o && Array.isArray(o[cle]) ? o[cle] : []);
+
+    ['captures', 'caught', 'shiny'].forEach(function(cle){
+      const reunion = new Set(listes(ancien, cle).concat(listes(nouveau, cle)));
+      if(reunion.size) sortie[cle] = [...reunion];
+    });
+
+    const parJeu = Object.assign({}, (ancien && ancien.dex) || {});
+    Object.keys((nouveau && nouveau.dex) || {}).forEach(function(jeu){
+      const a = parJeu[jeu] || {};
+      const b = nouveau.dex[jeu] || {};
+      parJeu[jeu] = {
+        caught: [...new Set(listes(a, 'caught').concat(listes(b, 'caught')))],
+        shiny: [...new Set(listes(a, 'shiny').concat(listes(b, 'shiny')))],
+      };
+    });
+    if(Object.keys(parJeu).length) sortie.dex = parJeu;
+
+    // Les chasses en cours sont des compteurs : les additionner donnerait un
+    // nombre faux. On garde le côté le plus avancé.
+    const cA = (ancien && ancien.chasses) || [];
+    const cB = (nouveau && nouveau.chasses) || [];
+    sortie.chasses = cB.length > cA.length ? cB : cA;
+
+    // Les fiches de capture se réunissent par clé, et LA VALEUR EXISTANTE
+    // GAGNE : un import ajoute, il n'écrase pas.
+    const details = Object.assign({}, (nouveau && nouveau.detailsCapture) || {});
+    Object.keys((ancien && ancien.detailsCapture) || {}).forEach(function(jeu){
+      details[jeu] = Object.assign({}, details[jeu] || {}, ancien.detailsCapture[jeu]);
+    });
+    if(Object.keys(details).length) sortie.detailsCapture = details;
+
+    // Les chasses abouties sont des évènements datés : elles se réunissent.
+    const finies = new Map();
+    [].concat((ancien && ancien.chassesFinies) || [],
+              (nouveau && nouveau.chassesFinies) || []).forEach(function(c){
+      if(!c || typeof c !== 'object') return;
+      finies.set(c.pokemon + '|' + c.dex + '|' + c.fin, c);
+    });
+    if(finies.size) sortie.chassesFinies = [...finies.values()];
+
+    return sortie;
+  }
+
   /** Compter les espèces d'un dex, comme le fait l'API : sans doublon. */
   function compter(donnees, champ){
     const vus = new Set();
@@ -235,7 +290,7 @@
   // sans qu'il y ait rien à changer.
   const HORS_LIGNE = new Error('HORS_LIGNE');
 
-  // ---- Les trente-deux commandes ----------------------------------------------
+  // ---- Les trente-huit commandes ----------------------------------------------
   //
   // Les formes rendues sont celles de l'API, pas des approximations : elles
   // sont reprises de api/src/serveur.js et du banc d'essai. Une forme
@@ -244,8 +299,25 @@
   const COMMANDES = {
 
     // --- Session et identité -------------------------------------------------
-
-    etat: () => ({ connecte: !!lire().dresseur }),
+    //
+    // IL N'Y A PAS DE COMPTE ICI, et il ne doit donc pas y avoir d'écran de
+    // connexion. La collection tient dans le localStorage de ce navigateur :
+    // personne ne s'authentifie auprès de personne, rien ne part nulle part, et
+    // demander un nom avant de laisser cocher une case était un péage sans
+    // guichet — on le payait sans que quiconque encaisse.
+    //
+    // On ouvre donc le carnet directement. Le nom sert à l'affichage, se change
+    // dans « Profil » quand on en a envie, et vaut « Dresseur » en attendant.
+    //
+    // Se déconnecter oublie ce nom, PAS la collection — et le prochain
+    // chargement en repose un neuf. C'est ce que veut dire « se déconnecter »
+    // d'un carnet qui n'appartient qu'à ce navigateur.
+    etat: function(){
+      const e = premiereAventure(lire());
+      if(!e.dresseur) e.dresseur = { pseudo: 'Dresseur' };
+      ecrire(e);
+      return { connecte: true };
+    },
 
     moi: function(){
       const e = lire();
@@ -459,7 +531,112 @@
       };
     },
 
+    /**
+     * Relire une sauvegarde « pokearchive-1 ».
+     *
+     * La MÊME règle de fusion que l'API, parce que c'est la même opération :
+     * le dex se réunit, l'historique se dédoublonne sur les quatre colonnes,
+     * et `maj_le` départage le mode et le niveau de formes. Une règle
+     * approchée d'un côté ferait diverger les deux collections dès le premier
+     * aller-retour, et c'est précisément l'aller-retour que cet import existe
+     * pour permettre.
+     *
+     * Rend la même forme que l'API : donnees-perso.js n'a pas à savoir de quel
+     * côté il parle.
+     */
+    importer: function(a){
+      const contenu = (a && a.contenu) || null;
+      if(!contenu || typeof contenu !== 'object') throw new Error('Fichier illisible.');
+      if(contenu.format !== 'pokearchive-1'){
+        throw new Error('Ce fichier n\'est pas une sauvegarde PokéArchive '
+          + '(format « pokearchive-1 » attendu).');
+      }
+      const aventures = Array.isArray(contenu.aventures) ? contenu.aventures : [];
+      if(!aventures.length) throw new Error('Ce fichier ne contient aucune aventure.');
+
+      const e = premiereAventure(lire());
+      const detail = [];
+
+      // La clé d'une aventure : son nom, comparé sans casse ni espaces en trop.
+      const cleDe = (nom) => String(nom || '').trim().toLowerCase();
+
+      aventures.forEach(function(a2, rang){
+        if(!a2 || typeof a2 !== 'object') return;
+        const nom = String(a2.nom || ('Import ' + (rang + 1))).slice(0, 40);
+        let cible = e.profils.find(function(p){ return cleDe(p.nom) === cleDe(nom); });
+        let creee = false;
+
+        if(!cible){
+          cible = {
+            id: ++e.dernierId, nom: nom, public: 0,
+            par_defaut: e.profils.length ? 0 : 1,
+            mode: a2.mode || 'capture',
+            niveau_formes: a2.niveau_formes != null ? a2.niveau_formes : 3,
+            captures: 0, shiny: 0,
+            cree_le: a2.cree_le || maintenant(), maj_le: null,
+          };
+          e.profils.push(cible);
+          creee = true;
+        } else if(a2.maj_le && (!cible.maj_le || String(a2.maj_le) > String(cible.maj_le))){
+          // Le fichier est plus récent : c'est lui qui dit le mode et le niveau.
+          if(a2.mode) cible.mode = a2.mode;
+          if(a2.niveau_formes != null) cible.niveau_formes = a2.niveau_formes;
+        }
+
+        const avant = e.dex[cible.id] || null;
+        const avantCombien = avant ? compter(avant, 'caught') : 0;
+        const reuni = reunirDex(avant, a2.dex);
+        e.dex[cible.id] = reuni;
+        cible.captures = compter(reuni, 'caught');
+        cible.shiny = compter(reuni, 'shiny');
+        cible.maj_le = maintenant();
+
+        // Le journal : dédoublonné sur (pokemon, dex, chromatique, jour).
+        let journalisees = 0;
+        const brutes = Array.isArray(a2.historique) ? a2.historique : [];
+        if(brutes.length){
+          const deja = new Set(e.journal
+            .filter(function(l){ return l.profilId === cible.id; })
+            .map(function(l){ return l.pokemon + '|' + l.dex + '|' + l.chromatique + '|' + l.jour; }));
+          brutes.forEach(function(b){
+            const pokemon = String((b && b.pokemon) || '').slice(0, 64);
+            const dex = String((b && b.dex) || '').slice(0, 32);
+            const jour = String((b && (b.ajoute_le || b.ajouteLe)) || '').slice(0, 64);
+            if(!pokemon || !dex || !jour) return;
+            const chromatique = (b && b.chromatique) ? 1 : 0;
+            const empreinte = pokemon + '|' + dex + '|' + chromatique + '|' + jour;
+            if(deja.has(empreinte)) return;
+            deja.add(empreinte);
+            e.journal.push({ id: ++e.dernierJournalId, profilId: cible.id,
+                             jour: jour, pokemon: pokemon, dex: dex,
+                             chromatique: chromatique });
+            journalisees++;
+          });
+        }
+
+        detail.push({ nom: cible.nom, creee: creee,
+                      captures: cible.captures, shiny: cible.shiny,
+                      gagnees: Math.max(0, cible.captures - avantCombien),
+                      journalisees: journalisees });
+      });
+
+      ecrire(e);
+      return {
+        ok: true,
+        aventures: detail.length,
+        creees: detail.filter(function(d){ return d.creee; }).length,
+        gagnees: detail.reduce(function(n, d){ return n + d.gagnees; }, 0),
+        journalisees: detail.reduce(function(n, d){ return n + d.journalisees; }, 0),
+        detail: detail,
+      };
+    },
+
     // --- Ce qui demande d'autres joueurs --------------------------------------
+
+    // La rareté suppose d'autres collections que la sienne. Hors ligne il n'y
+    // en a aucune : on rend zéro dresseur plutôt qu'un pourcentage inventé, et
+    // l'application n'affiche alors rien du tout.
+    rarete: () => ({ dresseurs: 0, entrees: {}, calculeLe: null }),
 
     dresseurs: () => ({ dresseurs: [] }),
     profils_de: () => { throw HORS_LIGNE; },
@@ -479,6 +656,17 @@
     // faire est la bonne réponse : l'application ne regarde pas le résultat.
     presence_maj: () => ({ ok: true }),
     presence_effacer: () => ({ ok: true }),
+
+    // L'overlay OBS ouvre une écoute sur 127.0.0.1 : un navigateur n'en a pas
+    // le droit, et c'est très bien ainsi. L'écran de chasse masque le bouton
+    // quand il tourne ici — ces réponses ne servent qu'à ce qu'un appel
+    // égaré ne fasse pas tomber la page.
+    overlay_demarrer: () => {
+      throw new Error("L'overlay OBS n'existe que dans l'application de bureau.");
+    },
+    overlay_arreter: () => true,
+    overlay_etat: () => false,
+    overlay_adresse: () => '',
   };
 
   // ---- Le pont proprement dit --------------------------------------------------

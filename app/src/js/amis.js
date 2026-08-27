@@ -252,6 +252,17 @@ function ligneAmi(a){
   chiffres.className = 'ami-chiffres';
   chiffres.textContent = '⬤ ' + (a.captures || 0) + '   ✨ ' + (a.shiny || 0);
 
+  // L'entraide, directement depuis la liste : c'est ici qu'on se demande « il
+  // a quoi que je n'ai pas ». Le geste ouvrait jusqu'ici deux écrans et trois
+  // clics, alors que le calcul est une soustraction de deux ensembles.
+  const entraide = document.createElement('button');
+  entraide.className = 'ami-entraide';
+  entraide.type = 'button';
+  entraide.textContent = '🤝';
+  entraide.title = 'Ce que ' + a.pseudo + ' peut t\'apporter, et l\'inverse';
+  entraide.setAttribute('aria-label', entraide.title);
+  entraide.addEventListener('click', function(){ entraiderAvec(a); });
+
   const retirer = document.createElement('button');
   retirer.className = 'ami-retirer';
   retirer.type = 'button';
@@ -263,8 +274,28 @@ function ligneAmi(a){
   l.appendChild(av);
   l.appendChild(nom);
   l.appendChild(chiffres);
+  l.appendChild(entraide);
   l.appendChild(retirer);
   return l;
+}
+
+/**
+ * Ouvre l'entraide avec cet ami.
+ *
+ * On passe par la comparaison plutôt que d'aller chercher son dex ici : c'est
+ * elle qui tient amiProgression, que la fenêtre d'entraide lit — et deux
+ * chemins vers le même état auraient fini par en donner deux versions.
+ *
+ * L'aventure visée est la principale, celle que montre déjà le fil : c'est
+ * aussi celle dont les chiffres figurent sur cette ligne.
+ */
+async function entraiderAvec(a){
+  if(typeof comparerAvec !== 'function') return;
+  await comparerAvec(a.pseudo, { id: null, nom: a.aventure || 'aventure principale' });
+  // Après comparerAvec, qui a basculé sur le Pokédex : la fenêtre lit
+  // scopeEntries, et l'ouvrir avant l'aurait fait compter sur l'ancien.
+  if(typeof ouvrirEchanges === 'function' && typeof amiProgression !== 'undefined'
+     && amiProgression) ouvrirEchanges();
 }
 
 function ligneFil(l){

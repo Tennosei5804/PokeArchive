@@ -212,9 +212,29 @@ function bulkTargets(){
 // Le Pokédex actuellement affiché, en toutes lettres.
 function currentDexLabel(){
   const game = gameByKey[currentTab];
-  if(!game) return 'Pokémon HOME';
-  const variant = activeVariant();
-  return game.title + ' — ' + (variant ? variant.label : 'Pokédex régional');
+  return game
+    ? game.title + ' — ' + (activeVariant() ? activeVariant().label : 'Pokédex régional')
+    : 'Pokémon HOME';
+}
+
+/**
+ * Le même libellé, plus la boîte affichée — et RIEN D'AUTRE ne doit s'en servir.
+ *
+ * En vue boîtes, les actions groupées ne portent que sur les trente cases à
+ * l'écran : « Tout coché » sur un Pokédex entier et sur une boîte ne sont pas
+ * du tout le même geste, et la barre doit le dire.
+ *
+ * Les autres écrans, eux, parlent du Pokédex entier. La fenêtre d'entraide
+ * annonçait « Sur Pokémon HOME — boîte 1 » alors que ses deux listes couvrent
+ * tout le périmètre : le libellé mentait sur ce qu'il montrait, parce qu'il
+ * portait une précision qui n'appartenait qu'à un seul appelant.
+ */
+function porteeGroupee(){
+  const base = currentDexLabel();
+  if(typeof vueBoites !== 'undefined' && vueBoites){
+    return base + ' — boîte ' + (boiteCourante + 1);
+  }
+  return base;
 }
 
 function updateBulkBar(){
@@ -224,7 +244,7 @@ function updateBulkBar(){
   const forme = shinyView ? 'shiny' : 'normale';
   bulkLabel.innerHTML = '<b>' + t.eligible.length + '</b> Pokémon · forme ' + forme
     + ' · <b>' + t.toCheck.length + '</b> à cocher, <b>' + t.toUncheck.length + '</b> cochés';
-  bulkLabel.title = 'Portée : ' + currentDexLabel();
+  bulkLabel.title = 'Portée : ' + porteeGroupee();
   bulkCheckBtn.disabled = t.toCheck.length === 0;
   bulkUncheckBtn.disabled = t.toUncheck.length === 0;
 }
@@ -248,7 +268,7 @@ async function applyBulk(add){
         { cle: 'forme ' + forme, valeur: shinyView ? '✨' : '⬤' }
       ],
       pertes: null,
-      note: 'Portée : ' + currentDexLabel() + '. Seule la sélection filtrée de ce '
+      note: 'Portée : ' + porteeGroupee() + '. Seule la sélection filtrée de ce '
         + 'Pokédex est touchée — les autres onglets ne bougent pas.',
       libelleAction: verbe + ' les ' + list.length
     });
@@ -339,24 +359,256 @@ function assurerLieux(){
   }).catch(function(){ lieuxDemandes = false; });
 }
 
+// ---- La recherche à jetons --------------------------------------------------
+//
+// Le champ ne cherchait qu'un nom, et quatre menus portaient tout le reste.
+// Quelqu'un qui connaît ses Pokémon tape plus vite qu'il ne déroule un menu.
+//
+// AUCUNE GRAMMAIRE N'EST INVENTÉE. On reconnaît les jetons connus — un numéro,
+// un type, une génération, un état, un mot-clé — et TOUT LE RESTE redevient un
+// morceau de nom. Un mot inconnu ne fait donc jamais disparaître la grille
+// pour une raison qu'on ne comprend pas : il cherche, exactement comme avant.
+//
+// Les menus ne bougent pas : ils restent là pour qui préfère cliquer, et se
+// cumulent avec les jetons. Un jeton n'écrit jamais dans un menu — voir un
+// menu changer tout seul parce qu'on a tapé un mot serait déroutant.
+
+function sansAccents(s){
+  // Les signes diacritiques combinants, U+0300 a U+036F. La classe est
+  // construite depuis une chaine plutot qu'ecrite en clair : ces caracteres
+  // sont invisibles dans un fichier, et un editeur les avale.
+  return String(s).toLowerCase().normalize('NFD')
+    .replace(new RegExp('[\u0300-\u036f]', 'g'), '');
+}
+
+// Type français → identifiant PokeAPI. Construite depuis TYPES_FR, jamais
+// recopiée : ajouter un type au tableau suffirait.
+const TYPES_PAR_NOM = (function(){
+  const m = {};
+  Object.keys(TYPES_FR).forEach(function(id){ m[sansAccents(TYPES_FR[id])] = parseInt(id, 10); });
+  // Deux orthographes qu'on tape sans y penser.
+  m['electrique'] = m['electrik'];
+  m['tenebre'] = m['tenebres'];
+  return m;
+})();
+
+// Les régions ne servent QUE pour les six premières générations. À partir
+// d'Alola, le nom de région est aussi celui d'une forme régionale, et « alola »
+// veut alors dire « les formes d'Alola » et non « la septième génération » —
+// c'est ce que quelqu'un qui tape ce mot dans un Pokédex cherche.
+const REGIONS_GEN = {
+  kanto: 1, johto: 2, hoenn: 3, sinnoh: 4, unys: 5, unova: 5, kalos: 6
+};
+
+// Les lignées de départ, par plages : chacune fait neuf numéros d'affilée.
+const PLAGES_STARTERS = [[1, 9], [152, 160], [252, 260], [387, 395], [495, 503],
+                         [650, 658], [722, 730], [810, 818], [906, 914]];
+
+// Les fossiles, relevés à la main : ils n'ont aucun marqueur dans la réserve,
+// et la liste ne bouge qu'à la sortie d'une génération.
+const FOSSILES = new Set([138, 139, 140, 141, 142, 345, 346, 347, 348,
+                          408, 409, 410, 411, 564, 565, 566, 567,
+                          696, 697, 698, 699, 880, 881, 882, 883]);
+
+// Un mot-clé : son libellé pour la ligne des jetons, et le test qu'il pose.
+const MOTS_CLES_RECHERCHE = {
+  legendaire: { libelle: '👑 Légendaires',
+    test: function(e){ return typeof LEGENDAIRES !== 'undefined' && LEGENDAIRES.has(e.speciesId); } },
+  fabuleux: { libelle: '✴ Fabuleux',
+    test: function(e){ return typeof FABULEUX !== 'undefined' && FABULEUX.has(e.speciesId); } },
+  mythique: { alias: 'fabuleux' },
+  starter: { libelle: '🌱 Lignées de départ',
+    test: function(e){
+      return PLAGES_STARTERS.some(function(p){ return e.speciesId >= p[0] && e.speciesId <= p[1]; });
+    } },
+  fossile: { libelle: '🦴 Fossiles',
+    test: function(e){ return FOSSILES.has(e.speciesId); } },
+  mega: { libelle: '💠 Méga-Évolutions',
+    test: function(e){ return e.name.indexOf('-mega') !== -1; } },
+  gigamax: { libelle: '🔺 Gigamax',
+    test: function(e){ return e.name.slice(-5) === '-gmax'; } },
+  gmax: { alias: 'gigamax' },
+  alola: { libelle: '🌴 Formes d\'Alola',
+    test: function(e){ return e.name.slice(-6) === '-alola'; } },
+  galar: { libelle: '🏰 Formes de Galar',
+    test: function(e){ return e.name.slice(-6) === '-galar'; } },
+  hisui: { libelle: '🏔 Formes de Hisui',
+    test: function(e){ return e.name.slice(-6) === '-hisui'; } },
+  paldea: { libelle: '🍊 Formes de Paldea',
+    test: function(e){ return e.name.indexOf('-paldea') !== -1; } },
+  rare: { libelle: '💎 Mes pièces rares',
+    test: function(e){
+      // CE QUE TU AS, et que peu d'autres ont. Sans la première condition, le
+      // jeton retiendrait aussi tout ce que personne ne possède — c'est-à-dire
+      // presque tout le Pokédex, ce qui ne se regarde pas.
+      //
+      // Sans la table — hors ligne, ou trop peu de collections publiques — il
+      // ne retient rien plutôt que de tout retenir : un filtre qui ne filtre
+      // pas ment sur ce qu'il montre.
+      if(typeof rangRarete !== 'function') return false;
+      if(typeof rareteTable === 'undefined' || !rareteTable || !rareteTable.dresseurs) return false;
+      if(!activeSet().has(e.name)) return false;
+      return rangRarete(e) < 0.20;
+    } },
+  verrouille: { libelle: '🔒 Shiny-lockés',
+    test: function(e){ return isShinyLocked(e); } },
+  'shiny-lock': { alias: 'verrouille' }
+};
+
+// Les états. Ils parlent de la collection ouverte, comme le menu « Filtrer ».
+const ETATS_RECHERCHE = {
+  manquant:    { libelle: '☐ Manquants',    test: function(e){ return !activeSet().has(e.name); } },
+  manquants:   { alias: 'manquant' },
+  restant:     { alias: 'manquant' },
+  restants:    { alias: 'manquant' },
+  capture:     { libelle: '☑ Dans la collection', test: function(e){ return activeSet().has(e.name); } },
+  captures:    { alias: 'capture' },
+  coche:       { alias: 'capture' },
+  coches:      { alias: 'capture' },
+  vu:          { alias: 'capture' },
+  vus:         { alias: 'capture' },
+  shiny:       { libelle: '✨ Chromatiques obtenus', test: function(e){ return shinySet.has(e.name); } },
+  chromatique: { alias: 'shiny' },
+  chromatiques:{ alias: 'shiny' },
+  brillant:    { alias: 'shiny' },
+  brillants:   { alias: 'shiny' }
+};
+
+function suivreAlias(table, cle){
+  let x = table[cle];
+  let garde = 0;
+  while(x && x.alias && garde++ < 4) x = table[x.alias];
+  return x && x.test ? x : null;
+}
+
+// Ce que la dernière analyse a reconnu, pour la ligne des jetons.
+let jetonsCompris = [];
+let rechercheVeutTypes = false;
+
+/**
+ * Découpe la saisie en une requête.
+ *
+ * Rend { numero, typeId, gen, tests, mots } : les tests sont des prédicats sur
+ * une entrée, et « mots » ce qui n'a rien de particulier et cherche un nom.
+ */
+function analyserRecherche(brut){
+  const q = { numero: null, typeId: null, gen: null, tests: [], mots: [] };
+  jetonsCompris = [];
+  const morceaux = String(brut || '').trim().split(/\s+/).filter(Boolean);
+
+  morceaux.forEach(function(morceau){
+    const nu = sansAccents(morceau.replace(/^#/, ''));
+
+    // Un numéro : celui du Pokédex national, ou celui du jeu ouvert.
+    if(/^\d+$/.test(nu)){
+      q.numero = parseInt(nu, 10);
+      jetonsCompris.push('N° ' + q.numero);
+      return;
+    }
+
+    // Une génération : « gen3 », « gen 3 » (deux morceaux) ou une région.
+    const gen = /^g(?:en)?(\d)$/.exec(nu);
+    if(gen && gen[1] >= '1' && gen[1] <= '9'){
+      q.gen = parseInt(gen[1], 10);
+      jetonsCompris.push('Gén. ' + q.gen);
+      return;
+    }
+    if(Object.prototype.hasOwnProperty.call(REGIONS_GEN, nu)){
+      q.gen = REGIONS_GEN[nu];
+      jetonsCompris.push('Gén. ' + q.gen + ' — ' + morceau);
+      return;
+    }
+
+    // Un type.
+    if(Object.prototype.hasOwnProperty.call(TYPES_PAR_NOM, nu)){
+      q.typeId = TYPES_PAR_NOM[nu];
+      jetonsCompris.push('Type ' + TYPES_FR[q.typeId]);
+      return;
+    }
+
+    // Un état de la collection.
+    const etat = suivreAlias(ETATS_RECHERCHE, nu);
+    if(etat){ q.tests.push(etat.test); jetonsCompris.push(etat.libelle); return; }
+
+    // Un mot-clé.
+    const cle = suivreAlias(MOTS_CLES_RECHERCHE, nu);
+    if(cle){ q.tests.push(cle.test); jetonsCompris.push(cle.libelle); return; }
+
+    // Rien de connu : c'est un morceau de nom.
+    q.mots.push(nu);
+  });
+
+  // Un type demandé exige la table des types, qui n'est pas chargée d'emblée.
+  // Sans ce rappel, taper « feu » ne filtrerait rien et l'on croirait le jeton
+  // ignoré — entryHasType() laisse tout passer tant qu'elle manque.
+  rechercheVeutTypes = q.typeId !== null;
+  return q;
+}
+
+// La ligne qui dit ce qui a été compris. Sans elle, un mot qui filtre en
+// silence est indiscernable d'un mot qui ne fait rien.
+function majJetonsRecherche(){
+  const el = document.getElementById('rechercheJetons');
+  if(!el) return;
+  el.hidden = jetonsCompris.length === 0;
+  if(el.hidden){ el.innerHTML = ''; return; }
+  el.innerHTML = '<span class="jeton-titre">Compris :</span>'
+    + jetonsCompris.map(function(j){
+        return '<span class="jeton">' + escapeHtml(j) + '</span>';
+      }).join('');
+}
+
+// Le pendant d'assurerLieux() pour la table des types : on la demande, et la
+// grille se redessine une fois qu'elle est là.
+let typesDemandes = false;
+function assurerTypes(){
+  if(typesByPokemonId || typesDemandes) return;
+  typesDemandes = true;
+  loadTypes().then(function(){ renderList(true); })
+             .catch(function(){ typesDemandes = false; });
+}
+
 function getFiltered(){
   const rawQuery = searchEl.value.trim();
-  const query = rawQuery.toLowerCase();
+  const requete = analyserRecherche(rawQuery);
+  if(rechercheVeutTypes) assurerTypes();
   // Une recherche entièrement numérique vise un numéro de Pokédex, pas un nom.
-  const queryNumber = /^\d+$/.test(rawQuery) ? parseInt(rawQuery, 10) : null;
+  const queryNumber = requete.numero;
   const filterMode = filterEl.value;
   const genMode = genFilterEl.value;
   const typeMode = typeFilterEl.value;
   const sortMode = sortEl.value;
 
+  // Un objectif ouvert restreint la grille à sa liste figée, AVANT les
+  // filtres — qui continuent de s'appliquer par-dessus. On ne rejoue pas les
+  // filtres d'origine : l'objectif est justement ce qui ne bouge pas, et les
+  // rejouer le laisserait dériver avec le relevé.
+  const surObjectif = (typeof objectifAffiche !== 'undefined' && objectifAffiche)
+    ? new Set(objectifAffiche.entrees || []) : null;
+
   // On part du scope courant (National, ou le Pokédex du jeu sélectionné).
   let result = scopeEntries.filter(function(entry){
+    if(surObjectif && !surObjectif.has(entry.name)) return false;
     if(queryNumber !== null){
       // On accepte le n° national comme celui du Pokédex du jeu affiché.
       const gameNo = dexNumber ? dexNumber.get(entry.speciesId) : null;
       if(entry.speciesId !== queryNumber && gameNo !== queryNumber) return false;
-    } else if(query && nomAffiche(entry).toLowerCase().indexOf(query) === -1){
-      return false;
+    }
+    // Les mots que l'analyse n'a pas reconnus cherchent dans le nom, et TOUS
+    // doivent s'y trouver : « pikachu casquette » demande les deux. La
+    // comparaison ignore les accents — « ptera » trouve Ptéra, et personne ne
+    // tape les accents dans un champ de recherche.
+    if(requete.mots.length){
+      const nom = sansAccents(nomAffiche(entry));
+      for(let i = 0; i < requete.mots.length; i++){
+        if(nom.indexOf(requete.mots[i]) === -1) return false;
+      }
+    }
+    // Les jetons reconnus. Ils se cumulent entre eux et avec les menus.
+    if(requete.typeId !== null && !entryHasType(entry, requete.typeId)) return false;
+    if(requete.gen !== null && entry.gen !== requete.gen) return false;
+    for(let i = 0; i < requete.tests.length; i++){
+      if(!requete.tests[i](entry)) return false;
     }
     if(typeMode !== 'all' && !entryHasType(entry, parseInt(typeMode, 10))) return false;
     // « Capturés » / « Manquants » parlent de la forme du mode actif.
@@ -388,8 +640,23 @@ function getFiltered(){
     return true;
   });
 
+  return trierEntrees(result, sortMode);
+}
+
+// Le tri, à part : la vue boîtes en a besoin sans les filtres. Une boîte se lit
+// par la PLACE d'un Pokémon, et filtrer déplacerait tout le monde d'un cran.
+function trierEntrees(result, sortMode){
   result.sort(function(a, b){
     if(sortMode === 'name') return nomAffiche(a).localeCompare(nomAffiche(b), langueNoms);
+    // Du plus rare au plus repandu. Sans la table — hors ligne, ou moins de
+    // cinq collections publiques — rangRarete() rend 1 pour tout le monde et
+    // le tri retombe sur le numero national, ce qui vaut mieux qu'un ordre au
+    // hasard qui aurait l'air d'un classement.
+    if(sortMode === 'rarete' && typeof rangRarete === 'function'){
+      const ra = rangRarete(a), rb = rangRarete(b);
+      if(ra !== rb) return ra - rb;
+      return a.id - b.id;
+    }
     if(sortMode === 'gen'){
       if(a.gen !== b.gen) return a.gen - b.gen;
       return a.id - b.id;
@@ -639,6 +906,9 @@ function renderCard(entry){
   const input = document.createElement('input');
   input.type = 'checkbox';
   input.checked = ownedHere;
+  // Tabulation mobile : poserTabulation() rendra une seule case atteignable au
+  // Tab, et les flèches feront le reste. Voir grille.js.
+  input.tabIndex = -1;
   const formLabel = shinyView ? 'shiny' : 'normale';
   // Le mot suit l'aventure ouverte : « Capturé » sur un Pokédex ordinaire,
   // « Vu » sur un dex de rencontres, « En boîte » sur un Living Dex — où la

@@ -1,6 +1,6 @@
 [package]
 name = "pokearchive"
-version = "0.19.0"
+version = "0.20.0"
 description = "PokéArchive — suivi de collection Pokémon"
 authors = ["Tennosei_"]
 edition = "2021"
@@ -32,6 +32,17 @@ tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 tauri-plugin-notification = "2"
 
+# Les raccourcis globaux du compteur de chasse. « Globaux » est le point :
+# la fenêtre de PokéArchive n'est pas au premier plan pendant qu'on chasse,
+# le jeu l'est. Un raccourci de fenêtre ne servirait que pendant les pauses.
+#
+# En dépendance ordinaire et non sous cfg(desktop) : c'est ainsi que le
+# script de compilation de Tauri trouve les fichiers de permission du
+# plugin — sous une table de cible, « global-shortcut:default » reste
+# introuvable et la compilation s'arrête. Le plugin, lui, se garde tout
+# seul sur mobile.
+tauri-plugin-global-shortcut = "2"
+
 # rustls plutôt que le TLS du système : un binaire distribuable qui ne dépend
 # d'aucune bibliothèque installée sur la machine du joueur.
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
@@ -52,3 +63,4 @@ opt-level = "s"    # on optimise la taille : c'est un installeur qu'on distribue
 lto = true
 codegen-units = 1
 strip = true
+

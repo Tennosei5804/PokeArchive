@@ -13,7 +13,7 @@ Le site s'assemble, s'ouvre sur <http://127.0.0.1:8130>, et c'est tout.
 ## Ce que c'est, et ce que ce n'est pas
 
 C'est **le frontend de l'application de bureau**, servi par un navigateur. Pas
-une réécriture, pas un second client : les mêmes trente-et-un scripts, les
+une réécriture, pas un second client : les mêmes trente-sept scripts, les
 mêmes feuilles de style, les mêmes réserves de données.
 
 Ce qui a été écrit ici tient en deux fichiers.
@@ -30,10 +30,10 @@ dit, pour que personne ne l'apprenne le jour où il change d'ordinateur.
 
 ## Pourquoi il n'y a qu'une source
 
-Le frontend de PokéArchive est déjà du web ordinaire. Sur ses trente-et-un
-scripts, **quatre seulement** touchent à Tauri, et trois d'entre eux vérifient
-sa présence avant de s'en servir — ils se taisent proprement quand il manque.
-Le seul vrai point de contact est `invoke()`, trente-deux commandes.
+Le frontend de PokéArchive est déjà du web ordinaire. Sur ses trente-sept
+scripts, **cinq seulement** nomment `window.__TAURI__`, et quatre d'entre eux
+vérifient sa présence avant de s'en servir — ils se taisent proprement quand il manque.
+Le seul vrai point de contact est `invoke()`, trente-huit commandes.
 
 Recopier `app/src` dans `site/` en aurait fait un second client à maintenir, et
 deux clients divergent toujours : le jour où l'un gagne un onglet, l'autre
@@ -63,7 +63,7 @@ Il n'expose que `core.invoke`. C'est voulu : `maj.js` et `presence.js`
 vérifient `.updater`, `.app` et `.process` avant de s'en servir. Un site web n'a
 ni mise à jour à installer ni processus à fermer, et ils se taisent d'eux-mêmes.
 
-Les trente-deux commandes rendent **les formes de l'API**, reprises de
+Les trente-huit commandes rendent **les formes de l'API**, reprises de
 `api/src/serveur.js` — pas des approximations. Une forme approchée casserait
 l'application à l'endroit le moins prévisible.
 
@@ -78,6 +78,17 @@ Le **journal se date tout seul**. À chaque enregistrement, le pont compare
 l'ancien dex au nouveau et date les ajouts — mot pour mot ce que fait `nouveautes()`
 côté serveur. C'est ce qui fait marcher la rétrospective et les succès ici
 aussi. Décocher n'est pas journalisé : c'est une correction, pas un événement.
+
+### Le site s'installe et s'ouvre hors ligne
+
+`assembler.py` écrit un manifeste, quatre icônes et un service worker. La
+coquille — `index.html`, les feuilles, les scripts du premier chargement, les
+polices, les bannières — est mise en cache à l'installation ; les quatre
+réserves à la demande y entrent à leur premier usage. La liste se **lit** dans
+la page qu'on vient d'écrire : un script ajouté à `index.html` y entre sans que
+personne n'ait à y penser.
+
+La version du cache est celle des fichiers, jamais un numéro tenu à la main.
 
 ### Ce qui ne marche pas encore
 
@@ -127,11 +138,21 @@ Les deux côtés le produisent désormais : l'application par « Exporter mes
 données », le site par le même bouton. Aucun identifiant de base n'en sort — il
 n'aurait aucun sens ailleurs.
 
-### Ce qui manque : personne ne sait lire
+### L'import existe désormais, des deux côtés
 
-**Ni l'application ni le site n'ont d'import.** C'est la seule pièce absente
-pour une synchro par fichier, et c'est un manque du projet, pas du site :
-l'application exporte depuis toujours sans jamais savoir relire.
+C'était la seule pièce absente pour une synchro par fichier, et c'était un
+manque du projet et non du site : l'application exportait depuis toujours sans
+jamais savoir relire.
+
+Le bouton **⬆ Importer une sauvegarde**, dans le Profil, avale un fichier
+`pokearchive-1` d'où qu'il vienne. Côté application il part à
+`POST /api/import` ; côté site il est traité par la commande `importer` du
+pont, **avec la même règle de fusion**, recopiée à la lettre — une union qui
+différerait d'un côté ferait diverger les deux collections dès le premier
+aller-retour, et c'est cet aller-retour que l'import existe pour permettre.
+
+L'opération est **rejouable** : le même fichier deux fois ne double ni le dex
+ni le journal. Le banc de l'application le vérifie.
 
 ### La question qui décide de tout : que fait-on d'un conflit ?
 
@@ -155,13 +176,13 @@ cochage ne l'est pas.
 
 ### Les deux étapes, dans l'ordre
 
-**1. Par fichier — faisable aujourd'hui, sans rien décider d'autre.** Un import
-de `pokearchive-1` des deux côtés, avec la fusion ci-dessus. Manuel, mais
-complet et hors ligne. Ne demande ni hébergement, ni CORS, ni session web.
+**1. Par fichier — fait.** L'import de `pokearchive-1` existe des deux côtés,
+avec la fusion ci-dessus. Manuel, mais complet et hors ligne : il n'a demandé
+ni hébergement, ni CORS, ni session web.
 
 **2. Par le compte — demande l'hébergement.** Le site parle à l'API comme le
 fait l'application. Côté site il n'y a **qu'une fonction** à changer,
-`repondre()` dans `pont.js`, puisque les trente-deux commandes rendent déjà les
+`repondre()` dans `pont.js`, puisque les trente-huit commandes rendent déjà les
 formes de l'API. Côté serveur il faut le CORS et un vrai chemin de session
 navigateur — voir « Le jour où l'API sera joignable » plus haut.
 
