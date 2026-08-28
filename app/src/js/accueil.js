@@ -392,7 +392,8 @@ function showPage(name){
 
   if(name === 'dresseurs' || name === 'profil' || name === 'chasse'
      || name === 'cadeaux' || name === 'strategie' || name === 'reproduction'
-     || name === 'transferts' || name === 'amis' || name === 'lieux'){
+     || name === 'transferts' || name === 'amis' || name === 'lieux'
+     || name === 'parametres'){
     currentPage = name;
     pageHomeEl.classList.remove('active');
     pageDexEl.classList.remove('active');
@@ -401,6 +402,7 @@ function showPage(name){
     if(pageAmisEl) pageAmisEl.classList.toggle('active', name === 'amis');
     if(pageLieuxEl) pageLieuxEl.classList.toggle('active', name === 'lieux');
     if(pageProfilEl) pageProfilEl.classList.toggle('active', name === 'profil');
+    if(pageParametresEl) pageParametresEl.classList.toggle('active', name === 'parametres');
     if(pageChasseEl) pageChasseEl.classList.toggle('active', name === 'chasse');
     if(pageCadeauxEl) pageCadeauxEl.classList.toggle('active', name === 'cadeaux');
     if(pageStrategieEl) pageStrategieEl.classList.toggle('active', name === 'strategie');
@@ -412,8 +414,10 @@ function showPage(name){
     majSousNavOutils(name);
     if(name === 'dresseurs' && typeof chargerDresseurs === 'function') chargerDresseurs();
     if(name === 'amis' && typeof chargerAmis === 'function') chargerAmis();
+    if(name === 'amis' && typeof chargerTroc === 'function') chargerTroc();
     if(name === 'lieux' && typeof chargerPageLieux === 'function') chargerPageLieux();
     if(name === 'profil' && typeof chargerProfil === 'function') chargerProfil();
+    if(name === 'parametres' && typeof chargerParametres === 'function') chargerParametres();
     if(name === 'chasse' && typeof dessinerChasses === 'function') dessinerChasses();
     // La page se redessine à chaque ouverture : elle lit la collection HOME,
     // qui a pu changer entre-temps.

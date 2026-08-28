@@ -19,7 +19,35 @@ const bulkLabel = document.getElementById('bulkLabel');
 const bulkCheckBtn = document.getElementById('bulkCheck');
 const bulkUncheckBtn = document.getElementById('bulkUncheck');
 const themeBtn = document.getElementById('themeBtn');
-const langBtn = document.getElementById('langBtn');
+// La langue se règle dans les Paramètres. Le bouton « Français » de l'en-tête
+// n'existe plus : il disait une langue sans dire de quoi, et occupait la barre
+// en permanence pour un choix qu'on fait une fois.
+const langueChoix = document.getElementById('langueChoix');
+const clocheBtn = document.getElementById('clocheBtn');
+const clochePastille = document.getElementById('clochePastille');
+const clochePanneau = document.getElementById('clochePanneau');
+const clocheListe = document.getElementById('clocheListe');
+const clocheToutLu = document.getElementById('clocheToutLu');
+
+// Les échanges : la barre de proposition au pied de l'entraide, la liste sur la
+// page des amis, et la discussion.
+const trocBarre = document.getElementById('trocBarre');
+const trocVeux = document.getElementById('trocVeux');
+const trocDonne = document.getElementById('trocDonne');
+const trocMot = document.getElementById('trocMot');
+const trocJeu = document.getElementById('trocJeu');
+const trocEnvoyer = document.getElementById('trocEnvoyer');
+const trocEtat = document.getElementById('trocEtat');
+const trocListe = document.getElementById('trocListe');
+const discussionOverlay = document.getElementById('discussionOverlay');
+const discussionEyebrow = document.getElementById('discussionEyebrow');
+const discussionTitre = document.getElementById('discussionTitre');
+const discussionResume = document.getElementById('discussionResume');
+const discussionFil = document.getElementById('discussionFil');
+const discussionTexte = document.getElementById('discussionTexte');
+const discussionEnvoyer = document.getElementById('discussionEnvoyer');
+const discussionFermer = document.getElementById('discussionFermer');
+const discussionEtat = document.getElementById('discussionEtat');
 const aPortee = document.getElementById('aPortee');
 const accueilAventure = document.getElementById('accueilAventure');
 const accueilJournal = document.getElementById('accueilJournal');
@@ -84,6 +112,7 @@ const lieuxQ = document.getElementById('lieuxQ');
 const lieuxResume = document.getElementById('lieuxResume');
 const lieuxListe = document.getElementById('lieuxListe');
 const pageProfilEl = document.getElementById('page-profil');
+const pageParametresEl = document.getElementById('page-parametres');
 const pageChasseEl = document.getElementById('page-chasse');
 const pageJeuxEl = document.getElementById('page-jeux');
 const pageCadeauxEl = document.getElementById('page-cadeaux');

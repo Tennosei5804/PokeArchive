@@ -149,12 +149,79 @@ const TABLES = [
      CONSTRAINT fk_pa_amis_ami FOREIGN KEY (ami_id)
        REFERENCES pa_dresseurs(id) ON DELETE CASCADE
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // Un accord entre deux joueurs, pas un transfert. Rien ne bouge ici : les
+  // deux se retrouvent ensuite dans leur jeu. Voir api/src/echanges.js.
+  //
+  // offert et demande sont ecrits DU POINT DE VUE DU DEMANDEUR, une fois pour
+  // toutes. Les stocker « selon qui regarde » demanderait de savoir qui
+  // regarde au moment d'ecrire, ce qui n'a pas de sens ; c'est la lecture qui
+  // les retourne.
+  //
+  // etat : propose | accepte | refuse | annule | fait
+  `CREATE TABLE IF NOT EXISTS pa_echanges (
+     id           BIGINT      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+     demandeur_id BIGINT      NOT NULL,
+     receveur_id  BIGINT      NOT NULL,
+     dex          VARCHAR(32) NOT NULL,
+     offert       VARCHAR(64) NOT NULL,
+     demande      VARCHAR(64) NOT NULL,
+     etat         VARCHAR(16) NOT NULL DEFAULT 'propose',
+     mot          VARCHAR(280) NULL,
+     cree_le      VARCHAR(64) NOT NULL,
+     maj_le       VARCHAR(64) NOT NULL,
+     CONSTRAINT fk_pa_echanges_demandeur FOREIGN KEY (demandeur_id)
+       REFERENCES pa_dresseurs(id) ON DELETE CASCADE,
+     CONSTRAINT fk_pa_echanges_receveur FOREIGN KEY (receveur_id)
+       REFERENCES pa_dresseurs(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // La discussion d'un echange, et rien d'autre. Il n'y a pas de messagerie
+  // dans PokeArchive : on ne peut ecrire qu'a quelqu'un qui a accepte un
+  // echange avec soi. C'est ce qui empeche l'abonnement a sens unique de
+  // devenir une porte ouverte.
+  `CREATE TABLE IF NOT EXISTS pa_messages (
+     id         BIGINT       NOT NULL AUTO_INCREMENT PRIMARY KEY,
+     echange_id BIGINT       NOT NULL,
+     auteur_id  BIGINT       NOT NULL,
+     texte      VARCHAR(1000) NOT NULL,
+     cree_le    VARCHAR(64)  NOT NULL,
+     CONSTRAINT fk_pa_messages_echange FOREIGN KEY (echange_id)
+       REFERENCES pa_echanges(id) ON DELETE CASCADE,
+     CONSTRAINT fk_pa_messages_auteur FOREIGN KEY (auteur_id)
+       REFERENCES pa_dresseurs(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // Ce qui est arrive POUR QUELQU'UN. Les captures des amis n'y figurent pas :
+  // elles se deduisent de pa_historique, et ce qui se deduit ne s'ecrit pas.
+  // Ici on ne garde que ce qui s'adresse a une personne et attend d'elle
+  // quelque chose. La raison longue est en tete de notifications.js.
+  `CREATE TABLE IF NOT EXISTS pa_notifications (
+     id          BIGINT       NOT NULL AUTO_INCREMENT PRIMARY KEY,
+     dresseur_id BIGINT       NOT NULL,
+     genre       VARCHAR(24)  NOT NULL,
+     echange_id  BIGINT       NULL,
+     titre       VARCHAR(200) NOT NULL,
+     detail      VARCHAR(400) NULL,
+     lu          TINYINT(1)   NOT NULL DEFAULT 0,
+     cree_le     VARCHAR(64)  NOT NULL,
+     CONSTRAINT fk_pa_notifications_dresseur FOREIGN KEY (dresseur_id)
+       REFERENCES pa_dresseurs(id) ON DELETE CASCADE,
+     CONSTRAINT fk_pa_notifications_echange FOREIGN KEY (echange_id)
+       REFERENCES pa_echanges(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const INDEX = [
   { nom: 'idx_pa_dresseurs_discord', table: 'pa_dresseurs', colonnes: 'discord_id', unique: true },
   { nom: 'idx_pa_sessions_dresseur', table: 'pa_sessions', colonnes: 'dresseur_id', unique: false },
   { nom: 'idx_pa_amis_ami', table: 'pa_amis', colonnes: 'ami_id', unique: false },
+  // RIEN A AJOUTER POUR LES ECHANGES, LES MESSAGES NI LES NOTIFICATIONS. Les
+  // quatre colonnes qu'on interroge — demandeur_id, receveur_id, echange_id,
+  // dresseur_id — portent toutes une cle etrangere, et MySQL indexe d'office
+  // la colonne d'une cle etrangere. Les redeclarer ici creerait un second
+  // index sur la meme colonne : deux arbres a tenir a jour a chaque ecriture,
+  // pour une lecture qui n'irait pas plus vite.
 ];
 
 /**

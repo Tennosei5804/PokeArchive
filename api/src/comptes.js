@@ -97,8 +97,22 @@ export async function depuisDiscord(profil) {
   if (nouveau) {
     const pseudo = (await pseudoLibre(pseudoHerite(profil.pseudo))).normalize('NFC');
     const r = await ecrire(
-      `INSERT INTO pa_dresseurs (discord_id, pseudo, pseudo_cle, avatar, discord_nom, cree_le)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      // visible = 0 EXPLICITEMENT, alors que la colonne vaut 1 par defaut.
+      //
+      // On n'entre pas dans un classement public par le simple fait de s'etre
+      // connecte. Le compte se cree pour synchroniser un Pokedex entre deux
+      // machines ; y figurer sous son pseudo devant tout le monde est une
+      // seconde decision, et c'est a la personne de la prendre — d'un
+      // interrupteur dans les Parametres, pas par omission.
+      //
+      // Rien n'est perdu pour autant : qui connait le pseudo exact peut
+      // toujours suivre et comparer. Ce sont la recherche et le classement qui
+      // filtrent sur visible, pas l'acces aux aventures publiques.
+      //
+      // Le defaut de la colonne reste 1 : le changer ferait disparaitre du
+      // classement ceux qui y sont deja et n'ont rien demande.
+      `INSERT INTO pa_dresseurs (discord_id, pseudo, pseudo_cle, avatar, discord_nom, cree_le, visible)
+       VALUES (?, ?, ?, ?, ?, ?, 0)`,
       [discordId, pseudo, normaliser(pseudo), profil.avatar || '',
        profil.nomDiscord || null, horodatage()]);
     d = { id: r.insertId, pseudo, avatar: profil.avatar || '', cree_le: horodatage() };

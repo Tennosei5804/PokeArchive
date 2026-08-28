@@ -211,20 +211,36 @@ verifier('Le pont',
   });
 
 verifier('Le pont',
-  'Se déconnecter oublie le nom, pas la collection',
+  'Se déconnecter oublie le nom, sans fermer la porte ni vider la collection',
   async function(){
-    // Il n'y a pas de serveur d'où la retélécharger : l'effacer serait
-    // définitif, et personne ne s'attend à ça en cliquant « déconnexion ».
+    // DEUX CHOSES ICI, ET LA SECONDE A CHANGÉ.
+    //
+    // La collection reste : il n'y a pas de serveur d'où la retélécharger,
+    // l'effacer serait définitif, et personne ne s'attend à ça en cliquant
+    // « déconnexion ».
+    //
+    // Mais le site n'a PLUS d'écran de connexion — on y arrive et on coche.
+    // `etat` répond donc toujours « connecté », y compris après une
+    // déconnexion : c'est ce qui empêche l'application de dresser un mur là où
+    // il n'y a rien derrière. Cette vérification attendait l'inverse et
+    // signalait un échec sur un comportement voulu ; elle surveille désormais
+    // qu'on ne réintroduise pas ce mur par accident.
     neuf();
     await invoke('connexion', { pseudo: 'Banc' });
     await invoke('ecrire_dex', { profil: null,
       donnees: { version: 1, dex: { rby: { caught: ['bulbasaur'], shiny: [] } } } });
     await invoke('deconnexion');
-    if((await invoke('etat')).connecte) return 'échec : encore connecté';
+
+    if(!(await invoke('etat')).connecte){
+      return 'échec : le site redemande une connexion qu’il ne sait pas faire';
+    }
     const etat = JSON.parse(localStorage.getItem(CLE));
     if(!etat.dex || !Object.keys(etat.dex).length) return 'échec : le dex est parti avec le nom';
     if(etat.journal.length !== 1) return 'échec : le journal est parti';
-    return 'nom oublié, dex et journal gardés';
+    // `etat` a reposé un dresseur par défaut : c'est lui qu'on doit retrouver,
+    // et surtout pas « Banc ».
+    if(etat.dresseur && etat.dresseur.pseudo === 'Banc') return 'échec : le nom est resté';
+    return 'nom oublié, dex et journal gardés, aucun mur de connexion';
   });
 
 verifier('Le pont',

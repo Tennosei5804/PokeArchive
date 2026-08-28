@@ -650,6 +650,25 @@
     ne_plus_suivre: () => { throw HORS_LIGNE; },
     renommer_dresseur: () => { throw HORS_LIGNE; },
 
+    // Les échanges supposent quelqu'un en face, et la discussion un serveur qui
+    // porte les messages. Ni l'un ni l'autre n'existe ici : le site tient une
+    // collection dans le localStorage du navigateur, il ne connaît personne.
+    //
+    // On rend des listes VIDES plutôt que de lever : la page des amis se dessine
+    // alors normalement, avec « aucun échange pour l'instant », au lieu de
+    // s'ouvrir sur un message d'erreur pour une fonction qu'on n'a pas demandée.
+    // Ce qui ÉCRIT, en revanche, lève — parce que là, quelque chose est
+    // réellement attendu, et se taire ferait croire que c'est parti.
+    echanges: () => ({ echanges: [] }),
+    echange_messages: () => { throw HORS_LIGNE; },
+    echange_proposer: () => { throw HORS_LIGNE; },
+    echange_reponse: () => { throw HORS_LIGNE; },
+    echange_annuler: () => { throw HORS_LIGNE; },
+    echange_fait: () => { throw HORS_LIGNE; },
+    echange_ecrire: () => { throw HORS_LIGNE; },
+    notifications: () => ({ notifications: [], nonLues: 0 }),
+    notifications_lues: () => ({ ok: true, nonLues: 0 }),
+
     // --- Propres au bureau ----------------------------------------------------
     //
     // La présence Discord suppose un client Discord sur la machine. Ne rien

@@ -20,6 +20,38 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.21.0', date: '2026-08-27',
+    titre: 'Proposer un échange, en discuter, et un en-tête qui respire',
+    points: [
+      '**⇄ Proposer un échange.** Dans 🤝 Entraide, face à un dresseur, '
+      + 'clique un nom dans chaque colonne : ce que tu veux, ce que tu donnes. La '
+      + 'proposition part avec le jeu, et un mot si tu veux. **Rien ne bouge tout '
+      + 'seul** : PokéArchive note l’accord, vous vous retrouvez ensuite dans le '
+      + 'jeu pour le faire.',
+      '**Accepter, refuser, discuter.** Une proposition reçue s’accepte ou se '
+      + 'refuse depuis la page 📣 Amis. Une fois **acceptée**, une discussion '
+      + 's’ouvre entre vous deux, pour convenir d’une heure. Avant l’acceptation, '
+      + 'personne ne peut t’écrire : suivre quelqu’un n’ouvre aucune porte.',
+      '**🔔 Une cloche** dans l’en-tête. Ce qui s’adresse à toi et attend une '
+      + 'réponse : une proposition, un accord, un message. À ne pas confondre avec '
+      + 'les captures de tes amis, qui gardent leur pastille sur l’onglet.',
+      '**L’en-tête s’est vidé.** Les cinq pastilles rondes — langue, lexique, '
+      + 'nouveautés, mise à jour, thème — ont rejoint le menu de ton pseudo, où '
+      + 'elles portent enfin un **nom**. Il ne reste que la cloche.',
+      '**⚙️ Une page Paramètres.** La langue, les couleurs, ta présence, les '
+      + 'notifications : tout ce qui règle l’application quitte le bas du Profil, '
+      + 'où il fallait dépasser deux cents lignes de journal pour l’atteindre. Le '
+      + 'Profil dit qui tu es, les Paramètres disent comment ça se tient.',
+      '**Tu n’apparais plus au classement par défaut.** Un compte sert d’abord à '
+      + 'garder ton Pokédex d’une machine à l’autre ; y figurer devant tout le '
+      + 'monde est une seconde décision, et elle t’appartient. L’interrupteur est '
+      + 'dans les Paramètres. Les comptes déjà visibles le restent.',
+      '**Sur la fiche d’un dresseur**, le champ de recherche et le filtre '
+      + 'disparaissent : ils appartenaient au classement, et toucher au filtre te '
+      + 'rejetait dehors sans prévenir.',
+    ],
+  },
+  {
     version: '0.20.0', date: '2026-08-27',
     titre: 'Relire une sauvegarde, ranger en boîtes, et s’entraider',
     points: [

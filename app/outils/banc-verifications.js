@@ -899,6 +899,145 @@ verifier('Le réseau',
 
 // ---------------------------------------------------------------------------
 
+verifier('Les dresseurs',
+  "Sur la fiche d'un dresseur, ni recherche ni filtre — mesuré à l'écran",
+  async function(){
+    // offsetParent ET NON style.display. Le filtre est un <select> habillé par
+    // menus.js : le masquer, lui, ne masque que le select natif, déjà
+    // invisible, pendant que le bouton dessiné reste sous les yeux. La première
+    // version de ce correctif a passé la relecture et raté l'écran ; on mesure
+    // donc ce que l'on voit, pas ce que l'on croit avoir caché.
+    const vu = function(el){
+      if(!el) return false;
+      const cible = (el.closest && el.closest('.select-wrap')) || el;
+      return cible.offsetParent !== null;
+    };
+
+    // LA PAGE D'ABORD. Sans elle, la section entiere est en display:none et
+    // offsetParent vaut null pour TOUT ce qu'elle contient : la verification
+    // passait au vert sans rien mesurer, ce qui est pire que pas de
+    // verification du tout. Le retour au classement, lui, l'a signale.
+    showPage('dresseurs');
+    await attendre(300);
+    await visiterDresseur('Amie_Test');
+    await attendre(250);
+    if(dresseurVisite.style.display === 'none') return "échec : la fiche ne s'est pas ouverte";
+
+    const restes = [];
+    if(vu(dresseurQ)) restes.push('la recherche');
+    if(vu(dresseurModeEl)) restes.push('le filtre');
+    if(restes.length) return 'échec : ' + restes.join(' et ') + ' restent visibles';
+    if(!vu(dresseurRetour)) return 'échec : plus de retour au classement';
+
+    // Et le filtre ne doit pas renvoyer dehors s'il est actionné malgré tout :
+    // un menu habillé garde ses raccourcis clavier même masqué.
+    dresseurModeEl.dispatchEvent(new Event('change', { bubbles: true }));
+    await attendre(250);
+    if(dresseurVisite.style.display === 'none'){
+      return 'échec : le filtre a rejeté hors de la fiche';
+    }
+
+    await chargerDresseurs(null);
+    await attendre(200);
+    if(!vu(dresseurQ) || !vu(dresseurModeEl)) return 'échec : les deux ne reviennent pas';
+    return 'les deux disparaissent, le retour reste, le filtre ne rejette plus';
+  });
+
+// ---------------------------------------------------------------------------
+// Les échanges. Trois vérifications, et la première est la seule qui compte
+// vraiment : le SENS. « offert » et « demande » sont écrits en base du point de
+// vue du demandeur, et l'écran raisonne en « je donne / je reçois ». Inverser
+// les deux ne casse rien, ne lève rien, et propose exactement le contraire de
+// ce qui a été cliqué — le genre de bug qu'on ne voit qu'en le vivant.
+
+function entreeDuBanc(nom){
+  const liste = (typeof poolHome === 'function') ? poolHome() : [];
+  return liste.find(function(e){ return e.name === nom; }) || null;
+}
+
+verifier('Les échanges',
+  "Ce qu'on clique à gauche part en « demande », ce qu'on clique à droite en « offert »",
+  async function(){
+    const veux = entreeDuBanc('abra');
+    const donne = entreeDuBanc('machop');
+    if(!veux || !donne) return 'ignoré : entrées témoins absentes de la réserve';
+
+    const avant = amiProgression;
+    amiProgression = { joueur: 'Amie_Test', pseudo: 'Amie_Test', dex: 'national',
+                       mode: 'capture', niveau: 3, caught: new Set(), shiny: new Set() };
+    trocPreparer();
+    trocChoisir('veux', veux, null);
+    trocChoisir('donne', donne, null);
+
+    window.__appels = [];
+    await trocProposer();
+    amiProgression = avant;
+
+    const appel = window.__appels.find(function(a){ return a.cmd === 'echange_proposer'; });
+    if(!appel) return "échec : rien n'est parti";
+    if(appel.args.demande !== 'abra'){
+      return 'échec : demande = ' + appel.args.demande + ' au lieu de abra';
+    }
+    if(appel.args.offert !== 'machop'){
+      return 'échec : offert = ' + appel.args.offert + ' au lieu de machop';
+    }
+    if(appel.args.pseudo !== 'Amie_Test') return 'échec : mauvais destinataire';
+    return "je demande abra, j'offre machop, à Amie_Test";
+  });
+
+verifier('Les échanges',
+  'On ne peut pas accepter sa propre proposition',
+  async function(){
+    await chargerTroc();
+    await attendre(120);
+    const lignes = trocListe.querySelectorAll('.troc-ligne');
+    if(lignes.length < 2) return 'échec : ' + lignes.length + ' ligne(s), deux attendues au moins';
+
+    const texteDe = function(l){
+      return [].map.call(l.querySelectorAll('button'), function(b){ return b.textContent; }).join(' | ');
+    };
+    let recue = null, envoyee = null;
+    [].forEach.call(lignes, function(l){
+      const titre = l.querySelector('.troc-titre').textContent;
+      if(titre.indexOf('te propose') !== -1 && !recue) recue = l;
+      if(titre.indexOf('Tu proposes') !== -1 && !envoyee) envoyee = l;
+    });
+    if(!recue || !envoyee) return 'échec : les deux sens ne sont pas distingués';
+
+    if(texteDe(recue).indexOf('Accepter') === -1) return "échec : pas d'Accepter sur la reçue";
+    if(texteDe(envoyee).indexOf('Accepter') !== -1) return 'échec : Accepter sur sa propre proposition';
+    if(texteDe(envoyee).indexOf('Retirer') === -1 && texteDe(envoyee).indexOf('Discuter') === -1){
+      return "échec : rien à faire sur celle qu'on a envoyée";
+    }
+    return 'reçue : ' + texteDe(recue) + '  //  envoyée : ' + texteDe(envoyee);
+  });
+
+verifier('Les échanges',
+  'La cloche compte les non-lues et nomme les deux Pokémon',
+  async function(){
+    await verifierNotifs(true);
+    await attendre(150);
+    const lignes = clocheListe.querySelectorAll('.cloche-ligne');
+    if(!lignes.length) return 'échec : le panneau est vide';
+
+    // Le détail doit porter DEUX noms traduits, pas les identifiants bruts :
+    // le serveur n'envoie que « abra », c'est ici qu'on en fait une phrase.
+    const detail = lignes[0].querySelector('.cloche-detail');
+    if(!detail) return "échec : la première ligne n'a pas de détail";
+    if(detail.textContent.indexOf('contre') === -1){
+      return 'échec : détail sans « contre » — ' + detail.textContent;
+    }
+    const brutes = ['machop', 'grimer', 'kadabra', 'abra'].filter(function(c){
+      return detail.textContent.indexOf(c) !== -1;
+    });
+    if(brutes.length){
+      return 'échec : clé brute affichée (' + brutes.join(', ') + ') — ' + detail.textContent;
+    }
+    return lignes.length + ' ligne(s) ; première : ' + detail.textContent;
+  });
+
+// ---------------------------------------------------------------------------
+
 async function lancerBanc(){
   const panneau = document.createElement('div');
   panneau.id = 'bancRapport';

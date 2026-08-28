@@ -16,6 +16,11 @@ import { creerSchema, description } from './base.js';
 import { etatVersion } from './version.js';
 import * as comptes from './comptes.js';
 import * as amis from './amis.js';
+// « troc » et non « echanges » : ce fichier tient deja une Map nommee
+// echanges, celle des codes d'authentification Discord. Deux sens du meme
+// mot, et un seul espace de noms.
+import * as troc from './echanges.js';
+import * as notifications from './notifications.js';
 import * as discord from './discord.js';
 import { limiter } from './debit.js';
 
@@ -395,6 +400,61 @@ app.get('/api/amis/nouveautes', route(async (req, res) => {
 app.post('/api/amis/vu', route(async (req, res) => {
   const d = await exiger(req, res); if (!d) return;
   res.json({ ok: true, ...(await amis.marquerVu(d.id, req.body?.jusqua)) });
+}));
+
+// --- Les echanges -----------------------------------------------------------
+// Un accord entre deux joueurs. Rien ne bouge ici : l'application tient
+// l'accord, la console tient l'echange. Voir api/src/echanges.js.
+
+app.get('/api/echanges', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json(await troc.mesEchanges(d.id));
+}));
+
+app.post('/api/echanges', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json({ ok: true, ...(await troc.proposer(d.id, req.body || {})) });
+}));
+
+app.post('/api/echanges/:id/reponse', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json({ ok: true, ...(await troc.repondre(d.id, req.params.id, req.body?.reponse)) });
+}));
+
+app.post('/api/echanges/:id/annuler', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json({ ok: true, ...(await troc.annuler(d.id, req.params.id)) });
+}));
+
+// « C'est fait » : pose a la main, parce que le service ne voit pas les
+// consoles et ne peut pas le constater.
+app.post('/api/echanges/:id/fait', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json({ ok: true, ...(await troc.conclure(d.id, req.params.id)) });
+}));
+
+app.get('/api/echanges/:id/messages', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json(await troc.messages(d.id, req.params.id));
+}));
+
+app.post('/api/echanges/:id/messages', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json({ ok: true, ...(await troc.ecrireMessage(d.id, req.params.id, req.body?.texte)) });
+}));
+
+// --- Les notifications ------------------------------------------------------
+
+app.get('/api/notifications', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json(await notifications.mesNotifications(d.id));
+}));
+
+// Dit jusqu'ou on a affiche. Ce qui est arrive PENDANT l'affichage reste non
+// lu plutot que d'etre avale sans avoir ete vu — meme regle que /api/amis/vu.
+app.post('/api/notifications/lues', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json({ ok: true, ...(await notifications.marquerLues(d.id, req.body?.jusqua)) });
 }));
 
 app.post('/api/deconnexion', route(async (req, res) => {

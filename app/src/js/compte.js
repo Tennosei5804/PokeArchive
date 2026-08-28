@@ -613,11 +613,57 @@ function ligneDresseur(p, rang, maxCaptures){
   return carte;
 }
 
+/**
+ * Le champ et le filtre, montrés ou cachés ensemble.
+ *
+ * Ils appartiennent au CLASSEMENT. Sur la fiche d'un dresseur ils n'avaient
+ * plus de sens : le champ cherchait dans une liste qu'on ne voyait plus, et le
+ * filtre — qui recharge le classement — renvoyait dehors celui qui s'en
+ * servait en croyant trier les aventures affichées sous ses yeux.
+ */
+/**
+ * L'élément qui SE VOIT, pour un contrôle donné.
+ *
+ * menus.js remplace chaque <select> par un bouton dessiné et garde le select
+ * natif invisible à côté, dans une enveloppe, pour que le reste du code
+ * continue de lire sa .value. Masquer le select ne masque donc rien à l'écran :
+ * c'est l'enveloppe qu'il faut cacher.
+ *
+ * C'est ce qui laissait le filtre visible sur la fiche d'un dresseur alors que
+ * le champ de recherche, lui, disparaîssait bien — l'un est un <input> nu,
+ * l'autre un <select> habillé, et les traiter pareil ne suffisait pas.
+ */
+function partieVisible(el){
+  if(!el) return null;
+  return (el.closest && el.closest('.select-wrap')) || el;
+}
+
+function montrerOutilsClassement(oui){
+  [dresseurQ, dresseurModeEl].forEach(function(el){
+    const cible = partieVisible(el);
+    if(cible) cible.style.display = oui ? '' : 'none';
+  });
+}
+
+/** Ce que le champ demande, ou null s'il n'en dit pas assez pour chercher. */
+function motCherche(){
+  const q = ((dresseurQ && dresseurQ.value) || '').trim();
+  return q.length >= 2 ? q : null;
+}
+
 async function chargerDresseurs(recherche){
   const liste = document.getElementById('listeDresseurs');
   if(!liste) return;
+  // Appel nu — changement d'onglet, rechargement après un import : c'est le
+  // champ qui fait foi. Sans cette ligne, revenir sur l'onglet rendait le
+  // classement entier sous une recherche toujours écrite dans le champ, et le
+  // filtre paraissait « effacer la recherche » alors qu'il ne faisait que la
+  // perdre en chemin. Un null explicite reste possible : c'est « ← Classement ».
+  if(recherche === undefined) recherche = motCherche();
+
   dresseurVisite.style.display = 'none';
   liste.style.display = '';
+  montrerOutilsClassement(true);
   dresseurRetour.style.display = recherche ? '' : 'none';
   liste.innerHTML = '<div class="state-msg">Chargement…</div>';
 
@@ -680,6 +726,8 @@ async function visiterDresseur(pseudo){
   liste.style.display = 'none';
   dresseurVisite.style.display = '';
   dresseurRetour.style.display = '';
+  // On ne garde que le retour : voir montrerOutilsClassement.
+  montrerOutilsClassement(false);
   dresseurVisite.innerHTML = '<div class="state-msg">Chargement…</div>';
 
   let chez;
@@ -819,7 +867,7 @@ async function comparerAvec(pseudo, profil){
     // du dex distant tel quel, il a la même forme que le nôtre.
     demarrerComparaison(pseudo + ' · ' + profil.nom, autre.dex,
       (autre.profil && autre.profil.mode) || profil.mode,
-      autre.profil && autre.profil.niveau_formes);
+      autre.profil && autre.profil.niveau_formes, pseudo);
     showPage('national');
   }catch(e){
     if(String(e) === 'SESSION_INVALIDE'){ await perdreSession(); return; }
@@ -831,10 +879,7 @@ dresseurQ.addEventListener('input', function(){
   // On attend une frappe stable : interroger l'API à chaque lettre serait
   // inutilement bavard.
   clearTimeout(dresseurQ._minuteur);
-  const valeur = dresseurQ.value.trim();
-  dresseurQ._minuteur = setTimeout(function(){
-    chargerDresseurs(valeur.length >= 2 ? valeur : null);
-  }, 300);
+  dresseurQ._minuteur = setTimeout(chargerDresseurs, 300);
 });
 
 dresseurRetour.addEventListener('click', function(){
@@ -846,8 +891,15 @@ if(dresseurModeEl){
   // Le filtre porte sur la liste déjà rapatriée : rien à redemander au serveur,
   // qui renvoie de toute façon les deux cents premiers tous modes confondus.
   dresseurModeEl.addEventListener('change', function(){
-    const q = dresseurQ.value.trim();
-    chargerDresseurs(q.length >= 2 ? q : null);
+    // SUR LA FICHE D'UN DRESSEUR, ON NE BOUGE PAS. Le filtre est caché là-bas,
+    // mais un menu habillé garde ses raccourcis clavier : le laisser recharger
+    // le classement rejetterait dehors quelqu'un qui croit trier les aventures
+    // affichées sous ses yeux. Le choix est retenu, il s'appliquera au retour.
+    if(dresseurVisite && dresseurVisite.style.display !== 'none') return;
+    // Sans argument : la recherche en cours est conservée. C'est l'autre moitié
+    // du correctif — le filtre lisait le champ pour son compte, et une recherche
+    // trop courte le faisait retomber sur le classement complet.
+    chargerDresseurs();
   });
 }
 
@@ -1053,6 +1105,26 @@ document.getElementById('menuDresseurs').addEventListener('click', function(){
   showPage('dresseurs');
 });
 
+document.getElementById('menuParametres').addEventListener('click', function(){
+  showPage('parametres');
+});
+
+// Les commandes qui ont rejoint le menu — lexique, nouveautés, paramètres,
+// thème — referment le panneau derrière elles. Le laisser ouvert par-dessus
+// l'écran qu'on vient d'appeler cacherait exactement ce qu'on est venu voir.
+//
+// DEUX EXCEPTIONS, et la même raison pour les deux : leur libellé est le
+// résultat. Le bouton de mise à jour porte la progression du téléchargement, et
+// celui du thème dit vers quoi le prochain clic bascule — refermer sur eux
+// escamoterait la seule réponse qu'ils donnent.
+if(comptePanneau){
+  comptePanneau.addEventListener('click', function(e){
+    const item = e.target.closest ? e.target.closest('.compte-item') : null;
+    if(!item || item.id === 'majBtn' || item.id === 'themeBtn') return;
+    fermerCompteMenu();
+  });
+}
+
 // La réinitialisation ne touche QUE l'aventure ouverte : c'est tout l'intérêt
 // d'en avoir plusieurs. On le dit dans la confirmation, en nommant l'aventure
 // et ce qu'elle contient — un « es-tu sûr ? » n'apprend rien à personne.
@@ -1175,7 +1247,7 @@ async function lancerComparaison(pseudo){
     fermerComparerModal();
     demarrerComparaison(pseudo + (autre.profil ? ' · ' + autre.profil.nom : ''), autre.dex,
       autre.profil ? autre.profil.mode : null,
-      autre.profil ? autre.profil.niveau_formes : null);
+      autre.profil ? autre.profil.niveau_formes : null, pseudo);
   }catch(e){
     if(String(e) === 'SESSION_INVALIDE'){ await perdreSession(); return; }
     direErreurComparer(String(e));
@@ -1749,9 +1821,23 @@ async function chargerProfil(dejaAJour){
   dessinerAventures();
   journalListe.dataset.dernierJour = '';
   chargerJournal(false);
-  // Les blocs du bas — apparence, donnees, connexions, administration —
-  // vivent dans apparence.js et donnees-perso.js, charges apres celui-ci.
   if(typeof chargerRetrospective === 'function') chargerRetrospective();
+}
+
+/**
+ * Les Paramètres.
+ *
+ * Ils vivaient au bas du Profil, sous le journal : pour changer une couleur il
+ * fallait dépasser sa rétrospective, ses succès et deux cents lignes de
+ * captures. Ce sont deux choses différentes — le Profil dit QUI on est et ce
+ * qu'on a fait, les Paramètres disent COMMENT l'application se tient — et elles
+ * ont désormais deux écrans.
+ *
+ * Les blocs eux-mêmes n'ont pas bougé d'un caractère : ils sont remplis par
+ * apparence.js et donnees-perso.js, chargés après celui-ci, et retrouvent leurs
+ * éléments par identifiant où qu'ils se trouvent dans la page.
+ */
+function chargerParametres(){
   if(typeof chargerApparence === 'function') chargerApparence();
   if(typeof chargerDonneesPerso === 'function') chargerDonneesPerso();
 }
@@ -1938,7 +2024,7 @@ async function voirPokedexDe(pseudo, profil){
   comparer.addEventListener('click', function(){
     demarrerComparaison(pseudo + ' · ' + profil.nom, autre.dex,
       (autre.profil && autre.profil.mode) || profil.mode,
-      autre.profil && autre.profil.niveau_formes);
+      autre.profil && autre.profil.niveau_formes, pseudo);
     showPage('national');
   });
 

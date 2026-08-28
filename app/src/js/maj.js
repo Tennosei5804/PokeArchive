@@ -104,11 +104,25 @@ async function verifierMaj(discret){
  * qui privait de deux choses : demander soi-même, et savoir que l'application
  * le fait déjà.
  */
+/**
+ * Écrit sur le bouton, quelle que soit sa forme.
+ *
+ * Il vit à deux endroits : une pastille ronde dans les pages de génération, et
+ * une ligne du menu du compte dans l'application. La ligne porte son libellé
+ * dans un <span> — y écrire directement effacerait la mise en page du menu,
+ * et un « ⟳ » seul au milieu d'une liste de mots ne se comprendrait pas.
+ */
+function direSurMaj(bouton, court, long){
+  const nom = bouton.querySelector('.compte-item-nom');
+  if(nom) nom.textContent = long;
+  else bouton.textContent = court;
+}
+
 function montrerBoutonMaj(version){
   const bouton = document.getElementById('majBtn');
   if(!bouton) return;
   bouton.classList.add('trouvee');
-  bouton.textContent = '⬇ Mise à jour';
+  direSurMaj(bouton, '⬇ Mise à jour', '⬇ Installer la version ' + version);
   bouton.title = 'La version ' + version + ' est disponible';
 }
 
@@ -119,7 +133,7 @@ function reposerBoutonMaj(){
   if(!bouton) return;
   bouton.classList.remove('trouvee', 'cherche');
   bouton.disabled = false;
-  bouton.textContent = '⟳';
+  direSurMaj(bouton, '⟳', '⟳ Vérifier les mises à jour');
   bouton.title = 'Vérifier les mises à jour';
 }
 
@@ -159,7 +173,7 @@ async function proposerMaj(){
 
   majEnCours = true;
   const bouton = document.getElementById('majBtn');
-  if(bouton){ bouton.disabled = true; bouton.textContent = '⬇ 0 %'; }
+  if(bouton){ bouton.disabled = true; direSurMaj(bouton, '⬇ 0 %', '⬇ Téléchargement… 0 %'); }
 
   try{
     // downloadAndInstall rend la main par étapes : on s'en sert pour montrer
@@ -171,7 +185,8 @@ async function proposerMaj(){
       }else if(etape.event === 'Progress'){
         recu += (etape.data && etape.data.chunkLength) || 0;
         if(bouton && total){
-          bouton.textContent = '⬇ ' + Math.round(100 * recu / total) + ' %';
+          const fait = Math.round(100 * recu / total);
+          direSurMaj(bouton, '⬇ ' + fait + ' %', '⬇ Téléchargement… ' + fait + ' %');
         }
       }else if(etape.event === 'Finished'){
         if(bouton) bouton.textContent = '⬇ installation…';

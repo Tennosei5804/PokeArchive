@@ -8,7 +8,14 @@ const THEME_KEY = 'living-dex-theme';
 
 function applyTheme(dark){
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-  themeBtn.textContent = dark ? '☀️' : '🌙';
+  if(!themeBtn) return;
+  // Le bouton est passé dans le menu du compte : il porte un libellé, pas une
+  // icône seule. Le <span> existe là-bas et pas ailleurs, d'où le repli — les
+  // pages de génération gardent leur pastille ronde.
+  const nom = themeBtn.querySelector('.compte-item-nom');
+  const dit = dark ? '☀️ Passer en clair' : '🌙 Passer en sombre';
+  if(nom) nom.textContent = dit;
+  else themeBtn.textContent = dark ? '☀️' : '🌙';
   themeBtn.setAttribute('aria-pressed', String(dark));
   themeBtn.title = dark ? 'Passer en clair' : 'Passer en sombre';
 }
@@ -22,7 +29,7 @@ function initTheme(){
   applyTheme(dark);
 }
 
-themeBtn.addEventListener('click', function(){
+if(themeBtn) themeBtn.addEventListener('click', function(){
   const dark = document.documentElement.getAttribute('data-theme') !== 'dark';
   applyTheme(dark);
   try{ localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light'); }catch(e){ /* ignore */ }
@@ -31,17 +38,18 @@ themeBtn.addEventListener('click', function(){
 initTheme();
 
 // ---- Langue des noms de Pokémon ----------------------------------------
-// Le bouton porte la langue en cours, et son infobulle dit ce qu'un clic fera.
 // Seuls les noms d'espèces changent : l'interface reste en français, c'est
 // exactement ce qui est demandé.
+//
+// LE RÉGLAGE A QUITTÉ L'EN-TÊTE. Un bouton qui disait « Français » sans dire
+// de quoi ne se comprenait qu'en cliquant dessus, et il occupait la barre en
+// permanence pour une chose qu'on règle une fois. Il vit maintenant dans les
+// Paramètres, sous une étiquette qui nomme les deux options — le libellé dit
+// « Dracaufeu » et « Charizard » plutôt que « français » et « anglais », parce
+// que c'est le nom qu'on cherche, pas la langue.
 function appliquerLangue(langue){
   langueNoms = (langue === 'en') ? 'en' : 'fr';
-  const anglais = langueNoms === 'en';
-  langBtn.textContent = anglais ? 'Anglais' : 'Français';
-  langBtn.setAttribute('aria-pressed', String(anglais));
-  langBtn.title = anglais
-    ? 'Afficher les noms de Pokémon en français'
-    : 'Afficher les noms de Pokémon en anglais';
+  if(langueChoix) langueChoix.value = langueNoms;
 }
 
 function initLangue(){
@@ -50,8 +58,9 @@ function initLangue(){
   appliquerLangue(stored || 'fr');
 }
 
-langBtn.addEventListener('click', function(){
-  appliquerLangue(langueNoms === 'fr' ? 'en' : 'fr');
+/** Le changement, d'où qu'il vienne : le tri, la recherche et la fiche suivent. */
+function changerLangue(vers){
+  appliquerLangue(vers);
   try{ localStorage.setItem(LANGUE_KEY, langueNoms); }catch(e){ /* ignore */ }
   // Le tri alphabétique et la recherche portent sur le nom affiché : les deux
   // changent de sens avec la langue, il faut donc refiltrer et non repeindre.
@@ -60,7 +69,11 @@ langBtn.addEventListener('click', function(){
   if(previewEntry && previewOverlay.style.display === 'flex'){
     previewName.textContent = nomAffiche(previewEntry);
   }
-});
+}
+
+if(langueChoix){
+  langueChoix.addEventListener('change', function(){ changerLangue(langueChoix.value); });
+}
 
 initLangue();
 

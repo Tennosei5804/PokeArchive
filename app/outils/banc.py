@@ -60,6 +60,27 @@ const PROFILS = [
     captures:0, shiny:0, cree_le:'', maj_le:'' },
 ];
 
+let DERNIER_TROC = 2;
+const ECHANGES = [
+  { id:1, sens:'recu', dex:'rby', jeDonne:'machop', jeRecois:'grimer', etat:'propose',
+    mot:'Ce soir ?', messages:0, quand:'', majLe:'',
+    avec:{ pseudo:'Amie_Test', avatar:null, discordId:'2' } },
+  { id:2, sens:'propose', dex:'rby', jeDonne:'kadabra', jeRecois:'abra',
+    etat:'accepte', mot:null, messages:1, quand:'', majLe:'',
+    avec:{ pseudo:'Amie_Test', avatar:null, discordId:'2' } },
+];
+const MESSAGES = [
+  { id:1, echange:2, texte:'Je suis en ligne', quand:'', pseudo:'Amie_Test', deMoi:false },
+];
+const NOTIFS = [
+  { id:11, genre:'echange', echange:1, titre:'Amie_Test te propose un echange',
+    detail:null, lu:false, quand:'', etat:'propose', dex:'rby',
+    jeDonne:'machop', jeRecois:'grimer' },
+  { id:10, genre:'message', echange:2, titre:"Amie_Test t’a ecrit",
+    detail:'Je suis en ligne', lu:true, quand:'', etat:'accepte', dex:'rby',
+    jeDonne:'kadabra', jeRecois:'abra' },
+];
+
 const REPONSES = {
   etat:            () => ({ connecte:true }),
   moi:             () => ({ dresseur:{ id:1, pseudo:'Tennosei_', discordId:'1', avatar:null },
@@ -97,6 +118,44 @@ const REPONSES = {
                             return { ok:true }; },
   deconnexion:     () => ({ ok:true }),
   connexion:       () => ({ pseudo:'Tennosei_' }),
+
+  // --- Les echanges et les notifications ------------------------------------
+  //
+  // Deux echanges, un dans chaque sens : c'est le minimum pour verifier que
+  // l'ecran ne propose pas « Accepter » sur sa propre proposition, et que les
+  // noms sont remis dans le sens du lecteur.
+  //
+  // jeDonne / jeRecois arrivent DEJA retournes par l'API — c'est elle qui sait
+  // de quel cote on est. Le stub reproduit cette forme et pas la forme brute
+  // de la table, sinon il validerait un ecran qui lit autre chose que ce que
+  // le serveur envoie.
+  echanges:        () => ({ echanges: ECHANGES.map(e => ({ ...e })) }),
+  echange_proposer:(a) => { const n = { id: ++DERNIER_TROC, sens:'propose', dex:(a&&a.dex)||'rby',
+                              jeDonne:(a&&a.offert)||'?', jeRecois:(a&&a.demande)||'?',
+                              etat:'propose', mot:(a&&a.mot)||null, messages:0,
+                              quand:'', majLe:'',
+                              avec:{ pseudo:(a&&a.pseudo)||'Amie_Test', avatar:null, discordId:'2' } };
+                            ECHANGES.unshift(n); return { id:n.id, etat:'propose' }; },
+  echange_reponse: (a) => { const e = ECHANGES.find(x => x.id === (a&&a.id));
+                            if(!e) throw new Error("Cet echange n’existe pas.");
+                            if(e.sens !== 'recu') throw new Error("C’est a l’autre de repondre.");
+                            e.etat = (a&&a.reponse) === 'accepte' ? 'accepte' : 'refuse';
+                            return { id:e.id, etat:e.etat }; },
+  echange_annuler: (a) => { const e = ECHANGES.find(x => x.id === (a&&a.id));
+                            if(!e) throw new Error("Cet echange n’existe pas.");
+                            e.etat = 'annule'; return { id:e.id, etat:'annule' }; },
+  echange_fait:    (a) => { const e = ECHANGES.find(x => x.id === (a&&a.id));
+                            if(!e) throw new Error("Cet echange n’existe pas.");
+                            e.etat = 'fait'; return { id:e.id, etat:'fait' }; },
+  echange_messages:(a) => { const e = ECHANGES.find(x => x.id === (a&&a.id));
+                            if(!e) throw new Error("Cet echange n’existe pas.");
+                            return { echange:{ ...e }, messages: MESSAGES.filter(m => m.echange === e.id) }; },
+  echange_ecrire:  (a) => { MESSAGES.push({ id: MESSAGES.length + 1, echange:(a&&a.id),
+                              texte:(a&&a.texte)||'', quand:'', pseudo:'Tennosei_', deMoi:true });
+                            return { id: MESSAGES.length, quand:'' }; },
+  notifications:   () => ({ notifications: NOTIFS.map(n => ({ ...n })),
+                            nonLues: NOTIFS.filter(n => !n.lu).length }),
+  notifications_lues: () => { NOTIFS.forEach(n => { n.lu = true; }); return { ok:true, nonLues:0 }; },
 };
 
 // Le journal des appels : sans lui, on ne peut pas distinguer « la fenetre s'est

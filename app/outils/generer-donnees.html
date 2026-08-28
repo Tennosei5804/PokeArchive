@@ -40,6 +40,22 @@
           👥 Chercher un dresseur<small>Voir et comparer son avancée</small>
         </button>
         <div class="compte-separateur"></div>
+        <button class="compte-item" id="menuParametres" type="button" role="menuitem">
+          ⚙️ Paramètres<small>Langue, couleurs, présence, notifications</small>
+        </button>
+        <button class="compte-item" id="lexiqueBtn" type="button" role="menuitem">
+          📖 Lexique<small>Ce que veulent dire les mots de l'écran</small>
+        </button>
+        <button class="compte-item" id="nouveautesBtn" type="button" role="menuitem">
+          📋 Nouveautés<small>Ce qui a changé d'une version à l'autre</small>
+        </button>
+        <button class="compte-item" id="majBtn" type="button" role="menuitem">
+          <span class="compte-item-nom">⟳ Vérifier les mises à jour</span>
+        </button>
+        <button class="compte-item" id="themeBtn" type="button" role="menuitem" aria-pressed="false">
+          <span class="compte-item-nom">🌙 Passer en sombre</span>
+        </button>
+        <div class="compte-separateur"></div>
         <button class="compte-item danger" id="menuReset" type="button" role="menuitem">
           ♻️ Réinitialiser cette aventure<small>Vide son Pokédex, sans toucher aux autres</small>
         </button>
@@ -48,15 +64,24 @@
         </button>
       </div>
     </div>
-    <button class="lang-btn" id="langBtn" type="button" aria-pressed="false"
-            title="Afficher les noms de Pokémon en anglais">Français</button>
-    <button class="maj-btn" id="lexiqueBtn" type="button"
-            title="Lexique — ce que veulent dire les mots de l'écran">📖</button>
-    <button class="maj-btn" id="nouveautesBtn" type="button"
-            title="Changelogs — ce qui a changé">📋</button>
-    <button class="maj-btn" id="majBtn" type="button"
-            title="Vérifier les mises à jour">⟳</button>
-    <button class="theme-btn" id="themeBtn" type="button" aria-pressed="false" title="Basculer clair / sombre">🌙</button>
+    <!-- La cloche, et elle seule. Ce qui est arrivé POUR TOI : une proposition
+         d'échange, une réponse, un message. Le reste des commandes est passé
+         dans le menu du compte — cinq pastilles rondes alignées ne disaient pas
+         ce qu'elles faisaient, et l'en-tête finissait en tableau de bord. -->
+    <div class="cloche-coin">
+      <button class="cloche-btn" id="clocheBtn" type="button"
+              aria-haspopup="dialog" aria-expanded="false" title="Ce qui est arrivé">
+        🔔<span class="cloche-pastille" id="clochePastille" hidden></span>
+      </button>
+      <div class="cloche-panneau" id="clochePanneau" role="dialog"
+           aria-label="Ce qui est arrivé">
+        <div class="cloche-entete">
+          <span>Ce qui est arrivé</span>
+          <button class="cloche-tout-lu" id="clocheToutLu" type="button">Tout marquer lu</button>
+        </div>
+        <div class="cloche-liste" id="clocheListe"></div>
+      </div>
+    </div>
     <div class="dex-lights"><span></span><span></span><span></span></div>
   </div>
 
@@ -445,15 +470,44 @@
         <div class="journal" id="journalListe"></div>
         <button class="load-more" id="journalPlus" type="button" style="display:none;">Afficher plus</button>
 
+      </section>
+
+      <section class="page" id="page-parametres">
+        <div class="home-hero">
+          <div class="home-eyebrow">Comment l'application se tient</div>
+          <h2 class="home-title">Paramètres</h2>
+          <p class="home-sub">La langue, les couleurs, ce qu'on montre de toi et ce
+             qu'on te signale. Rien ici ne touche à ta collection.</p>
+        </div>
+
+        <div class="home-section-title">Langue</div>
+        <div class="profil-bloc">
+          <p class="profil-bloc-note">La langue des noms de Pokémon. Le reste de
+            l'application reste en français : ce réglage sert à retrouver un nom vu
+            dans un jeu importé en anglais, ou sur un site anglophone.</p>
+          <label class="profil-champ" for="langueChoix">
+            <span class="profil-champ-nom">Noms des Pokémon</span>
+            <select id="langueChoix">
+              <option value="fr">Français — Dracaufeu</option>
+              <option value="en">Anglais — Charizard</option>
+            </select>
+          </label>
+        </div>
+
         <div class="home-section-title">Ma présence</div>
         <div class="profil-bloc">
-          <p class="profil-bloc-note">Se retirer sort du classement et de la recherche :
-            on ne se fait plus trouver. Ce n'est pas la même chose que se cacher — qui
-            connaît ton pseudo exact peut toujours voir tes aventures publiques, et ceux
-            qui te suivent déjà continuent de voir passer tes captures. Pour ne rien
-            montrer du tout, marque plutôt tes aventures comme privées.</p>
+          <p class="profil-bloc-note"><b>Éteint au départ.</b> Un compte sert d'abord à
+            garder son Pokédex d'une machine à l'autre : figurer au classement sous son
+            pseudo devant tout le monde est une seconde décision, et c'est à toi de la
+            prendre.</p>
+          <p class="profil-bloc-note">S'y mettre, c'est se laisser trouver par la
+            recherche et apparaître au classement. Ce n'est pas la même chose que se
+            cacher — même éteint, qui connaît ton pseudo exact peut voir tes aventures
+            publiques, et ceux qui te suivent déjà continuent de voir passer tes
+            captures. Pour ne rien montrer du tout, marque plutôt tes aventures comme
+            privées.</p>
           <label class="bascule">
-            <input type="checkbox" id="visibleDresseurs" checked>
+            <input type="checkbox" id="visibleDresseurs">
             <span class="bascule-piste" aria-hidden="true"><span class="bascule-pouce"></span></span>
             <span class="bascule-texte">Apparaître dans la liste des dresseurs</span>
           </label>
@@ -584,6 +638,16 @@
 
         <div class="home-section-title">Mes amis</div>
         <div class="amis" id="amisListe"></div>
+
+        <!-- Les echanges. Ils vivent ici et non sur une page a eux : un echange
+             se fait AVEC quelqu'un, et c'est ici qu'on a ces gens sous les
+             yeux. Une dixieme entree dans la barre du haut aurait fait
+             deborder la ligne, que l'on vient justement de degager. -->
+        <div class="home-section-title">&Eacute;changes</div>
+        <p class="home-sub troc-preambule">Un accord, pas un transfert : Pok&eacute;Archive
+           note qui donne quoi &agrave; qui, vous vous retrouvez ensuite dans le jeu pour le
+           faire. Pour en proposer un, ouvre 🤝 en face d&rsquo;un ami.</p>
+        <div class="troc-liste" id="trocListe"></div>
 
         <div class="home-section-title">Ce qu'ils attrapent</div>
         <div class="fil" id="amisFil"></div>
@@ -924,6 +988,49 @@
         <div class="echange-liste" id="echangeMoi"></div>
       </div>
     </div>
+
+    <!-- LA BARRE DE PROPOSITION. Elle ne s'affiche que si la comparaison vient
+         d'un vrai dresseur : un code de partage donne une collection, pas
+         quelqu'un, et il n'y a alors personne a qui proposer.
+
+         Les deux colonnes servaient jusqu'ici a regarder. Un clic y choisit
+         maintenant, et la barre dit ce qui est choisi — « Abra contre
+         Machopeur » — avant d'envoyer quoi que ce soit. -->
+    <div class="troc-barre" id="trocBarre" hidden>
+      <div class="troc-choix">
+        <span class="troc-fente" id="trocVeux">Choisis ce que tu veux &agrave; gauche</span>
+        <span class="troc-contre">contre</span>
+        <span class="troc-fente" id="trocDonne">et ce que tu donnes &agrave; droite</span>
+      </div>
+      <input type="text" id="trocMot" maxlength="280" autocomplete="off"
+             placeholder="Un mot avec la proposition (facultatif)&hellip;">
+      <div class="troc-actions">
+        <span class="troc-jeu" id="trocJeu"></span>
+        <button class="toggle-btn primary" id="trocEnvoyer" type="button" disabled>
+          Proposer l&rsquo;&eacute;change</button>
+      </div>
+      <span class="profil-bloc-etat" id="trocEtat"></span>
+    </div>
+  </div>
+</div>
+
+<!-- La discussion d'un echange accepte. Elle n'existe pas ailleurs : on ne
+     peut ecrire qu'a quelqu'un qui a dit oui a un echange avec soi. C'est ce
+     qui empeche l'abonnement a sens unique de devenir une porte ouverte. -->
+<div class="modal-overlay" id="discussionOverlay" style="display:none;" role="dialog"
+     aria-modal="true" aria-labelledby="discussionTitre">
+  <div class="modal-card discussion-card">
+    <button class="fiche-fermer" id="discussionFermer" type="button" aria-label="Fermer">&#10005;</button>
+    <div class="modal-eyebrow" id="discussionEyebrow">&Eacute;change</div>
+    <h2 class="modal-title" id="discussionTitre">Discussion</h2>
+    <div class="discussion-resume" id="discussionResume"></div>
+    <div class="discussion-fil" id="discussionFil"></div>
+    <div class="discussion-ecrire">
+      <input type="text" id="discussionTexte" maxlength="1000" autocomplete="off"
+             placeholder="&Eacute;crire&hellip;">
+      <button class="toggle-btn primary" id="discussionEnvoyer" type="button">Envoyer</button>
+    </div>
+    <span class="profil-bloc-etat" id="discussionEtat"></span>
   </div>
 </div>
 
@@ -1281,70 +1388,75 @@
   </div>
 </div>
 
-<script src="../src/js/donnees.js?v=1787846273"></script>
+<script src="../src/js/donnees.js?v=1787918736"></script>
 <!-- Généré par outils/generer-donnees.html. Doit précéder cache.js, qui y
      puise quand le stockage local est vide. -->
-<script src="../src/js/donnees-embarquees.js?v=1787846273"></script>
+<script src="../src/js/donnees-embarquees.js?v=1787918736"></script>
 <!-- Les notices du Pokédex, une par espèce et par jeu, relevées sur Poképédia
      par outils/relever-descriptions.py, ne sont PAS déclarées ici : fiche.js va
      les chercher à la première fiche ouverte, comme les attaques et les lieux.
      Une notice par jeu, c'est vingt-deux fois le texte d'une notice par espèce
      — de quoi allonger chaque démarrage pour une carte qu'on ne lit pas
      toujours. -->
-<script src="../src/js/cache.js?v=1787846273"></script>
-<script src="../src/js/noyau.js?v=1787846273"></script>
-<script src="../src/js/confirmer.js?v=1787846273"></script>
-<script src="../src/js/maj.js?v=1787846273"></script>
-<script src="../src/js/nouveautes.js?v=1787846273"></script>
+<script src="../src/js/cache.js?v=1787918736"></script>
+<script src="../src/js/noyau.js?v=1787918736"></script>
+<script src="../src/js/confirmer.js?v=1787918736"></script>
+<script src="../src/js/maj.js?v=1787918736"></script>
+<script src="../src/js/nouveautes.js?v=1787918736"></script>
 <!-- Le lexique. Autonome : il ne lit rien d'autre que ses propres définitions,
      et pose ses pastilles au DOMContentLoaded. -->
-<script src="../src/js/lexique.js?v=1787846273"></script>
-<script src="../src/js/serveur.js?v=1787846273"></script>
-<script src="../src/js/formes.js?v=1787846273"></script>
-<script src="../src/js/accueil.js?v=1787846273"></script>
-<script src="../src/js/dex.js?v=1787846273"></script>
+<script src="../src/js/lexique.js?v=1787918736"></script>
+<script src="../src/js/serveur.js?v=1787918736"></script>
+<script src="../src/js/formes.js?v=1787918736"></script>
+<script src="../src/js/accueil.js?v=1787918736"></script>
+<script src="../src/js/dex.js?v=1787918736"></script>
 <!-- Les distributions françaises, à la main. Doit précéder cadeaux.js et
      fiche.js, qui y puisent tous les deux. -->
-<script src="../src/js/evenements.js?v=1787846273"></script>
-<script src="../src/js/cadeaux.js?v=1787846273"></script>
-<script src="../src/js/fiche.js?v=1787846273"></script>
-<script src="../src/js/grille.js?v=1787846273"></script>
+<script src="../src/js/evenements.js?v=1787918736"></script>
+<script src="../src/js/cadeaux.js?v=1787918736"></script>
+<script src="../src/js/fiche.js?v=1787918736"></script>
+<script src="../src/js/grille.js?v=1787918736"></script>
 <!-- Après dex.js et grille.js : les objectifs figent currentFiltered. -->
-<script src="../src/js/objectifs.js?v=1787846273"></script>
+<script src="../src/js/objectifs.js?v=1787918736"></script>
 <!-- Après grille.js : la fiche de capture complète la fenêtre d'aperçu. -->
-<script src="../src/js/capture.js?v=1787846273"></script>
+<script src="../src/js/capture.js?v=1787918736"></script>
 <!-- Après compte.js : la rareté demande la table à l'API. -->
-<script src="../src/js/rarete.js?v=1787846273"></script>
-<script src="../src/js/lieux.js?v=1787846273"></script>
-<script src="../src/js/chasse.js?v=1787846273"></script>
+<script src="../src/js/rarete.js?v=1787918736"></script>
+<script src="../src/js/lieux.js?v=1787918736"></script>
+<script src="../src/js/chasse.js?v=1787918736"></script>
 <!-- Les règles de combat, puis l'écran qui s'appuie dessus. Tous deux après
      fiche.js (TYPE_RELATIONS, puceType, decoderBloc) et avant menus.js, qui
      stylise leurs menus déroulants. -->
-<script src="../src/js/combat.js?v=1787846273"></script>
-<script src="../src/js/strategie.js?v=1787846273"></script>
+<script src="../src/js/combat.js?v=1787918736"></script>
+<script src="../src/js/strategie.js?v=1787918736"></script>
 <!-- Après strategie.js : il lui emprunte creerSelecteur. -->
-<script src="../src/js/reproduction.js?v=1787846273"></script>
+<script src="../src/js/reproduction.js?v=1787918736"></script>
 <!-- Après donnees.js pour GAMES, et après reproduction.js par simple
      voisinage : les trois partagent la barre « Outils ». -->
-<script src="../src/js/transferts.js?v=1787846273"></script>
-<script src="../src/js/partage.js?v=1787846273"></script>
-<script src="../src/js/menus.js?v=1787846273"></script>
+<script src="../src/js/transferts.js?v=1787918736"></script>
+<script src="../src/js/partage.js?v=1787918736"></script>
+<script src="../src/js/menus.js?v=1787918736"></script>
 <!-- Redéfinit la couche de sauvegarde quand l'app tourne dans Tauri.
      Hors Tauri (serveur.py, ou fichier ouvert directement), il ne fait rien. -->
 
-<script src="../src/js/amis.js?v=1787846273"></script>
-<script src="../src/js/retrospective.js?v=1787846273"></script>
-<script src="../src/js/succes.js?v=1787846273"></script>
+<script src="../src/js/amis.js?v=1787918736"></script>
+<!-- Après partage.js, dont il complète le panneau d'entraide, et après
+     compte.js pour nomJournal, libelleDex, avatarDiscord et dateLisible. -->
+<script src="../src/js/troc.js?v=1787918736"></script>
+<!-- Après amis.js (pontNotif, bullePermise) et troc.js (ouvrirDiscussion). -->
+<script src="../src/js/notifs.js?v=1787918736"></script>
+<script src="../src/js/retrospective.js?v=1787918736"></script>
+<script src="../src/js/succes.js?v=1787918736"></script>
 <!-- Après retrospective.js : la carte lit retroDonnees si elle est là, et se
      passe d'elle sinon. -->
-<script src="../src/js/carte.js?v=1787846273"></script>
+<script src="../src/js/carte.js?v=1787918736"></script>
 <!-- Après compte.js : le premier lancement lit profilCourant et profilsConnus. -->
-<script src="../src/js/depart.js?v=1787846273"></script>
-<script src="../src/js/donnees-perso.js?v=1787846273"></script>
-<script src="../src/js/presence.js?v=1787846273"></script>
+<script src="../src/js/depart.js?v=1787918736"></script>
+<script src="../src/js/donnees-perso.js?v=1787918736"></script>
+<script src="../src/js/presence.js?v=1787918736"></script>
 
-<script src="../src/js/selecteur-couleur.js?v=1787846273"></script>
-<script src="../src/js/apparence.js?v=1787846273"></script>
+<script src="../src/js/selecteur-couleur.js?v=1787918736"></script>
+<script src="../src/js/apparence.js?v=1787918736"></script>
 <script src="generer.js"></script>
 </body>
 </html>

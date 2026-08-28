@@ -100,7 +100,16 @@ function majBarreComparaison(){
 }
 
 // --- Modales ---------------------------------------------------------------
-function demarrerComparaison(nomAmi, dexDistant, modeAmi, niveauAmi){
+/**
+ * Ouvre une comparaison.
+ *
+ * `pseudoAmi` n'est PAS `nomAmi`. Le second est une étiquette d'affichage
+ * — « Tenno · Aventure 1 » — et le premier le pseudo seul, le seul que l'API
+ * sache résoudre en dresseur. Il vaut null quand la comparaison vient d'un code
+ * de partage : on connaît alors une collection, pas quelqu'un, et il n'y a
+ * personne à qui proposer un échange.
+ */
+function demarrerComparaison(nomAmi, dexDistant, modeAmi, niveauAmi, pseudoAmi){
   const caught = new Set(dexDistant.captures || dexDistant.caught || []);
   const shiny = new Set(dexDistant.shiny || []);
   const parJeu = dexDistant.dex || {};
@@ -109,8 +118,9 @@ function demarrerComparaison(nomAmi, dexDistant, modeAmi, niveauAmi){
     (parJeu[cle].shiny || []).forEach(function(n){ shiny.add(n); });
   });
 
-  amiProgression = { joueur: nomAmi, dex: 'national', mode: modeAmi || null,
-                     niveau: niveauAmi || null, caught: caught, shiny: shiny };
+  amiProgression = { joueur: nomAmi, pseudo: pseudoAmi || null, dex: 'national',
+                     mode: modeAmi || null, niveau: niveauAmi || null,
+                     caught: caught, shiny: shiny };
 
   if(!filterEl.querySelector('option[value="ami-oui-moi-non"]')){
     [['ami-oui-moi-non', 'Il l\'a, pas moi'], ['moi-oui-ami-non', 'Je l\'ai, pas lui']]
@@ -156,11 +166,19 @@ const echangeEyebrow = document.getElementById('echangeEyebrow');
 // silence.
 const ECHANGE_MAX = 60;
 
-function ligneEchange(entry){
+function ligneEchange(entry, cote){
   const l = document.createElement('button');
   l.type = 'button';
   l.className = 'echange-ligne';
-  l.title = 'Ouvrir la fiche de ' + nomAffiche(entry);
+  // Deux usages pour la meme ligne, et c'est le contexte qui tranche. Face a
+  // un vrai dresseur, ce panneau sert a PROPOSER : le clic choisit. Face a un
+  // code de partage il n'y a personne a qui proposer, et le clic garde son
+  // ancien role, ouvrir la fiche.
+  const pourTroc = typeof trocChoisir === 'function'
+                   && amiProgression && amiProgression.pseudo;
+  l.title = pourTroc
+    ? 'Choisir ' + nomAffiche(entry) + ' pour l\'echange'
+    : 'Ouvrir la fiche de ' + nomAffiche(entry);
 
   const cadre = document.createElement('span');
   cadre.className = 'echange-sprite';
@@ -185,19 +203,20 @@ function ligneEchange(entry){
   l.appendChild(no);
 
   l.addEventListener('click', function(){
+    if(pourTroc){ trocChoisir(cote, entry, l); return; }
     fermerEchanges();
     openPreview(entry, null);
   });
   return l;
 }
 
-function remplirColonne(cible, liste){
+function remplirColonne(cible, liste, cote){
   cible.innerHTML = '';
   if(!liste.length){
     cible.innerHTML = '<div class="state-msg">Rien de ce côté-là.</div>';
     return;
   }
-  liste.slice(0, ECHANGE_MAX).forEach(function(e){ cible.appendChild(ligneEchange(e)); });
+  liste.slice(0, ECHANGE_MAX).forEach(function(e){ cible.appendChild(ligneEchange(e, cote)); });
   if(liste.length > ECHANGE_MAX){
     const reste = document.createElement('p');
     reste.className = 'echange-reste';
@@ -224,11 +243,18 @@ function ouvrirEchanges(){
   echangeTitreMoi.textContent = 'Tu peux lui donner  ·  ' + mien.length;
   echangeNote.textContent = 'Sur ' + currentDexLabel() + '. '
     + 'Ces listes disent qui possède quoi, pas ce qui est échangeable : un '
-    + 'Pokémon offert par le scénario ne se donne qu\'en double. Clique un nom '
-    + 'pour ouvrir sa fiche.';
+    + 'Pokémon offert par le scénario ne se donne qu\'en double. '
+    + (typeof trocChoisir === 'function' && amiProgression.pseudo
+        ? 'Clique un nom dans chaque colonne pour composer une proposition.'
+        : 'Clique un nom pour ouvrir sa fiche.');
 
-  remplirColonne(echangeLui, lui);
-  remplirColonne(echangeMoi, mien);
+  remplirColonne(echangeLui, lui, 'veux');
+  remplirColonne(echangeMoi, mien, 'donne');
+
+  // La barre de proposition se remet a zero a chaque ouverture : garder le
+  // choix d'une comparaison precedente ferait proposer le mauvais Pokemon a la
+  // mauvaise personne.
+  if(typeof trocPreparer === 'function') trocPreparer();
 
   echangeOverlay.style.display = 'flex';
   setTimeout(function(){ echangeFermer.focus(); }, 10);

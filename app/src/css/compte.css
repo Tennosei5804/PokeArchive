@@ -1659,3 +1659,223 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 .succes-barre i{
   display:block; height:100%; background:var(--dex-red); border-radius:999px;
 }
+
+/* ---- Les commandes qui ont rejoint le menu du compte ----------------------
+   Lexique, nouveautés, mise à jour et thème étaient quatre pastilles rondes
+   alignées dans l'en-tête. Rondes, elles ne portaient qu'une icône : il fallait
+   les survoler une par une pour savoir laquelle faisait quoi, et elles
+   occupaient la barre en permanence pour des choses qu'on ouvre rarement.
+
+   Deux d'entre elles portent un ÉTAT, et c'est tout l'objet de ce bloc : une
+   mise à jour disponible, une version non lue. Dans un cercle, l'état tenait
+   dans la couleur du cercle ; dans une liste de mots, il lui faut une place. */
+
+.compte-item-nom{ display:block; }
+
+/* Une mise à jour attend. L'or, ici comme dans l'ancienne pilule : c'est la
+   seule ligne du menu qui demande une décision plutôt qu'une visite. */
+.compte-item.trouvee{ color:var(--gold-deep); font-weight:700; }
+.compte-item.trouvee:hover{ background:rgba(217,154,18,.12); }
+
+/* Pendant la vérification. Le cercle tournait ; une ligne de texte ne tourne
+   pas — elle pâlit, ce qui dit la même chose sans faire valser le menu. */
+.compte-item.cherche{ opacity:.55; }
+.compte-item:disabled{ cursor:default; }
+
+/* Du neuf dans les nouveautés : une pastille en fin de ligne. Elle prend la
+   place que le cercle n'avait pas, au lieu de se superposer au coin. */
+.compte-item.a-du-neuf{ position:relative; padding-right:26px; }
+.compte-item.a-du-neuf::after{
+  content:""; position:absolute; right:10px; top:50%; transform:translateY(-50%);
+  width:7px; height:7px; border-radius:50%; background:var(--gold);
+}
+
+/* ==== La cloche, les échanges et la discussion ==============================
+   Trois écrans pour une seule idée : quelque chose t'attend, et il faut y
+   répondre. C'est ce qui les sépare du fil des amis, qui se lit ou pas. */
+
+/* ---- Le panneau de la cloche ---- */
+.cloche-coin{ position:relative; display:inline-flex; }
+
+.cloche-panneau{
+  display:none;
+  position:absolute; top:calc(100% + 8px); right:0; z-index:60;
+  width:340px; max-width:calc(100vw - 24px);
+  background:var(--card);
+  border:1px solid var(--card-border);
+  border-radius:11px;
+  box-shadow:var(--ombre);
+  overflow:hidden;
+}
+.cloche-panneau.ouvert{ display:block; }
+
+.cloche-entete{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:10px 12px;
+  border-bottom:1px solid var(--card-border);
+  font-family:var(--font-body); font-size:13px; font-weight:700; color:var(--ink);
+}
+.cloche-tout-lu{
+  border:none; background:transparent; cursor:pointer; padding:2px 4px;
+  font-family:var(--font-data); font-size:10.5px; letter-spacing:.05em;
+  color:var(--ink-soft); text-transform:uppercase;
+}
+.cloche-tout-lu:hover{ color:var(--ink); text-decoration:underline; }
+
+/* Huit lignes visibles, le reste au défilement : un panneau plus haut que la
+   fenêtre déborderait sous l'écran sans qu'on puisse l'atteindre. */
+.cloche-liste{ max-height:min(58vh, 430px); overflow-y:auto; padding:5px; }
+
+.cloche-ligne{
+  display:flex; gap:9px; width:100%; text-align:left;
+  padding:9px 10px; border:none; border-radius:8px;
+  background:transparent; cursor:pointer;
+}
+.cloche-ligne:hover{ background:var(--screen); }
+
+/* Le non-lu se marque par un LISERÉ, pas par un fond : un fond coloré sur
+   quatre lignes d'affilée fait un bloc, et on ne distingue plus les lignes. */
+.cloche-ligne.neuve{ border-left:3px solid var(--dex-red); padding-left:7px; }
+
+.cloche-icone{ flex-shrink:0; width:20px; text-align:center; font-size:14px; line-height:1.5; }
+.cloche-corps{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.cloche-titre{ font-family:var(--font-body); font-size:13px; color:var(--ink); }
+.cloche-detail{
+  font-family:var(--font-body); font-size:12px; color:var(--ink-soft);
+  overflow-wrap:anywhere;
+}
+.cloche-quand{ font-family:var(--font-data); font-size:10px; color:var(--ink-faint); }
+
+/* ---- Choisir dans les colonnes de l'entraide ---- */
+/* Le choix se voit au cadre et au fond, pas à une coche : la ligne porte déjà
+   un sprite et deux textes, une case de plus l'aurait encombrée. */
+.echange-ligne.choisi{
+  background:var(--caught-soft);
+  box-shadow:inset 0 0 0 1.5px var(--caught);
+}
+
+.troc-barre{
+  margin-top:14px; padding-top:13px;
+  border-top:1px solid var(--card-border);
+  display:flex; flex-direction:column; gap:9px;
+}
+.troc-choix{
+  display:flex; align-items:center; gap:9px; flex-wrap:wrap;
+  font-family:var(--font-body); font-size:13.5px;
+}
+/* Deux fentes à remplir. Vides elles portent la consigne, ce qui évite une
+   ligne d'explication au-dessus ; pleines elles portent le nom. */
+.troc-fente{
+  flex:1 1 160px; min-width:0;
+  padding:7px 11px; border-radius:8px;
+  border:1px dashed var(--card-border);
+  color:var(--ink-faint);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.troc-fente.rempli{
+  border-style:solid; border-color:var(--caught);
+  background:var(--caught-soft); color:var(--ink); font-weight:700;
+}
+.troc-contre{
+  font-family:var(--font-data); font-size:10.5px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink-faint); flex:0 0 auto;
+}
+.troc-barre input{
+  width:100%; padding:8px 11px; border-radius:8px;
+  border:1px solid var(--card-border); background:var(--screen); color:var(--ink);
+  font-family:var(--font-body); font-size:13px;
+}
+.troc-barre input:focus{ outline:none; border-color:var(--dex-red); }
+.troc-actions{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.troc-jeu{ font-family:var(--font-data); font-size:11px; color:var(--ink-soft); }
+
+/* ---- La liste des échanges ---- */
+.troc-preambule{ margin-bottom:10px; }
+.troc-liste{ display:flex; flex-direction:column; gap:8px; }
+
+.troc-ligne{
+  display:flex; align-items:flex-start; gap:11px;
+  padding:11px 13px;
+  background:var(--card); border:1px solid var(--card-border); border-radius:11px;
+  /* La bande de gauche porte l'état : on lit la couleur avant de lire la
+     ligne, ce qui suffit à repérer ce qui attend une réponse. */
+  border-left:3px solid var(--card-border);
+}
+.troc-ligne.etat-attente{ border-left-color:var(--gold); }
+.troc-ligne.etat-ok{ border-left-color:var(--caught); }
+.troc-ligne.etat-non{ border-left-color:var(--ink-faint); opacity:.72; }
+.troc-ligne.etat-fini{ border-left-color:var(--caught); opacity:.72; }
+
+.troc-avatar{ width:36px; height:36px; border-radius:50%; flex-shrink:0; object-fit:cover; }
+.troc-corps{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.troc-titre{ font-family:var(--font-body); font-size:13px; color:var(--ink-soft); }
+.troc-quoi{
+  font-family:var(--font-body); font-size:14.5px; font-weight:700; color:var(--ink);
+  overflow-wrap:anywhere;
+}
+.troc-mot{
+  font-family:var(--font-body); font-size:12.5px; color:var(--ink-soft);
+  font-style:italic; overflow-wrap:anywhere;
+}
+.troc-bas{ display:flex; gap:9px; align-items:baseline; margin-top:2px; }
+.troc-etat{
+  font-family:var(--font-data); font-size:10px; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink-soft);
+}
+.troc-quand{ font-family:var(--font-data); font-size:10px; color:var(--ink-faint); }
+.troc-actions-ligne{
+  display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap;
+  justify-content:flex-end; max-width:190px;
+}
+
+/* Sous 700 px les boutons passent sous la ligne : côte à côte, ils écrasaient
+   le nom des Pokémon à deux ou trois caractères. */
+@media (max-width:700px){
+  .troc-ligne{ flex-wrap:wrap; }
+  .troc-actions-ligne{ max-width:none; width:100%; justify-content:flex-start; }
+}
+
+/* ---- La discussion ---- */
+.discussion-card{ width:min(560px, 94vw); }
+.discussion-resume{
+  font-family:var(--font-data); font-size:11px; color:var(--ink-soft);
+  margin-bottom:11px;
+}
+.discussion-fil{
+  display:flex; flex-direction:column; gap:8px;
+  max-height:min(46vh, 340px); overflow-y:auto;
+  padding:4px 2px; margin-bottom:11px;
+}
+.discussion-bulle{
+  align-self:flex-start; max-width:82%;
+  display:flex; flex-direction:column; gap:2px;
+  padding:8px 11px; border-radius:11px 11px 11px 3px;
+  background:var(--screen); border:1px solid var(--card-border);
+}
+/* Les miens à droite, dans la couleur de l'application. C'est la convention de
+   toutes les messageries : la retenir évite d'avoir à lire « Toi » pour savoir
+   qui parle. Le nom reste, pour qui ne la connaît pas. */
+.discussion-bulle.de-moi{
+  align-self:flex-end;
+  border-radius:11px 11px 3px 11px;
+  background:var(--caught-soft); border-color:var(--caught);
+}
+.discussion-qui{
+  font-family:var(--font-data); font-size:10px; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--ink-faint);
+}
+.discussion-texte{
+  margin:0; font-family:var(--font-body); font-size:13.5px; color:var(--ink);
+  line-height:1.5; overflow-wrap:anywhere; white-space:pre-wrap;
+}
+.discussion-quand{ font-family:var(--font-data); font-size:9.5px; color:var(--ink-faint); }
+
+.discussion-ecrire{ display:flex; gap:8px; }
+.discussion-ecrire input{
+  flex:1 1 auto; min-width:0;
+  padding:9px 12px; border-radius:8px;
+  border:1px solid var(--card-border); background:var(--screen); color:var(--ink);
+  font-family:var(--font-body); font-size:13.5px;
+}
+.discussion-ecrire input:focus{ outline:none; border-color:var(--dex-red); }
+.discussion-ecrire input:disabled{ opacity:.6; cursor:default; }

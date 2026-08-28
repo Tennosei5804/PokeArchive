@@ -426,6 +426,10 @@ document.addEventListener('DOMContentLoaded', function(){
     amisNotif.addEventListener('change', function(){ poserAmisReglage(amisNotif.value); });
   }
   lancerSondageAmis();
+  // La cloche a son propre sondage : elle regarde une autre table, et son
+  // délai de départ est décalé pour ne pas ouvrir deux requêtes ensemble au
+  // lancement. Voir notifs.js.
+  if(typeof lancerSondageNotifs === 'function') lancerSondageNotifs();
 });
 
 /** Appelé par showPage('amis'). */

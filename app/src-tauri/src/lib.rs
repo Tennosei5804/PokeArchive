@@ -808,6 +808,122 @@ async fn amis_vu(etat: State<'_, Etat>, jusqua: i64) -> Result<serde_json::Value
     .await
 }
 
+// ---- Les échanges et les notifications -------------------------------------
+// Même rôle que pour les amis : le passage du jeton, et rien d'autre. Toute la
+// règle est dans api/src/echanges.js et api/src/notifications.js.
+
+/// Mes échanges, dans les deux sens.
+#[tauri::command]
+async fn echanges(etat: State<'_, Etat>) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(reqwest::Method::GET, "/api/echanges", &jeton, None).await
+}
+
+/// « Je te donne celui-ci contre celui-là, sur ce jeu. »
+#[tauri::command]
+async fn echange_proposer(
+    etat: State<'_, Etat>,
+    pseudo: String,
+    dex: String,
+    offert: String,
+    demande: String,
+    mot: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(
+        reqwest::Method::POST,
+        "/api/echanges",
+        &jeton,
+        Some(serde_json::json!({
+            "pseudo": pseudo, "dex": dex,
+            "offert": offert, "demande": demande, "mot": mot,
+        })),
+    )
+    .await
+}
+
+/// Accepter ou refuser. C'est le receveur qui tranche, l'API le vérifie.
+#[tauri::command]
+async fn echange_reponse(
+    etat: State<'_, Etat>,
+    id: i64,
+    reponse: String,
+) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    let chemin = format!("/api/echanges/{id}/reponse");
+    appeler(
+        reqwest::Method::POST,
+        &chemin,
+        &jeton,
+        Some(serde_json::json!({ "reponse": reponse })),
+    )
+    .await
+}
+
+/// Retirer sa proposition, tant que l'autre n'a pas répondu.
+#[tauri::command]
+async fn echange_annuler(etat: State<'_, Etat>, id: i64) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    let chemin = format!("/api/echanges/{id}/annuler");
+    appeler(reqwest::Method::POST, &chemin, &jeton, None).await
+}
+
+/// « C'est fait. » Posé à la main : le service ne voit pas les consoles.
+#[tauri::command]
+async fn echange_fait(etat: State<'_, Etat>, id: i64) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    let chemin = format!("/api/echanges/{id}/fait");
+    appeler(reqwest::Method::POST, &chemin, &jeton, None).await
+}
+
+/// La discussion d'un échange accepté.
+#[tauri::command]
+async fn echange_messages(etat: State<'_, Etat>, id: i64) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    let chemin = format!("/api/echanges/{id}/messages");
+    appeler(reqwest::Method::GET, &chemin, &jeton, None).await
+}
+
+#[tauri::command]
+async fn echange_ecrire(
+    etat: State<'_, Etat>,
+    id: i64,
+    texte: String,
+) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    let chemin = format!("/api/echanges/{id}/messages");
+    appeler(
+        reqwest::Method::POST,
+        &chemin,
+        &jeton,
+        Some(serde_json::json!({ "texte": texte })),
+    )
+    .await
+}
+
+/// Ce qui est arrivé pour moi, et ce qui reste non lu.
+#[tauri::command]
+async fn notifications(etat: State<'_, Etat>) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(reqwest::Method::GET, "/api/notifications", &jeton, None).await
+}
+
+/// Dit jusqu'où on a affiché. Appelé APRÈS l'affichage, comme amis_vu.
+#[tauri::command]
+async fn notifications_lues(
+    etat: State<'_, Etat>,
+    jusqua: Option<i64>,
+) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(
+        reqwest::Method::POST,
+        "/api/notifications/lues",
+        &jeton,
+        Some(serde_json::json!({ "jusqua": jusqua })),
+    )
+    .await
+}
+
 /// Les raccourcis globaux du compteur de chasse.
 ///
 /// POURQUOI GLOBAUX, ET PAS SEULEMENT DANS LA FENÊTRE. Un compteur se frappe
@@ -928,6 +1044,15 @@ pub fn run() {
             amis_fil,
             amis_nouveautes,
             amis_vu,
+            echanges,
+            echange_proposer,
+            echange_reponse,
+            echange_annuler,
+            echange_fait,
+            echange_messages,
+            echange_ecrire,
+            notifications,
+            notifications_lues,
             presence::presence_maj,
             presence::presence_effacer,
             overlay::overlay_demarrer,

@@ -946,6 +946,77 @@ journée.
 **Rien ne s'affiche sous cinq collections.** « Un dresseur sur deux » n'est pas
 une rareté, c'est un hasard, et l'API renvoie alors une table vide.
 
+## Les échanges
+
+**Un accord, pas un transfert.** PokéArchive ne déplace aucun Pokémon et n'en
+vérifie aucun : c'est un carnet, pas une console. Ce qui est enregistré est une
+intention — deux joueurs se mettent d'accord, puis se retrouvent dans leur jeu
+pour le faire vraiment. D'où l'état **« fait »**, posé à la main par l'un des
+deux : personne ne peut le constater à leur place, et le deviner serait mentir.
+
+**Ça se propose depuis l'entraide, et de nulle part ailleurs.** Le panneau 🤝
+savait déjà répondre à « qu'est-ce que vous pouvez vous apporter ? » : deux
+colonnes, ce qu'il a et que tu n'as pas, ce que tu as et qu'il n'a pas. Un clic
+dans chacune compose la proposition. Un formulaire séparé aurait redemandé à la
+main ce que ces colonnes savent déjà.
+
+### Le sens, et où il est tranché
+
+En base, `offert` et `demande` sont écrits **du point de vue du demandeur**, une
+fois pour toutes. Les rendre tels quels au receveur lui ferait lire « tu offres »
+sous le Pokémon qu'il reçoit.
+
+C'est donc la **lecture** qui les retourne, dans `vueEchange()` : l'API renvoie
+`jeDonne` et `jeRecois`, qui veulent dire la même chose pour les deux. Aucun
+écran n'a alors à savoir de quel côté il se trouve pour écrire la bonne phrase —
+et cette question, tranchée une fois côté serveur, ne peut plus l'être de travers
+dans le quatrième écran qui affichera un échange.
+
+Le banc surveille précisément cette inversion : elle ne casse rien, ne lève rien,
+et propose exactement le contraire de ce qui a été cliqué.
+
+### La discussion n'ouvre qu'après un oui
+
+L'abonnement aux amis est à sens unique et sans acceptation — c'est justifié
+ailleurs dans ce fichier : rien de neuf n'y est révélé. Mais **écrire à
+quelqu'un, si**. Une messagerie ouverte à qui veut suivre serait une porte que
+l'abonnement n'a jamais eu à demander.
+
+La règle est donc : on ne peut écrire qu'à quelqu'un **qui a accepté un échange
+avec soi**. Un échange conclu reste lisible — on relit ce qu'on s'est dit — un
+refus ferme la porte. Il n'y a pas de messagerie dans PokéArchive, seulement la
+discussion d'un accord.
+
+## Les notifications
+
+Deux sources, et une seule cloche 🔔.
+
+**Ce qui se déduit ne s'écrit pas.** Les captures des amis se lisent dans
+`pa_historique`, qui porte déjà une ligne par Pokémon ajouté avec son jeu, sa
+date et s'il est chromatique. Une seconde table qu'il faudrait tenir d'accord
+avec la première n'apporterait rien.
+
+**Ce qui s'adresse s'écrit.** Une proposition d'échange s'adresse à quelqu'un,
+attend une réponse, et a un état : non lue, lue, répondue. Rien de cela ne se
+recalcule à partir d'ailleurs — d'où `pa_notifications`.
+
+La différence se voit à l'écran, et c'est pour ça qu'elle compte : une capture
+d'ami est une nouvelle qu'on lit ou pas, une proposition est une question à
+laquelle il faut répondre. Les mélanger ferait perdre les secondes dans les
+premières. La cloche porte les secondes ; l'onglet 📣 Amis garde sa pastille
+pour les premières.
+
+**Le titre ne nomme jamais les Pokémon.** En base on n'a que des identifiants
+d'espèce (`mr-mime`), et la langue d'affichage est un réglage de l'appareil :
+une phrase figée à l'écriture serait fausse pour qui lit dans l'autre langue, ou
+après avoir changé de réglage. L'API joint donc l'échange, et l'application
+écrit « Tadmorv contre Machoc » elle-même.
+
+**Un sondage, pas une connexion ouverte.** Deux minutes. Maintenir une socket
+par joueur coûterait bien plus que trois requêtes à l'heure sur un hébergement
+gratuit, et deux minutes de retard sur une proposition d'échange ne gênent
+personne : on n'échange pas à la seconde.
+
 ## Le site installable
 
 C'est sur le téléphone posé à côté de la Switch qu'on coche. Le site s'adaptait
@@ -1612,10 +1683,19 @@ héberge déjà autre chose. Les tables de PokéArchive sont donc **préfixées
 
 | Table | Contenu |
 |---|---|
-| `pa_dresseurs` | identité Discord, pseudo, avatar |
+| `pa_dresseurs` | identité Discord, pseudo, avatar, présence au classement |
 | `pa_sessions` | les connexions ouvertes |
 | `pa_profils` | les aventures, et **ce que chacune compte** |
 | `pa_dex` | la progression de chacune |
+| `pa_historique` | une ligne par Pokémon ajouté — le journal, et le fil des amis |
+| `pa_amis` | qui suit qui, et jusqu'où il a déjà été prévenu |
+| `pa_echanges` | les accords proposés, acceptés, refusés |
+| `pa_messages` | la discussion d'un échange accepté |
+| `pa_notifications` | ce qui s'adresse à quelqu'un et attend une réponse |
+
+Le schéma se crée et se complète tout seul au démarrage du service : chaque
+table est en `CREATE TABLE IF NOT EXISTS`, chaque colonne ajoutée après coup a
+sa fonction de migration. Relancer le service ne touche à rien.
 
 ### Ce que compte une aventure
 

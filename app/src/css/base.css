@@ -883,3 +883,44 @@
   width:7px; height:7px; border-radius:50%;
   background:var(--dex-red); border:1px solid var(--card);
 }
+
+/* ---- La cloche ------------------------------------------------------------
+   Ce qui est arrivé POUR TOI — une proposition d'échange, une réponse, un
+   message. Elle reste seule dans l'en-tête quand tout le reste est parti dans
+   le menu du compte, et c'est voulu : c'est la seule chose de cette barre qui
+   puisse changer sans qu'on ait rien fait.
+
+   La pastille porte un chiffre plutôt qu'un point. « Trois » et « quarante »
+   ne se décident pas pareil, et le point ne distinguait pas les deux. */
+  .cloche-btn{
+    position:relative;
+    margin-left:10px;
+    width:34px; height:34px;
+    padding:0;
+    border-radius:50%;
+    border:1px solid rgba(255,255,255,.28);
+    background:rgba(0,0,0,.18);
+    color:#fff;
+    font-size:15px; line-height:1;
+    cursor:pointer; flex-shrink:0;
+    transition:background 120ms;
+  }
+  .cloche-btn:hover{ background:rgba(0,0,0,.32); }
+  .cloche-btn:focus-visible{ outline:2.5px solid #fff; outline-offset:2px; }
+  .cloche-btn.sonne{ animation:cloche-secoue 620ms ease-in-out; }
+  @keyframes cloche-secoue{
+    0%,100%{ transform:rotate(0); }
+    20%{ transform:rotate(-13deg); } 40%{ transform:rotate(11deg); }
+    60%{ transform:rotate(-7deg); }  80%{ transform:rotate(4deg); }
+  }
+  @media (prefers-reduced-motion:reduce){ .cloche-btn.sonne{ animation:none; } }
+
+  .cloche-pastille{
+    position:absolute; top:-3px; right:-3px;
+    min-width:17px; height:17px; padding:0 4px;
+    border-radius:999px;
+    background:var(--danger); color:#fff;
+    font-family:var(--font-data); font-size:10px; font-weight:700;
+    line-height:17px; text-align:center;
+    box-shadow:0 0 0 2px var(--dex-red, #b5211f);
+  }
