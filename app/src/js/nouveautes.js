@@ -20,6 +20,28 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.29.0', date: '2026-08-29',
+    titre: 'Quinze filtres que tu ne pouvais pas trouver',
+    points: [
+      '**🔍 Un bouton « Plus de filtres » sur le Pokédex.** La recherche '
+      + 'comprenait déjà trente mots — fossile, gigamax, légendaire, manquants, '
+      + 'hisui, shiny-lock… — et chacun filtre aussi bien que les menus de la '
+      + 'barre. Encore fallait-il les deviner. Ils sont maintenant là, en '
+      + 'quinze pastilles à cliquer. Elles écrivent dans la recherche : c’est '
+      + 'exactement comme taper le mot, en plus simple.',
+      '**📍 Mew est encore obtenable, et on te le cachait.** Il s’obtient '
+      + 'toujours, une fois par Poké Ball Plus neuve — mais le filtre « encore '
+      + 'obtenables aujourd’hui » ne le montrait pas. Diancie non plus, alors '
+      + 'qu’il se télécharge sur Légendes Z-A depuis novembre 2025, sans date de '
+      + 'fin. Le filtre passe de six à huit.',
+      '**Où ouvrir le Cadeau Mystère, jeu par jeu.** Le menu change à chaque '
+      + 'génération et la plupart des jeux le gardent fermé jusqu’à un moment '
+      + 'précis de l’aventure : carte Miracle en 2G, menu titre en 4G, Poké '
+      + 'Portail sur Écarlate et Violet, mission principale 3 sur Z-A. Arriver '
+      + 'avec un code et ne pas trouver le menu, c’est fini.',
+    ],
+  },
+  {
     version: '0.28.0', date: '2026-08-29',
     titre: 'Les cadeaux mystères qui pouvaient briller',
     points: [
