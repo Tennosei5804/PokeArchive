@@ -226,6 +226,55 @@
   }
   .select-item.selected:hover{ background:var(--dex-red-deep); }
 
+  /* ---- La molette (voir dessinerRoulette dans js/menus.js) ----
+     Employée dès six options ; en dessous, la liste plate ci-dessus. */
+  .select-list.roulette{ padding:0; overflow:hidden; position:absolute; }
+  .roulette-piste{
+    /* LA HAUTEUR EST LA SEULE SOURCE : menus.js mesure un cran, en déduit le
+       rembourrage qui permet au premier et au dernier d'atteindre le centre, et
+       ne recopie aucun nombre d'ici. */
+    box-sizing:border-box;
+    height:200px;
+    overflow-y:auto;
+    scroll-snap-type:y mandatory;
+    scrollbar-width:none;
+    outline:none;
+  }
+  .roulette-piste::-webkit-scrollbar{ display:none; }
+  .roulette-item{
+    /* 40 px : cinq crans dans les 200 px ci-dessus, dont un au centre. */
+    box-sizing:border-box;
+    display:block; width:100%; height:40px;
+    scroll-snap-align:center;
+    font-family:var(--font-body);
+    font-size:13px; font-weight:500;
+    color:var(--ink);
+    background:transparent; border:none;
+    padding:0 16px;
+    text-align:left;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    cursor:pointer;
+    transition:color 120ms, font-weight 120ms;
+  }
+  /* Le cran sous la bande : c'est lui qu'un relâchement choisira. */
+  .roulette-item.au-centre{ color:var(--dex-red); font-weight:700; }
+  /* La bande fixe au milieu. Elle ne reçoit aucun clic — sinon elle
+     intercepterait celui destiné au cran qu'elle recouvre. */
+  .roulette-fenetre{
+    position:absolute; left:5px; right:5px; top:50%;
+    transform:translateY(-50%);
+    pointer-events:none;
+    border-top:1.5px solid var(--card-border);
+    border-bottom:1.5px solid var(--card-border);
+    background:rgba(238,58,58,.06);
+  }
+  /* Le mouvement doux dérange : le défilement reste instantané, l'aimant
+     opère toujours. */
+  @media (prefers-reduced-motion:reduce){
+    .roulette-piste{ scroll-behavior:auto; }
+    .roulette-item{ transition:none; }
+  }
+
   .toggle-btn{
     font-family:var(--font-body);
     font-weight:600;
@@ -1177,15 +1226,32 @@
    ne le défait pas. C'est la forme qu'emploie .lexique-card, pour la même
    raison — une liste ne tient pas dans la largeur d'une boîte de dialogue. */
 .verrou-card{ width:min(760px, 95vw); max-width:min(760px, 95vw); }
-/* .modal-card centre son texte : bon pour un titre, illisible pour une liste. */
-.verrou-card .verrou-compte,
-.verrou-card .verrou-liste,
-.verrou-card .verrou-note{ text-align:left; }
+/* .modal-card centre son texte, et c'est le bon choix pour tout ce qui tient du
+   propos : le titre, la note, le compte. Seule LA LISTE revient à gauche — une
+   colonne de noms centrée n'a pas de bord commun à suivre pour l'œil. */
+.verrou-card .verrou-liste{ text-align:left; }
+.verrou-card .verrou-note{ max-width:52ch; margin-left:auto; margin-right:auto; }
 
 /* La barre de filtres reprend celle du Pokédex : mêmes contrôles, même
    disposition. Personne n'a à réapprendre à filtrer. */
-.verrou-filtres{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
-.verrou-filtres input[type="search"]{ flex:1 1 200px; min-width:0; }
+/* Centrés, et non étirés d'un bord à l'autre. À 760 px de large, une recherche
+   élastique poussait le menu contre le bord droit et laissait un vide au milieu :
+   deux contrôles isolés aux extrémités d'une barre au lieu d'un groupe. */
+.verrou-filtres{
+  display:flex; gap:8px; flex-wrap:wrap;
+  justify-content:center; align-items:center; margin-bottom:12px;
+}
+/* La recherche emprunte .lexique-q, qui porte un margin-top:12px destiné à la
+   modale du lexique où elle est seule sous un titre. Dans une barre à deux
+   contrôles, cette marge la décalait de sept pixels sous le menu : c'est le
+   prix d'une classe empruntée, et il se paie ici plutôt qu'à l'œil. */
+.verrou-filtres input[type="search"]{
+  flex:0 1 300px; min-width:0; margin-top:0; height:38px;
+}
+/* .modal-card .select-wrap impose width:100% — même spécificité que la nôtre,
+   donc c'est l'ordre des fichiers qui tranchait. On passe au-dessus plutôt que
+   de dépendre de l'ordre de chargement. */
+.modal-card .verrou-filtres .select-wrap{ flex:0 0 auto; width:auto; min-width:190px; }
 
 .verrou-compte{
   font-family:var(--font-data); font-size:11px; color:var(--ink-soft);
@@ -1235,6 +1301,34 @@
 .verrou-partout{
   font-family:var(--font-body); font-size:12px; color:var(--danger); margin-top:4px;
 }
+/* Chromatique possible, mais pas au taux amélioré. Ambre et non rouge : ce
+   n'est pas un mur, c'est un ralentissement, et la couleur doit le dire. */
+.verrou-taux{
+  font-family:var(--font-body); font-size:12px; color:var(--gold-deep); margin-top:4px;
+}
+
+/* Les catégories qu'on ne peut pas énumérer, en tête quand un jeu est choisi.
+   « Tous les Pokémon offerts sur Épée et Bouclier » pèse plus lourd que les
+   deux espèces nommées en dessous : elle passe donc devant. */
+.verrou-regles{
+  margin:0 0 12px; padding:11px 13px;
+  background:var(--screen); border:1px solid var(--card-border);
+  border-radius:11px;
+}
+.verrou-regles-titre{
+  font-family:var(--font-data); font-size:9.5px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink-faint); margin-bottom:6px;
+}
+.verrou-regle{
+  font-family:var(--font-body); font-size:12.5px; color:var(--ink-soft);
+  line-height:1.5; padding-left:14px; position:relative; margin-top:4px;
+}
+.verrou-regle::before{
+  /* Le caractere en clair, pas une sequence d echappement CSS : elle a
+     traverse deux couches d outils et en est ressortie en octal. */
+  content:'—';
+  position:absolute; left:0; color:var(--danger);
+}
 
 .verrou-chasser{
   flex:0 0 auto; padding:5px 11px; border-radius:8px;
@@ -1257,8 +1351,7 @@
 @media (max-width:560px){
   /* La recherche prend sa ligne, les deux sélecteurs se partagent la suivante. */
   .verrou-filtres input[type="search"]{ flex:1 1 100%; }
-  .verrou-filtres .select-wrap,
-  .verrou-filtres select{ flex:1 1 calc(50% - 4px); min-width:0; }
+  .modal-card .verrou-filtres .select-wrap{ flex:1 1 100%; width:100%; }
 
   /* La ligne se plie : sprite et nom en haut, le bouton dessous, sur toute la
      largeur — c'est la cible d'un pouce, elle a besoin de place. */

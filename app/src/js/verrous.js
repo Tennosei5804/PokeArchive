@@ -1,107 +1,79 @@
 // Le catalogue des verrous chromatiques : ce qui ne peut pas briller, et où.
 //
 // Script classique, chargé APRÈS chasse.js — il lui emprunte ouvrirChasseModal
-// pour le bouton « chasser sur… », et dex.js pour nomAffiche.
+// pour le bouton « chasser sur… », et noyau.js pour nomAffiche.
 //
 // LA QUESTION QU'IL RÉPOND. « Est-ce que je peux chasser celui-là ici ? » Elle se
 // pose avant de lancer une chasse, et l'application connaissait déjà la moitié
 // de la réponse sans jamais la donner : SHINY_LOCKED servait au Pokédex, et
 // chasse.js ne la consultait pas — zéro occurrence. On pouvait lancer une chasse
-// sur Zacian, voir le compteur monter à trois mille, et n'obtenir jamais rien.
+// sur Victini, voir le compteur monter à trois mille, et n'obtenir jamais rien.
 //
 // UN CATALOGUE, PAS UN GARDE-FOU. Il ne bloque rien : il se consulte. Barrer la
-// création d'une chasse supposerait que la table est complète, et elle ne l'est
-// pas — se taire là où l'on ne sait pas vaut mieux que d'interdire à tort.
+// création d'une chasse supposerait que les tables sont complètes, et elles ne le
+// sont pas — le relevé vient de dataminers, pas de l'éditeur.
 //
-// TROIS SOURCES, ET ELLES NE DISENT PAS LA MÊME CHOSE :
+// CINQ SOURCES, CINQ AFFIRMATIONS DIFFÉRENTES (voir donnees.js) :
 //
-//   · SANS_CHROMATIQUES (chasse.js) — le jeu n'a pas de chromatique du tout.
-//     Aucune table : c'est vrai pour les 151 espèces de Rouge/Bleu/Jaune.
+//   · SANS_CHROMATIQUES (chasse.js) — le jeu n'a aucun chromatique. Rouge, Bleu
+//     et Jaune : la forme apparaît en Or et Argent.
 //   · SHINY_LOCKED — l'espèce n'en a nulle part, dans aucun jeu.
-//   · VERROUS_PAR_JEU — cette rencontre-ci est verrouillée, ailleurs non.
-//
-// La troisième est la seule qui demande un travail de saisie, et c'est celle qui
-// sert le plus : elle dit où aller.
+//   · TAUX_PLEIN_SEUL — elle en a, mais jamais au taux amélioré.
+//   · VERROUS_PAR_JEU — CETTE RENCONTRE-CI est verrouillée, les autres non.
+//   · REGLES_VERROU — une catégorie entière l'est, sur ce jeu, et on ne peut
+//     l'énumérer : elle s'affiche alors en toutes lettres.
 
-// Combien de jeux on nomme avant d'abréger. Au-delà, « et 18 autres » en dit
-// autant en tenant sur une ligne.
+// Combien de jeux on nomme avant d'abréger.
 const VERROU_JEUX_CITES = 3;
 
 // ---- Ce que l'on sait d'une espèce ------------------------------------------
 
 /**
- * Les jeux où une RENCONTRE de cette espèce est verrouillée.
+ * La fiche d'une espèce, ou null si rien ne la concerne.
  *
- * À ne pas confondre avec verrouJeuxSansEspoir() : le starter d'Épée/Bouclier
- * figure ici, et pourtant on peut en obtenir un chromatique dans ce même jeu,
- * par reproduction. Cette liste-là sert à AFFICHER l'avertissement ; l'autre
- * sert à répondre « où aller », et elles ne se recouvrent pas.
- *
- * ROUGE / BLEU / JAUNE N'Y SONT PAS, ET C'EST VOULU. Ils n'ont aucun chromatique,
- * donc les y ajouter rendait les 1025 espèces « verrouillées » : le catalogue
- * listait le Pokédex entier et noyait ses trente vraies lignes. Le fait vaut pour
- * le jeu, pas pour l'espèce ; la note de l'écran le dit une fois, et l'écran de
- * chasse écarte déjà ces jeux de son sélecteur.
- */
-function verrouJeuxFermes(speciesId){
-  const fermes = new Set();
-  VERROUS_PAR_JEU.forEach(function(v){
-    if(v.espece === speciesId) v.jeux.forEach(function(cle){ fermes.add(cle); });
-  });
-  return fermes;
-}
-
-/**
- * Les jeux où l'espèce ne peut PAS être obtenue chromatique, par aucune voie.
- *
- * C'est la question qui compte pour le bouton du bout de ligne. Un verrou dont on
- * connaît le contournement (`ailleurs`) ne ferme pas le jeu : il ferme une porte
- * dans un jeu qui en a d'autres. Confondre les deux désactivait le bouton sur
- * les six starters de Galar et de Paldea — en annonçant introuvable ce qui
- * s'obtient dans le jeu qu'on a sous la main.
- */
-function verrouJeuxSansEspoir(speciesId){
-  const sans = new Set(SANS_CHROMATIQUES);
-  VERROUS_PAR_JEU.forEach(function(v){
-    if(v.espece !== speciesId || v.ailleurs) return;
-    v.jeux.forEach(function(cle){ sans.add(cle); });
-  });
-  return sans;
-}
-
-/**
- * La fiche d'une espèce verrouillée, ou null si rien ne la concerne.
- *
- * `partout` l'emporte sur le reste : nommer quatorze jeux fermés pour Zacian
- * dirait la même chose en moins clair qu'une phrase.
+ * `genre` porte toute la nuance, et il vaut mieux le lire que le deviner :
+ * « partout » interdit, « taux » ralentit, « rencontre » ne vise qu'une porte
+ * parmi d'autres.
  */
 function verrouDe(entry){
   const id = entry.speciesId;
+
   if(SHINY_LOCKED.has(id)){
-    return { entry: entry, partout: true, fermes: [], ouverts: [], quoi: null, ailleurs: null };
+    return { entry: entry, genre: 'partout', fermes: [], ouverts: [], quoi: null };
+  }
+  if(TAUX_PLEIN_SEUL.has(id)){
+    return { entry: entry, genre: 'taux', fermes: [], ouverts: jeuxOuverts(id), quoi: null };
   }
 
-  const fermes = verrouJeuxFermes(id);
-  if(!fermes.size) return null;
+  const precis = VERROUS_PAR_JEU.filter(function(v){ return v.espece === id; });
+  if(!precis.length) return null;
 
-  // Les jeux où l'espèce EXISTE et reste obtenable chromatique. On ne cite pas un
-  // jeu où elle n'apparaît pas : « chassable sur Rouge/Bleu » pour un Pokémon de
-  // Galar serait faux deux fois. Le relévé des lieux ne couvre pas tous les jeux ;
-  // ceux qu'il ignore ne sont pas proposés, faute de pouvoir l'affirmer.
-  const sansEspoir = verrouJeuxSansEspoir(id);
-  const ouverts = GAMES.filter(function(g){
-    return !sansEspoir.has(g.key) && verrouEspecePresente(id, g.key);
-  });
-
-  const precis = VERROUS_PAR_JEU.find(function(v){ return v.espece === id; });
+  const cles = new Set();
+  precis.forEach(function(v){ v.jeux.forEach(function(c){ cles.add(c); }); });
   return {
     entry: entry,
-    partout: false,
-    fermes: GAMES.filter(function(g){ return fermes.has(g.key); }),
-    ouverts: ouverts,
-    quoi: precis ? precis.quoi : null,
-    ailleurs: precis ? (precis.ailleurs || null) : null,
+    genre: 'rencontre',
+    fermes: GAMES.filter(function(g){ return cles.has(g.key); }),
+    ouverts: jeuxOuverts(id),
+    quoi: precis.map(function(v){ return v.quoi; }).join(' · '),
   };
+}
+
+/**
+ * Les jeux où l'espèce est chassable.
+ *
+ * UN VERROU DE RENCONTRE NE FERME PAS LE JEU, et c'est la correction qui a
+ * demandé le plus de travail. Le Roucool scripté de la Route 2 est verrouillé
+ * sur X et Y ; les Roucool sauvages du même jeu ne le sont pas. Traiter la
+ * rencontre comme le jeu barrait vingt-neuf destinations parfaitement valides.
+ *
+ * Seule la première génération ferme vraiment, le chromatique n'y existant pas.
+ */
+function jeuxOuverts(speciesId){
+  return GAMES.filter(function(g){
+    return SANS_CHROMATIQUES.indexOf(g.key) === -1
+        && verrouEspecePresente(speciesId, g.key);
+  });
 }
 
 /**
@@ -130,6 +102,12 @@ function verrousTous(){
   });
 }
 
+/** Les règles qui ne se comptent pas, pour un jeu donné. */
+function reglesPour(cleJeu){
+  if(cleJeu === 'tous') return [];
+  return REGLES_VERROU.filter(function(r){ return r.jeux.indexOf(cleJeu) !== -1; });
+}
+
 // ---- L'écran ----------------------------------------------------------------
 
 async function ouvrirVerrous(){
@@ -144,21 +122,8 @@ async function ouvrirVerrous(){
     try{ await chargerLieux(); }catch(e){ /* on dira ce qu'on peut */ }
   }
 
-  remplirVerrouGens();
   remplirVerrouJeux();
   dessinerVerrous();
-}
-
-/** Le sélecteur de générations, bâti sur GEN_RANGES. */
-function remplirVerrouGens(){
-  if(!verrouGen || verrouGen.dataset.pret) return;
-  GEN_RANGES.forEach(function(g){
-    const o = document.createElement('option');
-    o.value = String(g.gen);
-    o.textContent = 'Génération ' + g.gen;
-    verrouGen.appendChild(o);
-  });
-  verrouGen.dataset.pret = '1';
 }
 
 /** Le sélecteur de jeux, bâti sur GAMES : aucune liste à tenir en double. */
@@ -177,7 +142,6 @@ function dessinerVerrous(){
   if(!verrousListe) return;
 
   const q = ((verrouQ && verrouQ.value) || '').trim().toLowerCase();
-  const gen = (verrouGen && verrouGen.value) || 'tous';
   const jeu = (verrouJeu && verrouJeu.value) || 'tous';
 
   const gardes = verrousTous().filter(function(v){
@@ -186,23 +150,26 @@ function dessinerVerrous(){
       const no = String(v.entry.speciesId);
       if(nom.indexOf(q) === -1 && no.indexOf(q) === -1) return false;
     }
-    if(gen !== 'tous' && String(v.entry.gen) !== gen) return false;
     if(jeu !== 'tous'){
       // Un jeu choisi : on ne garde que ce qui y est verrouillé ET ce qui y
-      // FIGURE. La condition d'existence n'est pas un détail : sans elle, filtrer
-      // sur Rouge/Bleu annonçait vingt-huit espèces verrouillées, Victini et
-      // Keldeo compris — aucun des deux n'existe dans ce jeu. « Verrouillé ici »
-      // sur une espèce absente n'est pas une demi-vérité, c'est un contresens.
+      // FIGURE. La condition d'existence n'est pas un détail : sans elle,
+      // filtrer sur Rouge/Bleu annonçait Victini et Keldeo verrouillés — aucun
+      // des deux n'existe dans ce jeu.
       if(!verrouEspecePresente(v.entry.speciesId, jeu)) return false;
-      if(!v.partout && !v.fermes.some(function(g){ return g.key === jeu; })) return false;
+      if(v.genre === 'rencontre'
+         && !v.fermes.some(function(g){ return g.key === jeu; })) return false;
     }
     return true;
   });
 
   verrousListe.innerHTML = '';
-  if(!gardes.length){
-    // Sur Rouge, Bleu ou Jaune, « rien de verrouillé » serait vrai et trompeur :
-    // rien n'y est verrouillé parce que rien n'y brille. On le dit.
+
+  // Les règles d'abord : sur Épée et Bouclier, « tous les Pokémon offerts »
+  // pèse plus lourd que les deux espèces nommées en dessous.
+  const regles = reglesPour(jeu);
+  if(regles.length) verrousListe.appendChild(blocRegles(regles));
+
+  if(!gardes.length && !regles.length){
     const rienNeBrille = SANS_CHROMATIQUES.indexOf(jeu) !== -1;
     verrousListe.innerHTML = '<div class="state-msg">' + (rienNeBrille
       ? 'Aucun Pokémon n’est chromatique dans ce jeu : la forme apparaît en Or '
@@ -211,13 +178,36 @@ function dessinerVerrous(){
   }
   gardes.forEach(function(v){ verrousListe.appendChild(ligneVerrou(v, jeu)); });
 
-  if(verrouCompte){
-    const partout = gardes.filter(function(v){ return v.partout; }).length;
-    verrouCompte.textContent = gardes.length
-      + (gardes.length > 1 ? ' espèces verrouillées' : ' espèce verrouillée')
-      + (jeu !== 'tous' ? ' sur ce jeu' : '')
-      + (partout && jeu === 'tous' ? '  ·  ' + partout + ' le sont partout' : '');
+  if(verrouCompte) verrouCompte.textContent = resumeVerrous(gardes, regles, jeu);
+}
+
+function resumeVerrous(gardes, regles, jeu){
+  const bouts = [];
+  if(gardes.length){
+    bouts.push(gardes.length + (gardes.length > 1 ? ' espèces' : ' espèce'));
   }
+  if(regles.length){
+    bouts.push(regles.length + (regles.length > 1 ? ' règles' : ' règle'));
+  }
+  if(!bouts.length) return '';
+  return bouts.join('  ·  ') + (jeu !== 'tous' ? ' sur ce jeu' : ' au total');
+}
+
+/** Les catégories entières, celles qu'on ne peut pas énumérer. */
+function blocRegles(regles){
+  const bloc = document.createElement('div');
+  bloc.className = 'verrou-regles';
+  const titre = document.createElement('div');
+  titre.className = 'verrou-regles-titre';
+  titre.textContent = 'Sur ce jeu, ne peuvent pas être chromatiques';
+  bloc.appendChild(titre);
+  regles.forEach(function(r){
+    const p = document.createElement('div');
+    p.className = 'verrou-regle';
+    p.textContent = r.texte;
+    bloc.appendChild(p);
+  });
+  return bloc;
 }
 
 function ligneVerrou(v, jeuFiltre){
@@ -247,12 +237,16 @@ function ligneVerrou(v, jeuFiltre){
   nom.appendChild(no);
   infos.appendChild(nom);
 
-  if(v.partout){
-    const p = document.createElement('div');
-    p.className = 'verrou-partout';
-    p.textContent = 'Verrouillé partout — aucun exemplaire légitime n’existe.';
-    infos.appendChild(p);
+  if(v.genre === 'partout'){
+    infos.appendChild(phrase('verrou-partout',
+      'Verrouillé partout — aucun exemplaire légitime n’existe.'));
+  } else if(v.genre === 'taux'){
+    infos.appendChild(phrase('verrou-taux',
+      'Chromatique possible, mais jamais au taux amélioré : ni Charme Chroma, '
+      + 'ni bonus de rencontre.'));
+    infos.appendChild(etiquettesVerrou(v, jeuFiltre));
   } else {
+    if(v.quoi) infos.appendChild(phrase('verrou-quoi', v.quoi));
     infos.appendChild(etiquettesVerrou(v, jeuFiltre));
   }
   ligne.appendChild(infos);
@@ -261,23 +255,16 @@ function ligneVerrou(v, jeuFiltre){
   return ligne;
 }
 
+function phrase(classe, texte){
+  const p = document.createElement('div');
+  p.className = classe;
+  p.textContent = texte;
+  return p;
+}
+
 function etiquettesVerrou(v, jeuFiltre){
-  const enveloppe = document.createElement('div');
-
-  // De quelle rencontre il s'agit, quand on le sait. SUR SA PROPRE LIGNE : collée
-  // aux étiquettes, elle se lisait « starter offert fermé » d'un seul tenant, deux
-  // choses différentes soudées en une phrase qui n'existe pas. Elle dit pourquoi ;
-  // les pastilles disent où.
-  if(v.quoi){
-    const q = document.createElement('div');
-    q.className = 'verrou-quoi';
-    q.textContent = v.quoi;
-    enveloppe.appendChild(q);
-  }
-
   const bloc = document.createElement('div');
   bloc.className = 'verrou-jeux';
-  enveloppe.appendChild(bloc);
 
   const dire = function(texte){
     const l = document.createElement('span');
@@ -292,44 +279,42 @@ function etiquettesVerrou(v, jeuFiltre){
     bloc.appendChild(e);
   };
 
-  // Sur un jeu choisi, les jeux fermés n'apprennent rien : on le regarde déjà.
-  if(jeuFiltre === 'tous'){
-    dire('fermé');
+  // Sur un jeu choisi, le nommer n'apprend rien : on le regarde déjà.
+  if(jeuFiltre === 'tous' && v.fermes.length){
+    dire('cette rencontre');
     v.fermes.slice(0, VERROU_JEUX_CITES).forEach(function(g){ etiq(g.tab, 'ferme'); });
     if(v.fermes.length > VERROU_JEUX_CITES){
       etiq('et ' + (v.fermes.length - VERROU_JEUX_CITES) + ' autres', 'ferme');
     }
   }
 
-  if(v.ailleurs){
-    dire('ouvert');
-    etiq(v.ailleurs, 'ouvert');
-  } else if(v.ouverts.length){
-    dire('ouvert');
+  // LES AUTRES RENCONTRES DU MÊME JEU RESTENT OUVERTES. Ne pas le dire laissait
+  // croire que l'espèce entière était perdue là où seule une porte l'est.
+  if(v.ouverts.length){
+    dire('chassable');
     v.ouverts.slice(0, VERROU_JEUX_CITES).forEach(function(g){ etiq(g.tab, 'ouvert'); });
     if(v.ouverts.length > VERROU_JEUX_CITES){
       etiq('et ' + (v.ouverts.length - VERROU_JEUX_CITES) + ' autres', 'ouvert');
     }
   }
-  return enveloppe;
+  return bloc;
 }
 
 /**
  * Le bouton du bout de ligne, et le vrai service de cet écran.
  *
- * Savoir que c'est verrouillé ne sert à rien ; savoir où aller, si. Il ouvre la
- * création d'une chasse avec le premier jeu ouvert déjà choisi.
+ * Savoir que c'est verrouillé ne sert à rien ; savoir où aller, si.
  */
 function boutonVerrou(v){
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'verrou-chasser';
 
-  const cible = v.partout ? null : v.ouverts[0];
+  const cible = v.genre === 'partout' ? null : v.ouverts[0];
   if(!cible){
-    b.textContent = v.partout ? 'Nulle part' : '—';
+    b.textContent = v.genre === 'partout' ? 'Nulle part' : '—';
     b.disabled = true;
-    b.title = v.partout
+    b.title = v.genre === 'partout'
       ? 'Aucun jeu ne permet d’en obtenir un chromatique'
       : 'On ne sait pas où le chasser';
     return b;
@@ -347,6 +332,9 @@ function boutonVerrou(v){
     if(typeof choisirPourChasse === 'function') choisirPourChasse(v.entry);
     if(chasseJeu){
       chasseJeu.value = cible.key;
+      // Le menu maison lit le <select> caché : sans cette resynchronisation, le
+      // bouton continue d'afficher l'ancien jeu au-dessus de la bonne valeur.
+      if(typeof syncSelects === 'function') syncSelects();
       if(typeof majMethodesDisponibles === 'function') majMethodesDisponibles();
     }
   });
@@ -364,14 +352,12 @@ const verrousOverlay = document.getElementById('verrousOverlay');
 const verrousListe = document.getElementById('verrousListe');
 const verrousFermer = document.getElementById('verrousFermer');
 const verrouQ = document.getElementById('verrouQ');
-const verrouGen = document.getElementById('verrouGen');
 const verrouJeu = document.getElementById('verrouJeu');
 const verrouCompte = document.getElementById('verrouCompte');
 
 if(verrousBtn) verrousBtn.addEventListener('click', ouvrirVerrous);
 if(verrousFermer) verrousFermer.addEventListener('click', fermerVerrous);
 if(verrouQ) verrouQ.addEventListener('input', dessinerVerrous);
-if(verrouGen) verrouGen.addEventListener('change', dessinerVerrous);
 if(verrouJeu) verrouJeu.addEventListener('change', dessinerVerrous);
 if(verrousOverlay){
   verrousOverlay.addEventListener('click', function(e){

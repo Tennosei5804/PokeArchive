@@ -179,74 +179,123 @@ function modeCourant(){
     ? profilCourant.mode : 'capture';
 }
 
-// Especes dont aucun chromatique legitime n'existe (« shiny-locked »).
-// Liste tenue a la main : PokeAPI ne publie pas cette information. Elle est
-// volontairement conservatrice — on n'y met que les cas ou aucun evenement
-// officiel n'a jamais distribue de version chromatique. A completer ou
-// corriger librement : chaque numero est un numero national d'espece.
+// Ce qui ne peut pas être chromatique — trois tables, trois affirmations
+// différentes qu'il ne faut surtout pas confondre.
+//
+// SOURCE : le Dossier Shasse de Pokébip, page « Les Pokémon Shiny Lock ».
+//   https://www.pokebip.com/page/jeux-video/dossier-shasse/impossibles
+// C'est un relevé de dataminers : ni Nintendo, ni Game Freak, ni The Pokémon
+// Company ne publient cette information. Elle se corrige donc de temps en temps,
+// et ces tables se relisent à chaque nouveau jeu.
+//
+// RELEVÉ LE 29 AOÛT 2026. Les numéros nationaux ont été résolus depuis les noms
+// français contre donnees-embarquees.js, jamais écrits de mémoire : c'est la
+// réserve qui a répondu, et les quarante-deux noms sont tombés sans exception.
+
+// 1. VERROUILLÉ PARTOUT : aucun exemplaire chromatique légitime n'existe, dans
+//    aucun jeu, par aucune voie. C'est la seule table qui autorise la phrase
+//    « nulle part ».
 const SHINY_LOCKED = new Set([
-  494,  // Victini
-  647,  // Keldeo
-  648,  // Meloetta
-  721,  // Volcanion
-  789, 790, 791, 792,  // Cosmog, Cosmoem, Solgaleo, Lunala
-  800,  // Necrozma
-  801,  // Magearna
-  802,  // Marshadow
-  803, 804,  // Poipole, Naganadel
-  807,  // Zeraora
-  888, 889, 890,  // Zacian, Zamazenta, Éthernatos
-  891, 892,  // Kubfu, Shifours
-  893,  // Zarude
-  896, 897, 898,  // Blizzeval, Spectreval, Sylveroy
-  1007, 1008,  // Koraidon, Miraidon
-  1017,  // Ogerpon
-  1024, 1025   // Terapagos, Pêchaminus
+  494,                    // Victini
+  647, 648, 649,          // Keldeo, Meloetta, Genesect
+  719, 720, 721,          // Diancie, Hoopa, Volcanion
+  789, 790,               // Cosmog, Cosmovum
+  801, 802,               // Magearna, Marshadow
+  807, 808, 809,          // Zeraora, Meltan, Melmetal
+  888, 889, 890,          // Zacian, Zamazenta, Éthernatos
+  891, 892, 893,          // Wushours, Shifours, Zarude
+  896, 897, 898,          // Blizzeval, Spectreval, Sylveroy
+  905,                    // Amovénus
+  1001, 1002, 1003, 1004, // Les quatre Trésors Funestes
+  1007, 1008,             // Koraidon, Miraidon
+  1009, 1010,             // Serpente-Eau, Vert-de-Fer
+  1014, 1015, 1016, 1017, // Félicanis, Fortusimia, Favianos, Ogerpon
+  1020, 1021, 1022, 1023, // Feu-Perçant, Ire-Foudre, Roc-de-Fer, Chef-de-Fer
+  1024, 1025              // Terapagos, Pêchaminus
 ]);
 
-// Les jeux sans chromatique du tout — Rouge, Bleu, Jaune — sont déjà déclarés
-// par chasse.js sous le nom SANS_CHROMATIQUES, et l'écran de chasse les écarte
-// déjà de son sélecteur. Une seconde liste ici serait une seconde vérité à tenir
-// d'accord avec la première.
+// 2. PAS AU TAUX AMÉLIORÉ : ceux-là PEUVENT être chromatiques. Le Charme Chroma
+//    et les autres bonus ne s'appliquent simplement pas à eux.
+//
+//    LA DISTINCTION N'EST PAS COSMÉTIQUE. Ces huit-là figuraient dans
+//    SHINY_LOCKED, et l'application annonçait donc « aucun exemplaire légitime
+//    n'existe » à propos de Solgaleo. C'est faux, et c'est le genre de fausseté
+//    qui fait renoncer à une chasse parfaitement possible.
+const TAUX_PLEIN_SEUL = new Set([
+  718,                    // Zygarde
+  785, 786, 787, 788,     // Tokorico, Tokopiyon, Tokotoro, Tokopisco
+  791, 792, 800           // Solgaleo, Lunala, Necrozma
+]);
 
-// Les verrous qui ne valent QUE dans certains jeux.
+// 3. VERROUILLÉ ICI, PAS AILLEURS — et le relevé NOMME l'espèce.
 //
-// SHINY_LOCKED dit « nulle part, jamais ». Ceci dit « pas ici, mais ailleurs
-// oui » — et c'est le cas le plus fréquent : un starter offert par le professeur
-// ne peut pas être chromatique, alors que la même espèce se chasse librement
-// dans un autre jeu, ou par reproduction dans celui-ci.
-//
-// LE VERROU PORTE SUR UNE RENCONTRE, PAS SUR UNE ESPÈCE. C'est ce qui rend cette
-// table longue à écrire et c'est ce qui la rend juste : le Ouistempo offert est
-// verrouillé, ses œufs ne le sont pas. Une table « espèce → jeux » mentirait sur
-// la moitié des cas, en annonçant impossible ce qui est simplement ailleurs.
-//
-// TENUE À LA MAIN, ET VOLONTAIREMENT COURTE. PokeAPI ne publie pas cette
-// information. On n'inscrit ici que ce dont on est certain : une chasse annoncée
-// à tort comme verrouillée coûte plus cher que pas d'avertissement du tout.
-// À compléter ligne à ligne — le code n'a pas à bouger pour cela.
-//
-//   espece   numéro national
-//   jeux     là où cette rencontre est verrouillée
-//   quoi     de quelle rencontre il s'agit
-//   ailleurs comment l'obtenir chromatique malgré tout, ou rien si on l'ignore
+//    Le verrou porte sur une RENCONTRE : le Ronflex qui bloque la Route 6 est
+//    verrouillé, les Ronflex sauvages ne le sont pas. D'où `quoi`, qui dit de
+//    quelle rencontre il s'agit — sans lui, la ligne accuse l'espèce entière.
 const VERROUS_PAR_JEU = [
-  // Les starters d'Épée / Bouclier : offerts par Chichi, verrouillés. Leurs
-  // œufs, eux, ne le sont pas.
-  { espece: 810, jeux: ['swsh'], quoi: 'starter offert', ailleurs: 'par reproduction' },
-  { espece: 813, jeux: ['swsh'], quoi: 'starter offert', ailleurs: 'par reproduction' },
-  { espece: 816, jeux: ['swsh'], quoi: 'starter offert', ailleurs: 'par reproduction' },
+  { espece: 16, jeux: ['xy'], quoi: 'le scripté de la Route 2' },
+  { espece: 21, jeux: ['hgss'], quoi: 'offert à Doublonville' },
+  { espece: 25, jeux: ['letsgo'], quoi: 'le starter, sur Let’s Go Pikachu' },
+  { espece: 79, jeux: ['swsh'], quoi: 'celui de Galar, Gare de Brasswick' },
+  { espece: 133, jeux: ['bw', 'b2w2'], quoi: 'celui de Boletta, capacité cachée' },
+  { espece: 143, jeux: ['xy'], quoi: 'celui qui bloque la Route 6' },
+  { espece: 144, jeux: ['xy'], quoi: 'Antre Néréen' },
+  { espece: 145, jeux: ['xy'], quoi: 'Antre Néréen' },
+  { espece: 146, jeux: ['xy'], quoi: 'Antre Néréen' },
+  { espece: 150, jeux: ['xy'], quoi: 'Grotte Inconnue' },
+  { espece: 151, jeux: ['bdsp'], quoi: 'offert avec une sauvegarde Let’s Go' },
+  { espece: 213, jeux: ['hgss'], quoi: 'offert à Irisia' },
+  { espece: 261, jeux: ['oras'], quoi: 'l’incapturable de la Route 101' },
+  { espece: 265, jeux: ['oras'], quoi: 'le scripté de la Route 101' },
+  { espece: 382, jeux: ['oras'], quoi: 'Grotte Origine, sur Saphir Alpha' },
+  { espece: 383, jeux: ['oras'], quoi: 'Grotte Origine, sur Rubis Oméga' },
+  { espece: 384, jeux: ['oras'], quoi: 'Pilier Céleste' },
+  { espece: 385, jeux: ['bdsp'], quoi: 'offert avec une sauvegarde Épée / Bouclier' },
+  { espece: 386, jeux: ['oras'], quoi: 'l’Espace ou le Pilier Céleste' },
+  { espece: 448, jeux: ['xy'], quoi: 'offert par Cornélia' },
+  { espece: 490, jeux: ['bdsp'], quoi: 'distribué au lancement' },
+  { espece: 570, jeux: ['bw', 'b2w2'], quoi: 'celui de Volucité' },
+  { espece: 571, jeux: ['bw', 'b2w2'], quoi: 'le sauvage du Bois des Illusions' },
+  { espece: 585, jeux: ['bw', 'b2w2'], quoi: 'celui du Scientifique, capacité cachée' },
+  { espece: 643, jeux: ['bw', 'b2w2'], quoi: 'Palais de N ou Tour Dragospire' },
+  { espece: 644, jeux: ['bw', 'b2w2'], quoi: 'Palais de N ou Tour Dragospire' },
+  { espece: 716, jeux: ['xy'], quoi: 'Repaire Team Flare, sur X' },
+  { espece: 717, jeux: ['xy'], quoi: 'Repaire Team Flare, sur Y' },
+  { espece: 822, jeux: ['swsh'], quoi: 'le sauvage de la Route 3' }
+];
 
-  // Ceux d'Écarlate / Violet, même règle.
-  { espece: 906, jeux: ['sv'], quoi: 'starter offert', ailleurs: 'par reproduction' },
-  { espece: 909, jeux: ['sv'], quoi: 'starter offert', ailleurs: 'par reproduction' },
-  { espece: 912, jeux: ['sv'], quoi: 'starter offert', ailleurs: 'par reproduction' },
-
-  // Ceux de Légendes Arceus. Pas de reproduction dans ce jeu : on ne propose
-  // donc aucune solution de rechange plutôt que d'en inventer une.
-  { espece: 722, jeux: ['pla'], quoi: 'starter offert' },
-  { espece: 155, jeux: ['pla'], quoi: 'starter offert' },
-  { espece: 501, jeux: ['pla'], quoi: 'starter offert' },
+// 4. VERROUILLÉ ICI, PAS AILLEURS — mais le relevé décrit une CATÉGORIE.
+//
+//    « Tous les Pokémon offerts sur Épée et Bouclier, sauf les fossiles » ne se
+//    convertit pas en lignes espèce par espèce : il faudrait d'abord savoir
+//    lesquels sont offerts, et la réserve ne le dit pas. Prétendre le contraire
+//    produirait une liste fausse à moitié.
+//
+//    ON GARDE DONC LA PHRASE. Elle ne se filtre pas, ne se compte pas, ne se
+//    coche pas — elle s'affiche quand on choisit le jeu, et elle répond quand
+//    même à la question posée : « qu'est-ce qui va me bloquer ici ». C'est de là
+//    que venaient mes neuf lignes de starters, écrites de mémoire et à moitié
+//    inexactes ; la phrase de la source vaut mieux que ma reconstitution.
+const REGLES_VERROU = [
+  { jeux: ['gsc', 'cristal'], texte: 'Tous les Zarbi, sauf les lettres I et V.' },
+  { jeux: ['gsc', 'cristal'], texte: 'Toute femelle d’une espèce qui n’a que 12,5 % de chances de l’être — starters, Ronflex…' },
+  { jeux: ['hgss'], texte: 'Tous les Pokémon du Pokéwalker.' },
+  { jeux: ['dp', 'pt', 'hgss'], texte: 'L’œuf de Manaphy venu des jeux Pokémon Ranger.' },
+  { jeux: ['bw', 'b2w2'], texte: 'Tous les Pokémon de la Forêt du Heylink, ceux de N, et ceux des Trouées Cachées.' },
+  { jeux: ['xy'], texte: 'Les herbes rapides du Poké Radar.' },
+  { jeux: ['sm', 'usum'], texte: 'Les Pokémon capturables pendant chaque Épreuve.' },
+  { jeux: ['sm'], texte: 'Toutes les Ultra-Chimères.' },
+  { jeux: ['usum'], texte: 'Les Pokémon Dominants donnés par Chen, les Électrode du Château Rocket, les Scarabrute fixes de l’Île Noadkoko, et les Pokémon des mini-quêtes — sauf les Métamorph d’Akala.' },
+  { jeux: ['swsh'], texte: 'Tous les Pokémon offerts, sauf les fossiles.' },
+  { jeux: ['swsh'], texte: 'Les Pokémon des Terres Sauvages trop forts pour tes badges — mais pas les fixes, comme l’Onix près de la Gare du Sentier.' },
+  { jeux: ['swsh'], texte: 'Les Légendaires et Fabuleux, sauf ceux des Expéditions Dynamax, les six Titans (Regi-), Cobaltium, Terrakium et Viridium.' },
+  { jeux: ['pla'], texte: 'Tous les Pokémon offerts, et tous ceux des missions principales et secondaires.' },
+  { jeux: ['pla'], texte: 'Les Zarbi éparpillés dans Hisui, et tous les Légendaires et Fabuleux.' },
+  { jeux: ['sv'], texte: 'Les Pokémon qui s’envolent au loin, les fixes uniques (Ursaking, tutoriels de capture…), et les Mordudor forme Coffre fixes.' },
+  { jeux: ['sv'], texte: 'Tous les Légendaires et Fabuleux.' },
+  { jeux: ['za'], texte: 'Tous les Pokémon offerts sauf les fossiles, et tous ceux des missions principales et secondaires.' },
+  { jeux: ['za'], texte: 'Les Wattouat, tant que la mission secondaire 017 n’est pas finie.' },
+  { jeux: ['za'], texte: 'Les Légendaires et Fabuleux, sauf Latias, Latios, Cobaltium, Terrakium et Viridium.' }
 ];
 
 // Living Dex - donnees statiques.

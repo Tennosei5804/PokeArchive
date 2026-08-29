@@ -1233,71 +1233,105 @@ verifier('Les photos',
   });
 
 verifier('Shiny-lock',
-  'Le catalogue s\'ouvre et liste quelque chose',
+  'Le catalogue liste exactement les trois tables',
   async function(){
-    // Le bug qu'elle arrête : verrous.js appelait genOf(), qui n'existe pas. Rien
-    // ne le signalait — l'erreur partait dans le filtre, la liste restait vide, et
-    // une liste vide ressemble à « rien n'est verrouillé ».
+    // Le bug qu'elle arrête : la première version demandait que la liste
+    // « affiche quelque chose », et passait sur mille vingt-cinq lignes — le
+    // Pokédex entier, parce que Rouge et Bleu comptaient comme un verrou par
+    // espèce. Un compte exact ne se laisse pas berner.
     if(typeof ouvrirVerrous !== 'function') return 'échec : ouvrirVerrous absente';
     await ouvrirVerrous();
     const lignes = verrousListe.querySelectorAll('.verrou-ligne').length;
     fermerVerrous();
-    // Un compte EXACT, pas un « au moins une ». La première version de cette
-    // vérification passait sur 1025 lignes — le Pokédex entier, parce que
-    // Rouge/Bleu comptaient comme un verrou par espèce. « Liste quelque chose »
-    // ne distingue pas un catalogue d'un déversoir.
     const attendu = new Set(VERROUS_PAR_JEU.map(function(v){ return v.espece; }));
     SHINY_LOCKED.forEach(function(id){ attendu.add(id); });
+    TAUX_PLEIN_SEUL.forEach(function(id){ attendu.add(id); });
     if(lignes !== attendu.size){
       return 'échec : ' + lignes + ' lignes pour ' + attendu.size + ' espèces attendues';
     }
-    return lignes + ' espèces, exactement les tables';
+    return lignes + ' espèces (' + SHINY_LOCKED.size + ' partout, '
+      + TAUX_PLEIN_SEUL.size + ' hors taux plein, le reste par rencontre)';
   });
 
 verifier('Shiny-lock',
-  'Un verrou contournable ne se dit jamais introuvable',
+  'Les trois tables ne se recouvrent jamais',
+  function(){
+    // Elles disent trois choses incompatibles : « nulle part », « pas au taux
+    // plein », « pas par cette rencontre ». Une espèce dans deux d'entre elles,
+    // c'est une contradiction que l'écran trancherait en silence, par l'ordre
+    // des if — et Solgaleo a vécu dans la mauvaise jusqu'au relevé Pokébip.
+    const doubles = [];
+    TAUX_PLEIN_SEUL.forEach(function(id){ if(SHINY_LOCKED.has(id)) doubles.push(id); });
+    VERROUS_PAR_JEU.forEach(function(v){
+      if(SHINY_LOCKED.has(v.espece) || TAUX_PLEIN_SEUL.has(v.espece)) doubles.push(v.espece);
+    });
+    if(doubles.length) return 'échec : #' + doubles.join(', #') + ' dans deux tables';
+    return SHINY_LOCKED.size + ' + ' + TAUX_PLEIN_SEUL.size + ' + '
+      + VERROUS_PAR_JEU.length + ', sans recouvrement';
+  });
+
+verifier('Shiny-lock',
+  'Toutes les clés de jeu citées existent',
+  function(){
+    // Des dizaines de clés tapées à la main dans les deux tables par jeu. Une
+    // faute de frappe — 'swhs' — ne casse rien : elle rend la ligne invisible,
+    // pour toujours, sans un mot.
+    const connues = new Set(GAMES.map(function(g){ return g.key; }));
+    const fautes = [];
+    let n = 0;
+    VERROUS_PAR_JEU.forEach(function(v){
+      v.jeux.forEach(function(c){ n++; if(!connues.has(c)) fautes.push(c + ' (#' + v.espece + ')'); });
+    });
+    REGLES_VERROU.forEach(function(r){
+      r.jeux.forEach(function(c){ n++; if(!connues.has(c)) fautes.push(c + ' (règle)'); });
+    });
+    if(fautes.length) return 'échec : ' + fautes.join(', ');
+    return n + ' clés de jeu, toutes connues de GAMES';
+  });
+
+verifier('Shiny-lock',
+  'Seul « verrouillé partout » annonce une impasse',
   async function(){
-    // Le bug qu'elle arrête : verrouiller la RENCONTRE fermait le JEU. Les six
-    // starters de Galar et de Paldea s'affichaient sans destination — alors qu'ils
-    // s'obtiennent par reproduction, dans le jeu qu'on a déjà sous la main.
-    if(typeof verrouDe !== 'function') return 'échec : verrouDe absente';
+    // Le bug qu'elle arrête : verrouiller la RENCONTRE fermait le JEU. Le
+    // Roucool scripté de la Route 2 est verrouillé sur X et Y ; les Roucool
+    // sauvages du même jeu ne le sont pas. L'écran annonçait pourtant « — »,
+    // c'est-à-dire « on ne sait pas où », sur des espèces très courantes.
+    if(typeof verrousTous !== 'function') return 'échec : verrousTous absente';
     if(typeof chargerLieux === 'function' && typeof DONNEES_LIEUX === 'undefined'){
-      try{ await chargerLieux(); }catch(e){ return 'ignoré : relévé illisible'; }
+      try{ await chargerLieux(); }catch(e){ return 'ignoré : relevé illisible'; }
     }
+    const tous = verrousTous();
     const muets = [];
-    VERROUS_PAR_JEU.forEach(function(r){
-      if(!r.ailleurs) return;
-      const e = allEntries.find(function(x){ return x.speciesId === r.espece; });
-      if(!e) return;
-      const v = verrouDe(e);
-      if(v && !v.partout && !v.ouverts.length) muets.push(r.espece);
+    tous.forEach(function(v){
+      if(v.genre !== 'partout' && !v.ouverts.length) muets.push(v.entry.speciesId);
     });
     if(muets.length) return 'échec : ' + muets.length + ' sans destination, dont #' + muets[0];
-    return VERROUS_PAR_JEU.filter(function(r){ return r.ailleurs; }).length
-      + ' verrous contournables, tous avec une destination';
+    return tous.filter(function(v){ return v.genre !== 'partout'; }).length
+      + ' espèces non définitives, toutes avec une destination';
   });
 
 verifier('Shiny-lock',
   'Aucun jeu proposé où l\'espèce n\'apparaît pas',
   async function(){
-    // « Chassable sur Rouge/Bleu » pour un Pokémon de Galar serait faux deux fois.
-    // C'est la seule affirmation que cet écran avance de lui-même : elle se vérifie.
+    // « Chassable sur Rouge/Bleu » pour un Pokémon de Galar serait faux deux fois,
+    // et c'est la seule affirmation que cet écran avance de lui-même.
     if(typeof verrousTous !== 'function') return 'échec : verrousTous absente';
     if(typeof chargerLieux === 'function' && typeof DONNEES_LIEUX === 'undefined'){
-      try{ await chargerLieux(); }catch(e){ return 'ignoré : relévé illisible'; }
+      try{ await chargerLieux(); }catch(e){ return 'ignoré : relevé illisible'; }
     }
     let controles = 0;
     const faux = [];
     verrousTous().forEach(function(v){
       v.ouverts.forEach(function(g){
         controles++;
-        if(!verrouEspecePresente(v.entry.speciesId, g.key)){
+        if(SANS_CHROMATIQUES.indexOf(g.key) !== -1
+           || !verrouEspecePresente(v.entry.speciesId, g.key)){
           faux.push('#' + v.entry.speciesId + ' sur ' + g.key);
         }
       });
     });
     if(faux.length) return 'échec : ' + faux.length + ', dont ' + faux[0];
-    return controles + ' destinations, toutes vérifiées au relévé';
+    return controles + ' destinations, toutes vérifiées au relevé';
   });
 
 verifier('Shiny-lock',
@@ -1305,12 +1339,12 @@ verifier('Shiny-lock',
   async function(){
     // Le bug qu'elle arrête : le filtre laissait passer les « verrouillés partout »
     // sans vérifier leur présence. Rouge/Bleu annonçait vingt-huit espèces, dont
-    // Victini et Keldeo — absents de ce jeu de vingt ans leur aîné.
+    // Victini et Keldeo — absents d'un jeu de vingt ans leur aîné.
     if(typeof ouvrirVerrous !== 'function') return 'échec : ouvrirVerrous absente';
     await ouvrirVerrous();
     const faux = [];
     let controles = 0;
-    for(const cle of ['rby', 'swsh', 'sv', 'pla']){
+    for(const cle of ['rby', 'xy', 'swsh', 'sv', 'pla']){
       verrouJeu.value = cle;
       dessinerVerrous();
       verrousListe.querySelectorAll('.verrou-no').forEach(function(n){
@@ -1323,7 +1357,7 @@ verifier('Shiny-lock',
     dessinerVerrous();
     fermerVerrous();
     if(faux.length) return 'échec : ' + faux.length + ' absent(s), dont ' + faux[0];
-    return controles + ' lignes sur quatre jeux, toutes présentes au relévé';
+    return controles + ' lignes sur cinq jeux, toutes présentes au relevé';
   });
 
 // ---------------------------------------------------------------------------

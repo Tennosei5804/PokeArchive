@@ -1155,8 +1155,8 @@
 
 <!-- Le catalogue des verrous chromatiques. Voir verrous.js : il se consulte,
      il ne bloque rien — la table est tenue à la main et ne prétend pas être
-     complète. Les générations du filtre sont remplies par le script, comme les
-     jeux : deux listes de moins à tenir d'accord avec GEN_RANGES et GAMES. -->
+     complète. Les jeux du filtre sont remplis par le script depuis GAMES : une
+     liste de moins à tenir d'accord avec elle. -->
 <div class="modal-overlay" id="verrousOverlay" style="display:none;" role="dialog"
      aria-modal="true" aria-labelledby="verrousTitre">
   <div class="modal-card verrou-card">
@@ -1172,9 +1172,6 @@
       <input type="search" id="verrouQ" class="lexique-q"
              placeholder="Un nom, un numéro…" aria-label="Chercher un Pokémon"
              autocomplete="off">
-      <select id="verrouGen" aria-label="Filtrer par génération">
-        <option value="tous">Toutes générations</option>
-      </select>
       <select id="verrouJeu" aria-label="Filtrer par jeu">
         <option value="tous">Tous les jeux</option>
       </select>

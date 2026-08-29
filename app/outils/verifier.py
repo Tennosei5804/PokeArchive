@@ -80,7 +80,7 @@ if for while switch catch return typeof function require Math JSON Object Array 
 Boolean Date Set Map WeakMap Promise parseInt parseFloat isNaN isFinite encodeURIComponent
 decodeURIComponent encodeURI decodeURI setTimeout clearTimeout setInterval clearInterval fetch
 console document window alert confirm prompt Error TypeError RegExp Symbol Intl localStorage
-sessionStorage navigator location btoa atob structuredClone queueMicrotask requestAnimationFrame
+sessionStorage navigator location btoa atob structuredClone queueMicrotask requestAnimationFrame cancelAnimationFrame
 getComputedStyle matchMedia
 await new delete void in of do else try finally throw class extends super this URL URLSearchParams
 Uint8Array TextEncoder TextDecoder Infinity NaN undefined null true false crypto performance
