@@ -210,6 +210,34 @@ const TABLES = [
      CONSTRAINT fk_pa_notifications_echange FOREIGN KEY (echange_id)
        REFERENCES pa_echanges(id) ON DELETE CASCADE
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // Les photos de chasse : la fiche seulement. Le fichier vit sur le disque,
+  // pas ici — un BLOB par chasse ferait grossir chaque sauvegarde SQL d'autant,
+  // et la base d'un hebergement gratuit est bien plus etroite que son disque.
+  //
+  // profil_id et non dresseur_id pour la visibilite : une photo suit
+  // l'AVENTURE a laquelle elle appartient, donc son drapeau public. Les deux
+  // colonnes sont la quand meme, la seconde pour le quota, qui se compte par
+  // personne et non par aventure.
+  //
+  // `sujet` ne vaut que 'chasse' aujourd'hui. La colonne existe pour que les
+  // echanges puissent s'y greffer sans migration.
+  `CREATE TABLE IF NOT EXISTS pa_images (
+     id          BIGINT      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+     dresseur_id BIGINT      NOT NULL,
+     profil_id   BIGINT      NOT NULL,
+     sujet       VARCHAR(16) NOT NULL,
+     fichier     VARCHAR(96) NOT NULL,
+     mime        VARCHAR(32) NOT NULL,
+     octets      INT         NOT NULL,
+     largeur     INT         NOT NULL DEFAULT 0,
+     hauteur     INT         NOT NULL DEFAULT 0,
+     cree_le     VARCHAR(64) NOT NULL,
+     CONSTRAINT fk_pa_images_dresseur FOREIGN KEY (dresseur_id)
+       REFERENCES pa_dresseurs(id) ON DELETE CASCADE,
+     CONSTRAINT fk_pa_images_profil FOREIGN KEY (profil_id)
+       REFERENCES pa_profils(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const INDEX = [

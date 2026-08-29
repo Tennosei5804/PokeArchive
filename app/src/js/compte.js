@@ -794,6 +794,18 @@ async function visiterDresseur(pseudo){
   });
   entete.appendChild(succes);
 
+  // Ses photos. Le bouton ne s'affiche que si photos.js est chargé : les pages
+  // de génération n'ont ni pont ni session.
+  if(typeof ouvrirMur === 'function'){
+    const mur = document.createElement('button');
+    mur.type = 'button';
+    mur.className = 'toggle-btn';
+    mur.textContent = '📷 Ses photos';
+    mur.title = 'Les captures qu’il a attachées à ses chasses et à ses défis';
+    mur.addEventListener('click', function(){ ouvrirMur(chez.dresseur.pseudo, false); });
+    entete.appendChild(mur);
+  }
+
   dresseurVisite.appendChild(entete);
 
   if(!chez.profils.length){
@@ -1840,6 +1852,7 @@ async function chargerProfil(dejaAJour){
 function chargerParametres(){
   if(typeof chargerApparence === 'function') chargerApparence();
   if(typeof chargerDonneesPerso === 'function') chargerDonneesPerso();
+  if(typeof chargerPlacePhotos === 'function') chargerPlacePhotos();
 }
 
 journalPlus.addEventListener('click', function(){ chargerJournal(true); });

@@ -21,6 +21,7 @@ import * as amis from './amis.js';
 // mot, et un seul espace de noms.
 import * as troc from './echanges.js';
 import * as notifications from './notifications.js';
+import * as images from './images.js';
 import * as discord from './discord.js';
 import { limiter } from './debit.js';
 
@@ -302,7 +303,22 @@ app.post('/api/dex', route(async (req, res) => {
   const d = await exiger(req, res); if (!d) return;
   // Le profil voyage à côté du dex, pas dedans : le corps est la sauvegarde
   // telle quelle, et on ne veut rien y injecter.
-  res.json({ ok: true, ...await comptes.ecrireDex(d.id, req.body, profilDemande(req)) });
+  const r = await comptes.ecrireDex(d.id, req.body, profilDemande(req));
+
+  // LE SEUL MOMENT OÙ L'ON APPREND QU'UNE CHASSE A DISPARU. Les chasses vivent
+  // dans la sauvegarde et non dans une table : les supprimer n'est pas une
+  // requête qui passe par ici, c'est un tableau qui revient plus court. Sans ce
+  // rattrapage, chaque chasse effacée laisserait sa photo sur le disque pour
+  // toujours. Il ne doit jamais faire échouer l'enregistrement — la
+  // progression compte plus que le ménage.
+  let photosOtees = 0;
+  try {
+    photosOtees = await images.menage(r.profilId, req.body);
+  } catch (e) {
+    console.error('ménage des photos :', e.message);
+  }
+
+  res.json({ ok: true, ...r, photosOtees });
 }));
 
 app.post('/api/pseudo', route(async (req, res) => {
@@ -443,6 +459,53 @@ app.post('/api/echanges/:id/messages', route(async (req, res) => {
   res.json({ ok: true, ...(await troc.ecrireMessage(d.id, req.params.id, req.body?.texte)) });
 }));
 
+// --- Les photos de chasse ---------------------------------------------------
+// Montrer son Pokemon, pas seulement le nommer. La regle d'acces est celle de
+// l'aventure : publique, la photo se voit ; privee, elle ne sort pas. Voir
+// api/src/images.js.
+
+// Le corps est l'image elle-meme, en octets. express.json plus haut ne touche
+// qu'au JSON et laisse donc passer ; celui-ci ne prend QUE les trois types
+// acceptes, et refuse le reste avant meme d'entrer dans la route.
+app.post('/api/images', express.raw({ type: images.typesAcceptes, limit: images.OCTETS_MAX }),
+  route(async (req, res) => {
+    const d = await exiger(req, res); if (!d) return;
+    if (!Buffer.isBuffer(req.body) || !req.body.length) {
+      return res.status(400).json({ erreur: 'Envoie une image JPEG, PNG ou WebP.' });
+    }
+    res.json({ ok: true, ...(await images.deposer(
+      d.id, profilDemande(req), String(req.query.sujet || 'chasse'), req.body)) });
+  }));
+
+app.get('/api/images/:id', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  const img = await images.servir(d.id, req.params.id);
+  // Le contenu d'une photo ne change jamais : son identifiant est cree avec
+  // elle et n'est jamais reattribue. Un cache long evite de la retelecharger a
+  // chaque ouverture du tableau de chasse. Prive : elle peut appartenir a une
+  // aventure qui ne l'est pas.
+  res.set('Cache-Control', 'private, max-age=604800, immutable');
+  res.type(img.mime).send(img.octets);
+}));
+
+app.delete('/api/images/:id', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json({ ok: true, ...(await images.retirer(d.id, req.params.id)) });
+}));
+
+// Ce que les photos occupent, pour le dire dans les Parametres.
+app.get('/api/images', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json(await images.place(d.id));
+}));
+
+// Le mur d'un dresseur : ses photos, celles qu'on a le droit de voir. C'est
+// l'ecran qui manquait — les photos etaient protegees et invisibles.
+app.get('/api/dresseurs/:pseudo/photos', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json(await images.mur(d.id, req.params.pseudo));
+}));
+
 // --- Les notifications ------------------------------------------------------
 
 app.get('/api/notifications', route(async (req, res) => {
@@ -455,6 +518,14 @@ app.get('/api/notifications', route(async (req, res) => {
 app.post('/api/notifications/lues', route(async (req, res) => {
   const d = await exiger(req, res); if (!d) return;
   res.json({ ok: true, ...(await notifications.marquerLues(d.id, req.body?.jusqua)) });
+}));
+
+// « Je cherche » : chez qui, parmi mes amis, trouver ce que je veux. La liste
+// elle-meme voyage dans la sauvegarde, comme les chasses et les objectifs — ce
+// n'est que la question posee a la base qui passe par ici.
+app.post('/api/amis/qui-a', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json(await amis.quiA(d.id, req.body?.noms));
 }));
 
 app.post('/api/deconnexion', route(async (req, res) => {

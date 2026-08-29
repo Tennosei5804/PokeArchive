@@ -415,6 +415,7 @@ function showPage(name){
     if(name === 'dresseurs' && typeof chargerDresseurs === 'function') chargerDresseurs();
     if(name === 'amis' && typeof chargerAmis === 'function') chargerAmis();
     if(name === 'amis' && typeof chargerTroc === 'function') chargerTroc();
+    if(name === 'amis' && typeof chargerQuiA === 'function') chargerQuiA();
     if(name === 'lieux' && typeof chargerPageLieux === 'function') chargerPageLieux();
     if(name === 'profil' && typeof chargerProfil === 'function') chargerProfil();
     if(name === 'parametres' && typeof chargerParametres === 'function') chargerParametres();
@@ -549,6 +550,7 @@ function updateHome(){
   if(typeof dessinerObjectifs === 'function') dessinerObjectifs();
   renderAPortee();
   renderProgramme();
+  if(typeof dessinerDefi === 'function') dessinerDefi();
   // Definies dans compte.js, charge apres celui-ci : au premier appel elles
   // existent deja, l'accueil n'etant dessine qu'une fois l'application prete.
   if(typeof majAccueilAventure === 'function') majAccueilAventure();

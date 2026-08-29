@@ -18,6 +18,10 @@ import { lire, une, ecrire } from './base.js';
 import { ErreurCompte, horodatage } from './comptes.js';
 
 const MAX_AMIS = 100;
+// Autant d'envies qu'on peut inscrire. Au-delà ce n'est plus une liste
+// d'envies, c'est le Pokédex des manquants — que l'application sait déjà
+// afficher, et bien mieux.
+const RECHERCHES_MAX = 50;
 const FIL_MAX = 200;
 
 // Ce qu'on cite dans une notification groupée. Trois noms suffisent à donner
@@ -222,6 +226,59 @@ export function grouper(lignes) {
     p.id = l.id;                       // le plus grand du lot
   }
   return sortie;
+}
+
+/**
+ * Parmi mes amis, qui possède ces Pokémon ?
+ *
+ * LA QUESTION QUE LES ÉCHANGES NE SAVAIENT PAS POSER. Ils marchaient à
+ * condition de savoir déjà à qui demander : il fallait ouvrir chaque ami, un
+ * par un, pour voir ce qu'il pouvait donner. Une liste d'envies renverse le
+ * sens — on dit ce qu'on cherche, et l'application dit chez qui c'est.
+ *
+ * ON RELIT LES SAUVEGARDES, faute de mieux : un dex est un bloc JSON, pas des
+ * lignes, et « qui a Mew » ne s'écrit donc pas en SQL. Le coût est borné par le
+ * nombre d'amis — cent au maximum, une aventure chacun — et la réponse ne
+ * voyage qu'une fois par ouverture de la page. C'est le même raisonnement que
+ * rarete(), qui relit toutes les collections publiques.
+ *
+ * Les aventures PRIVÉES d'un ami n'entrent pas dans le compte : suivre
+ * quelqu'un n'ouvre rien de plus que ce qu'il a rendu public.
+ */
+export async function quiA(dresseurId, noms) {
+  const voulus = new Set((Array.isArray(noms) ? noms : [])
+    .map((n) => String(n || '').trim().toLowerCase())
+    .filter(Boolean)
+    .slice(0, RECHERCHES_MAX));
+  if (!voulus.size) return { chez: {} };
+
+  const lignes = await lire(
+    `SELECT d.pseudo, x.donnees
+       FROM pa_amis a
+       JOIN pa_dresseurs d ON d.id = a.ami_id
+       JOIN pa_profils p
+         ON p.id = (SELECT id FROM pa_profils
+                     WHERE dresseur_id = d.id AND public = 1
+                     ORDER BY par_defaut DESC, id ASC LIMIT 1)
+       JOIN pa_dex x ON x.profil_id = p.id
+      WHERE a.dresseur_id = ?`, [dresseurId]);
+
+  const chez = {};
+  for (const nom of voulus) chez[nom] = [];
+
+  for (const l of lignes) {
+    let dex = null;
+    try { dex = JSON.parse(l.donnees); } catch { continue; }
+
+    // Toutes les listes du bloc à la fois : la racine, puis chaque Pokédex.
+    // Coché dans un seul suffit — c'est la règle que l'écran applique déjà.
+    const aLui = new Set(dex.captures || dex.caught || []);
+    for (const cle of Object.keys(dex.dex || {})) {
+      for (const n of (dex.dex[cle] || {}).caught || []) aLui.add(n);
+    }
+    for (const nom of voulus) if (aLui.has(nom)) chez[nom].push(l.pseudo);
+  }
+  return { chez };
 }
 
 /**

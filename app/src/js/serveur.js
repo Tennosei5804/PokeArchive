@@ -87,7 +87,15 @@ function buildSavePayload(){
     // Les objectifs sur mesure : un filtre nomme, fige en liste de noms.
     objectifs: (typeof objectifs !== 'undefined') ? objectifs : [],
     // Les fiches de capture : ce que chaque exemplaire a de particulier.
-    detailsCapture: (typeof detailsCapture !== 'undefined') ? detailsCapture : {}
+    detailsCapture: (typeof detailsCapture !== 'undefined') ? detailsCapture : {},
+    // Les défis relevés. Le défi du JOUR, lui, ne s'écrit pas : il se
+    // recalcule à partir de la date. Seul le passé doit être gardé, parce
+    // qu'il n'est plus reproductible — le tirage d'il y a trois semaines
+    // dependait de listes qui ont pu changer depuis.
+    defis: (typeof defis !== 'undefined') ? defis : [],
+    // Ce qu'on cherche. Dans la sauvegarde comme le reste : c'est une envie de
+    // CETTE aventure, et elle voyage avec elle d'une machine à l'autre.
+    recherches: (typeof recherches !== 'undefined') ? recherches : []
   };
 }
 

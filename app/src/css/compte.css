@@ -1879,3 +1879,101 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 }
 .discussion-ecrire input:focus{ outline:none; border-color:var(--dex-red); }
 .discussion-ecrire input:disabled{ opacity:.6; cursor:default; }
+
+/* ---- Les photos de chasse -------------------------------------------------
+   Le tableau alignait des chiffres : 2311 rencontres, 1/1365, treize jours.
+   Cela dit l'effort, pas le moment. La vignette dit le moment.
+
+   Elle est posee EN FIN DE LIGNE et non au debut : le sprite d'espece garde sa
+   place de reperage, et la photo vient comme une piece jointe, pas comme un
+   remplacant. */
+.chasse-photo{
+  flex:0 0 auto;
+  width:44px; height:32px;
+  margin-left:10px;
+  padding:0; border:1px solid var(--card-border); border-radius:5px;
+  background:var(--screen); cursor:pointer; overflow:hidden;
+  display:grid; place-items:center;
+  transition:border-color 120ms, transform 120ms;
+}
+.chasse-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+.chasse-photo:hover{ border-color:var(--caught); transform:scale(1.06); }
+.chasse-photo:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+
+/* Sans photo : une invitation discrete. Elle ne doit pas attirer l'oeil plus
+   que la ligne elle-meme — on vient lire un tableau de chasse, pas remplir un
+   album. */
+.chasse-photo.vide{
+  border-style:dashed; font-size:13px; opacity:.42;
+}
+.chasse-photo.vide:hover{ opacity:1; transform:none; }
+
+/* La visionneuse. Fond noir plutot que la carte habituelle : une capture de jeu
+   se regarde sur du sombre, et le cadre clair lui volerait ses couleurs. */
+.photo-card{
+  width:min(880px, 94vw);
+  background:#0b0c11;
+  padding:14px;
+  display:flex; flex-direction:column; gap:11px;
+}
+.photo-card img{
+  width:100%; max-height:72vh; object-fit:contain;
+  border-radius:7px; background:#000;
+  /* Une hauteur de depart le temps du chargement : sans elle, la fenetre saute
+     de trois cents pixels quand l'image arrive. */
+  min-height:180px;
+}
+.photo-bas{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+}
+.photo-legende{
+  font-family:var(--font-data); font-size:11.5px; color:var(--ink-soft);
+}
+
+/* ---- Je cherche -----------------------------------------------------------
+   Une intention, pas un inventaire. La liste est courte par construction, elle
+   n'a donc pas besoin de defiler ni de se replier. */
+.fiche-cherche{
+  align-self:flex-start; margin-top:9px;
+  padding:6px 12px; border-radius:999px;
+  border:1px dashed var(--card-border); background:transparent;
+  color:var(--ink-soft); cursor:pointer;
+  font-family:var(--font-body); font-size:12.5px;
+  transition:border-color 120ms, color 120ms, background 120ms;
+}
+.fiche-cherche:hover{ color:var(--ink); border-color:var(--ink-faint); }
+/* Inscrit : le trait plein et l'or. L'or plutot que le vert — le vert dit
+   « obtenu » partout ailleurs dans l'application, et ceci dit « voulu ». */
+.fiche-cherche.actif{
+  border-style:solid; border-color:var(--gold);
+  background:rgba(217,154,18,.12); color:var(--gold-deep); font-weight:700;
+}
+
+.cherche{ display:flex; flex-direction:column; gap:6px; margin-bottom:18px; }
+.cherche-ligne{
+  display:flex; align-items:center; gap:11px;
+  padding:9px 13px;
+  background:var(--card); border:1px solid var(--card-border); border-radius:9px;
+}
+.cherche-nom{
+  flex:0 0 auto; min-width:120px;
+  font-family:var(--font-body); font-size:14px; font-weight:700; color:var(--ink);
+}
+.cherche-chez{
+  flex:1 1 auto; min-width:0;
+  font-family:var(--font-body); font-size:12.5px; color:var(--ink-faint);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+/* Trouve chez quelqu'un : c'est LA nouvelle de cette ligne, elle se detache. */
+.cherche-chez.trouve{ color:var(--caught); font-weight:700; }
+.cherche-oter{
+  flex:0 0 auto; width:24px; height:24px; padding:0;
+  border:none; border-radius:50%; background:transparent;
+  color:var(--ink-faint); cursor:pointer; font-size:12px; line-height:1;
+}
+.cherche-oter:hover{ background:var(--screen); color:var(--danger); }
+
+@media (max-width:560px){
+  .cherche-ligne{ flex-wrap:wrap; }
+  .cherche-chez{ white-space:normal; flex-basis:100%; }
+}

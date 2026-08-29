@@ -987,6 +987,273 @@ avec soi**. Un échange conclu reste lisible — on relit ce qu'on s'est dit —
 refus ferme la porte. Il n'y a pas de messagerie dans PokéArchive, seulement la
 discussion d'un accord.
 
+## Ce qui te bloquera
+
+« Est-ce que je peux boucler ce Pokédex tout seul ? » — la question qu'on se pose
+en ouvrant un jeu. L'application connaissait déjà la réponse et ne la disait à
+personne.
+
+Le relevé des lieux range chaque entrée par mode d'obtention, et `ciblesDuJeu()`
+s'en sert depuis toujours pour **écarter** ce qui n'est pas capturable. Il
+suffisait d'inverser le filtre.
+
+### Trois familles, et elles ne se valent pas
+
+| | |
+|---|---|
+| **Absents de cette version** | à faire venir d'ailleurs — voir Transferts |
+| **Par échange seulement** | il faut quelqu'un en face — c'est « Je cherche » |
+| **Un seul exemplaire** | le scénario le donne une fois, et jamais deux |
+
+La troisième ne bloque pas un Pokédex ordinaire ; elle bloque un **Living Dex**,
+qui exige un exemplaire de chacun en même temps. Elle est donc montrée à part
+plutôt que mêlée aux deux autres.
+
+Sur Rouge/Bleu, l'écran rend neuf entrées par échange — les exclusivités de
+version — et onze en exemplaire unique : les starters et le choix du dojo.
+
+### L'ordre des tests compte
+
+Une entrée peut porter plusieurs marques. Les huit échangeables de
+Diamant/Perle sont catégorisés « sauvage » et ne portent l'échange qu'en mention,
+comme le note déjà `dex.js`. On regarde donc du plus bloquant au moins bloquant :
+absent l'emporte sur l'échange, qui l'emporte sur l'exemplaire unique.
+
+Et « offert » ne fait un exemplaire unique que s'il est **seul** : là où le
+Pokémon se croise aussi dans l'herbe, le cadeau n'est qu'un second chemin et ne
+limite rien.
+
+### On ne dit rien là où l'on ne sait pas
+
+Un jeu dont le Pokédex n'a pas été relevé n'a pas « aucun blocage » : il a une
+absence de source. Le bouton ne s'affiche donc que sur les vingt-deux Pokédex
+relevés — même contrôle que la fiche, sur `pokedexReleve`. Promettre qu'on peut
+tout attraper là où l'on ne sait pas serait le pire des deux mensonges.
+
+## Où le ranger
+
+La fiche d'un Pokémon porte sa **boîte et sa case**.
+
+La vue boîtes existait déjà, et sa navigation dit « Boîte 3 · 22 / 30 » : de quoi
+voir où en est la collection. Ce qu'elle ne disait pas, c'est la coordonnée
+**d'une espèce** — et c'est justement ce qu'on cherche quand on a la console en
+main et un Pokémon à ranger.
+
+### Le plan ne suit pas le tri
+
+C'est tout le point, et le banc le surveille. La vue boîtes obéit au tri
+affiché : trier par type y fait des boîtes par type, ce qui est un usage
+légitime. Mais une coordonnée qui se déplace parce qu'on a cliqué
+« alphabétique » n'est pas un plan — on ne réarrange pas trente boîtes à chaque
+changement d'écran.
+
+L'ordre du plan est donc celui du Pokédex, toujours : « N° du jeu » sur un jeu,
+le national sur la collection HOME. C'est l'ordre dans lequel un Living Dex se
+range depuis toujours, et il ne dépend de rien de ce qu'on fait à l'écran.
+
+## « Je cherche »
+
+Dire ce qu'on veut, et voir chez qui c'est.
+
+**La question que les échanges ne savaient pas poser.** Ils marchaient à
+condition de savoir déjà à qui demander : il fallait ouvrir chaque ami, un par
+un, pour voir ce qu'il pouvait donner. Une liste d'envies renverse le sens — on
+dit ce qu'on cherche, l'application dit chez qui c'est, il ne reste qu'à
+proposer.
+
+**Ce n'est pas la liste des manquants**, et c'est toute la différence. Le Pokédex
+sait déjà, et mieux que quiconque, ce qui manque : mille deux cents lignes. Ceci
+dit ce qu'on veut *vraiment* — les cinq ou dix qu'on demanderait à quelqu'un. Une
+intention, pas un inventaire. D'où le plafond de cinquante : au-delà, ce n'est
+plus une envie, c'est de nouveau l'inventaire.
+
+La liste vit dans la sauvegarde, comme les chasses et les objectifs. Seule la
+question « chez qui ? » passe par le serveur.
+
+### On relit les sauvegardes, faute de mieux
+
+Un dex est un bloc JSON, pas des lignes : « qui a Mew » ne s'écrit pas en SQL.
+`quiA()` relit donc les collections des amis. Le coût est borné par le nombre
+d'amis — cent au maximum, une aventure chacun — et la réponse ne voyage qu'une
+fois par ouverture de la page. C'est le raisonnement de `rarete()`, qui relit
+déjà toutes les collections publiques.
+
+Les aventures **privées** d'un ami n'entrent pas dans le compte : suivre
+quelqu'un n'ouvre rien de plus que ce qu'il a rendu public.
+
+### Nommer, pas compter
+
+L'écran écrit « Ondine, Blue » et non « 2 amis l'ont ». Un compte oblige à ouvrir
+pour savoir qui ; le nom permet d'aller lui parler tout de suite.
+
+## Le mur d'un dresseur
+
+Ses photos, celles qu'on a le droit de voir — bouton « 📷 Ses photos » sur sa
+fiche.
+
+**C'était la pièce manquante.** Les photos étaient déposées, protégées, servies
+— et invisibles : la règle d'accès autorisait un ami à les voir, mais aucun écran
+ne les montrait. Un mécanisme sans vitrine ne montre rien, ce qui était
+exactement le contraire du but.
+
+`mur()` relit les sauvegardes en plus de `pa_images`, et il le faut : la table
+sait quelles photos existent, elle ignore **à quoi** elles sont attachées — le
+lien vit dans le blob, du côté de la chasse ou du défi qui porte le champ
+`image`. Sans cette relecture on rendrait une planche de vignettes anonymes.
+
+Une photo citée par une sauvegarde mais absente de la table est écartée : une
+vignette morte est pire que rien.
+
+## Le défi du jour
+
+Un Pokémon tiré au hasard, chaque jour, sur l'accueil. **Le même pour tout le
+monde**, et il change à minuit.
+
+**Aucun jeu n'est nommé.** Le défi dit « celui-là », pas « celui-là dans
+Rouge/Bleu » : n'importe quel jeu fait l'affaire, y compris celui auquel on joue
+ce soir. Nommer un jeu écartait d'office ceux qui ne l'ont pas, pour un défi qui
+n'a rien d'obligatoire — le coût était réel, le gain nul. Et cela a rendu le
+tirage **synchrone** : plus de Pokédex à charger, plus de branche « liste
+indisponible », le défi paraît du premier coup.
+
+### Rien d'obligatoire, et ce n'est pas une nuance
+
+Ce n'est pas une tâche, pas une série à tenir, pas un compteur qui rougit quand
+on saute un jour. C'est un prétexte — « tiens, celui-là, aujourd'hui » — et son
+vrai objet est la photo qu'on en sort.
+
+D'où l'**absence de série consécutive**, qui est une décision et non un oubli :
+on compte combien de défis ont été relevés, jamais combien de jours d'affilée.
+Le second chiffre punit ceux qui ne jouent pas tous les soirs, et ils sont la
+majorité. Un carnet de collection n'a pas à se comporter comme une application
+d'habitudes.
+
+### Le tirage n'appelle aucun serveur
+
+Il se déduit de la date, par le même générateur amorcé que le programme du soir.
+Deux machines, deux pays, la même journée donnent le même Pokémon. Rien à
+synchroniser, rien à stocker, et **cela marche hors ligne** — ce qui est la
+moitié de l'intérêt.
+
+Il puise dans `allEntries` et non dans `poolHome()`, et la nuance est tout sauf
+cosmétique : le second dépend de `niveauFormes`, qui appartient à l'aventure.
+Deux joueurs réglés différemment n'auraient alors pas le même tirage, et le
+« même pour tout le monde » serait faux **sans que rien ne le signale**. Le banc
+surveille précisément ce point, en tirant la même date aux niveaux 1 et 4.
+
+La clé du jour est la **date locale**, jamais l'UTC : le défi doit changer à
+minuit chez soi. En UTC il basculerait à deux heures du matin en France, en
+pleine session.
+
+Les espèces sont **triées** avant qu'on y puise : l'ordre naturel de la réserve
+n'est garanti par rien, et il suffirait qu'il bouge d'une version à l'autre pour
+que deux machines tombent sur deux Pokémon différents le même jour.
+
+### Il pioche parmi toutes les espèces
+
+Pas seulement dans les manquants. Un défi qui ne piocherait que là deviendrait
+une corvée déguisée, et s'éteindrait le jour où l'on finit son dex. Tomber sur
+un Pokémon qu'on possède déjà n'est pas un défaut : c'est l'occasion de le
+montrer.
+
+Et puisque aucun jeu n'est imposé, **l'avoir coché dans un seul Pokédex suffit à
+l'avoir** : la carte regarde tous les Pokédex, la collection HOME comprise.
+
+### L'historique
+
+« Voir les précédents », sous la carte : une modale, et non une section de plus —
+l'accueil est déjà long, et cette liste se consulte de temps en temps.
+
+Elle montre **tout ce qui est gardé, relevé ou non**. Ne lister que les réussites
+ferait un palmarès ; c'est un journal qu'on veut, et savoir ce qu'on a laissé
+filer un mardi de septembre en fait partie.
+
+### Ce qui s'écrit, et ce qui ne s'écrit pas
+
+Le défi **du jour** ne s'écrit nulle part : il se recalcule. Seul le **passé**
+est gardé, dans un tableau `defis` de la sauvegarde — aux côtés de `chasses` et
+`objectifs`, pour la même raison qu'eux — parce qu'il n'est plus reproductible :
+le tirage d'il y a trois semaines dépendait de listes qui ont pu changer depuis.
+
+La photo est facultative, et réutilise `pa_images` sous le sujet `defi`. La
+colonne `sujet` existait dès le premier jour pour cela : même dépôt, même règle
+de visibilité, même quota, même ménage — aucune migration.
+
+## Les photos de chasse
+
+Le tableau de chasse alignait des chiffres : 2311 rencontres, 1/1365, treize
+jours. Cela dit l'effort, pas le moment. La capture d'écran de l'apparition, si
+— et **c'est elle qu'on montre**. Ce n'est pas un album privé : c'est le but de
+la chose.
+
+### La règle d'accès est celle qui existait déjà
+
+Une photo suit la visibilité de **l'aventure** à laquelle elle appartient,
+exactement comme le dex. Aventure publique, la photo se voit de qui peut déjà
+voir cette aventure ; aventure privée, elle ne sort pas.
+
+Aucune seconde règle à comprendre, aucun réglage de plus, et surtout rien qui
+puisse se désaccorder de la première. Une photo introuvable rend **404 et non
+403** : dire « elle existe, mais pas pour toi » renseignerait sur le contenu
+d'une aventure privée.
+
+### Sur le disque, pas en base
+
+`pa_images` ne garde que la fiche — propriétaire, aventure, type, taille,
+dimensions. Le fichier vit dans `api/donnees/images`, hors du dépôt.
+
+Un BLOB de deux mégaoctets par chasse ferait grossir chaque sauvegarde SQL
+d'autant, et la base d'un hébergement gratuit est bien plus étroite que son
+disque. **Le revers est assumé : `outils/sauvegarder.js` n'emporte pas les
+fichiers.** Une restauration retrouve les fiches sans les images ; le tableau
+affiche alors une case vide plutôt qu'un carré cassé.
+
+### Le redessin, et pourquoi il a lieu deux fois
+
+**L'application redessine d'abord.** Une capture de Switch fait 1280 × 720 et
+200 Ko ; une photo de téléphone fait 4000 × 3000 et huit mégaoctets. Le canvas
+les ramène à 1600 pixels de côté et les réencode en JPEG.
+
+**Cela efface les métadonnées, et c'est la vraie raison de le faire au plus
+tôt.** Une photo de téléphone porte sa position GPS : publier un chromatique ne
+doit pas publier son salon. Le canvas ne recopie que les pixels.
+
+**Le serveur revérifie quand même.** Il ne fait pas confiance à un client qu'il
+ne contrôle pas : il relit le type dans les octets — jamais dans l'en-tête
+`Content-Type`, qui est déclaratif — relit les dimensions dans le SOF, et retire
+lui-même les segments APP1 à APP15 du JPEG. Il n'a pas de bibliothèque d'images
+et n'en veut pas : ces trois contrôles se font à la main, sur les octets.
+
+Le SVG est refusé à la porte. C'est du balisage exécutable, pas une image, et le
+servir depuis notre domaine reviendrait à héberger le script de quelqu'un
+d'autre.
+
+### Le ménage, et l'endroit où il est possible
+
+Les chasses vivent **dans la sauvegarde**, pas dans une table. Supprimer une
+chasse n'est donc pas une requête que le serveur voit passer : c'est un tableau
+qui revient plus court. Le seul moment où l'on apprend qu'une chasse a disparu
+est **l'enregistrement du dex** — c'est là que le ménage a lieu, en comparant
+les photos de l'aventure à celles que les chasses réclament encore.
+
+Une prudence est écrite dans ce ménage : **si la sauvegarde ne parle pas de
+chasses du tout, on ne touche à rien.** Un import partiel, ou un client plus
+ancien, ne doit pas emporter les photos au passage. L'absence d'une clé n'est
+pas la preuve qu'elle est vide.
+
+### Le passage par le pont
+
+La fenêtre ne va pas chercher l'image elle-même : l'adresse exige le jeton de
+session, et celui-ci vit dans le processus Rust et ne descend jamais dans la
+page. `image_charger` la rapporte donc en adresse `data:`, ce qui coûte un tiers
+de volume en plus — le prix d'un jeton qui reste où il est.
+
+### Quotas
+
+Trois mégaoctets par photo à l'entrée du serveur ; l'application en envoie dix
+fois moins. Soixante photos et quarante mégaoctets par compte : c'est une photo
+par chasse aboutie, et personne n'en termine soixante.
+
 ## Les notifications
 
 Deux sources, et une seule cloche 🔔.
@@ -1692,10 +1959,40 @@ héberge déjà autre chose. Les tables de PokéArchive sont donc **préfixées
 | `pa_echanges` | les accords proposés, acceptés, refusés |
 | `pa_messages` | la discussion d'un échange accepté |
 | `pa_notifications` | ce qui s'adresse à quelqu'un et attend une réponse |
+| `pa_images` | la **fiche** d'une photo de chasse — le fichier, lui, est sur le disque |
 
 Le schéma se crée et se complète tout seul au démarrage du service : chaque
 table est en `CREATE TABLE IF NOT EXISTS`, chaque colonne ajoutée après coup a
 sa fonction de migration. Relancer le service ne touche à rien.
+
+### Privée en naissant
+
+`pa_profils.public` vaut **0** aux trois endroits où une aventure se crée : la
+première, posée d'office à la connexion ; celles qu'on ajoute à la main ; celles
+qui arrivent par un import — cette dernière l'était déjà.
+
+On publie ce qu'on veut publier ; on ne dépublie pas ce qu'on n'a pas choisi de
+montrer. La première aventure mérite ce traitement plus que les autres : personne
+ne l'a demandée, elle est créée toute seule à la première connexion, et la rendre
+publique exposerait un Pokédex au nom de son propriétaire avant même qu'il ait vu
+l'application.
+
+**La conséquence est assumée, et c'est le prix du réglage :** un compte neuf
+n'apparaît nulle part — ni au classement, ni dans une comparaison, ni dans
+l'entraide, ni dans « je cherche ». Rien ne fonctionne socialement tant qu'un
+cadenas n'a pas été levé.
+
+Ce silence doit donc être **dit**, sinon il ressemble à une panne : la page des
+aventures porte la phrase, et c'est elle qui empêche « pourquoi personne ne me
+voit ? ». Un défaut protecteur qu'on n'explique pas est un bogue avec de bonnes
+intentions.
+
+**Les aventures existantes ne bougent pas.** Elles ont été rendues publiques par
+quelqu'un, ou l'étaient par le défaut d'alors ; les refermer d'autorité ferait
+disparaître du classement des gens qui n'ont rien demandé — le symétrique exact
+du tort qu'on répare. Trois réglages ont basculé de la même façon :
+`pa_dresseurs.visible`, la présence Discord, et celui-ci. Chaque fois : le
+nouveau démarre fermé, l'ancien garde son état.
 
 ### Ce que compte une aventure
 

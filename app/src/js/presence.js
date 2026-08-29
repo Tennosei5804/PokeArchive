@@ -64,15 +64,30 @@ const PRESENCE_CLE = 'pokearchive-presence-discord';
 // revenait à sacrifier la première sans raison.
 const PRESENCE_MODES = ['oui', 'discrete', 'non'];
 
-/** Le mode retenu. Actif tant que rien ne dit le contraire. */
+/**
+ * Le mode retenu. ÉTEINT tant que personne n'a dit le contraire.
+ *
+ * LE DÉFAUT A CHANGÉ DE CAMP, et le raisonnement s'est retourné avec lui. Il
+ * valait « oui », et le commentaire d'alors disait qu'une valeur abîmée devait
+ * retomber sur le défaut plutôt que sur « non », parce que couper la présence
+ * de quelqu'un sans qu'il l'ait demandée était le pire des deux maux.
+ *
+ * C'est l'inverse. Une présence Discord se lit par TOUTE la liste d'amis, y
+ * compris par des gens qu'on ne connaît pas : l'annoncer à quelqu'un qui n'a
+ * jamais rien demandé est plus grave que de la taire à quelqu'un qui la
+ * voulait — le second s'en aperçoit et rallume, le premier ne saura jamais
+ * qu'il a été diffusé. Tout ce qui n'est pas un choix explicite vaut donc
+ * « non ».
+ *
+ * Qui a déjà choisi garde son choix : sa valeur est écrite, et elle est lue
+ * ici. Seuls ceux qui n'ont jamais ouvert le réglage basculent — et pour
+ * eux, précisément, il n'y avait pas de choix à respecter.
+ */
 function presenceMode(){
   let v = null;
   try{ v = localStorage.getItem(PRESENCE_CLE); }
-  catch(e){ /* stockage refusé : on garde le défaut */ }
-  // Une valeur inconnue — réserve d'une version future, ou abîmée — vaut mieux
-  // traitée comme le défaut que comme « non » : couper la présence de quelqu'un
-  // sans qu'il l'ait demandé est le pire des deux.
-  return PRESENCE_MODES.indexOf(v) > -1 ? v : 'oui';
+  catch(e){ /* stockage refusé : on garde le défaut, qui ne montre rien */ }
+  return PRESENCE_MODES.indexOf(v) > -1 ? v : 'non';
 }
 
 /** Vrai dès qu'on annonce quelque chose, discrètement ou non. */
@@ -185,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function(){
     dire();
     choix.addEventListener('change', function(){
       const avant = presenceMode();
-      const veut = PRESENCE_MODES.indexOf(choix.value) > -1 ? choix.value : 'oui';
+      const veut = PRESENCE_MODES.indexOf(choix.value) > -1 ? choix.value : 'non';
       try{ localStorage.setItem(PRESENCE_CLE, veut); }
       catch(e){ /* stockage refusé : le choix ne tiendra pas au redémarrage */ }
       dire();

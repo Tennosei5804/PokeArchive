@@ -20,6 +20,79 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.22.0', date: '2026-08-28',
+    titre: 'Montrer son Pokémon',
+    points: [
+      '**⛔ Ce qui te bloquera.** Sur le Pokédex d’un jeu, un bouton dit '
+      + 'ce que tu **ne pourras pas** attraper : les exclusivités de version, ce '
+      + 'qui ne s’obtient que par échange, ce que le scénario ne donne qu’une '
+      + 'fois. Sur Rouge/Bleu : neuf par échange, onze en exemplaire unique. '
+      + 'Chaque nom s’ajoute d’un clic à ta liste d’envies.',
+      '**📦 Où le ranger.** La fiche d’un Pokémon porte sa **boîte et sa '
+      + 'case** — « Boîte 2, case 11 » — dans l’ordre du Pokédex. Elle ne bouge '
+      + 'pas quand tu changes de tri : un plan qui se déplace n’est pas un plan. '
+      + 'Un lien t’emmène à la boîte.',
+      '**🔎 Je cherche.** Ouvre la fiche d’un Pokémon, clique « Je le '
+      + 'cherche » : il rejoint ta liste sur la page 📣 Amis, qui te dit **chez '
+      + 'qui il est**. Les échanges marchaient à condition de savoir déjà à qui '
+      + 'demander — il fallait ouvrir chaque ami un par un. C’est l’inverse '
+      + 'maintenant.',
+      '**📷 Les photos des autres se voient enfin.** Un bouton « Ses '
+      + 'photos » sur la fiche de chaque dresseur ouvre son mur : ses chasses et '
+      + 'ses défis en images. La règle n’a pas changé — aventure publique, elles '
+      + 'se montrent ; privée, elles ne sortent pas.',
+      '**L’historique des défis.** « Voir les précédents », sous la carte du '
+      + 'jour : tous ceux qui sont passés, relevés ou non, avec leurs photos. Un '
+      + 'journal, pas un palmarès — savoir ce qu’on a laissé filer un mardi de '
+      + 'septembre fait partie de l’histoire.',
+      '**Une aventure naît privée.** Toi seul la vois tant que tu n’as pas '
+      + 'cliqué son cadenas. C’était l’inverse : un Pokédex devenait lisible par '
+      + 'qui connaissait ton pseudo, sans que personne l’ait demandé. **Tes '
+      + 'aventures existantes ne bougent pas** — seules les nouvelles démarrent '
+      + 'fermées.',
+      '**Conséquence, et elle est voulue :** un compte neuf n’apparaît nulle '
+      + 'part. Ni classement, ni comparaison, ni entraide, tant que tu n’as rien '
+      + 'ouvert. C’est un interrupteur à lever, plus un réglage à subir.',
+      '**La présence Discord est éteinte au départ.** Elle se lit par **toute** '
+      + 'ta liste d’amis, y compris par des gens que tu ne connais pas : c’est '
+      + 'une décision à prendre, pas un réglage à subir. Si tu l’avais déjà '
+      + 'réglée, ton choix est gardé.',
+      '**Tes photos, et la place qu’elles prennent**, dans ⚙️ Paramètres.',
+      '**🎲 Le défi du jour.** Un Pokémon tiré au hasard, chaque jour, sur '
+      + 'l’accueil. **Le même pour tout le monde**, et il change à minuit. Rien '
+      + 'd’obligatoire : c’est un prétexte à sortir une photo, pas une tâche — '
+      + 'et il n’y a pas de série à tenir, donc rien à perdre quand tu sautes '
+      + 'un jour.',
+      '**Aucun jeu imposé.** Le défi dit « celui-là », pas « celui-là dans '
+      + 'Rouge/Bleu » : n’importe quel jeu fait l’affaire, y compris celui '
+      + 'auquel tu joues ce soir.',
+      '**Il pioche parmi toutes les espèces**, pas seulement dans ce qui te '
+      + 'manque. Tomber sur un Pokémon que tu as déjà n’est pas un défaut : '
+      + 'c’est l’occasion de le montrer. Et le défi ne s’éteint pas le jour où '
+      + 'tu finis ton dex.',
+      '**📷 Une photo sur chaque chasse aboutie.** Le tableau de chasse '
+      + 'alignait des chiffres — 2311 rencontres, 1/1365, treize jours. Ça dit '
+      + 'l’effort, pas le moment. Clique la case en bout de ligne et attache la '
+      + 'capture de l’apparition.',
+      '**Et les autres la voient.** Une photo suit la visibilité de son aventure, '
+      + 'comme le reste : publique, elle se montre à qui va voir ton tableau ; '
+      + 'privée, elle ne sort pas. Aucun réglage de plus à comprendre.',
+      '**Ta position ne part pas avec.** Une photo de téléphone porte ses '
+      + 'métadonnées — modèle de l’appareil, heure exacte, et les coordonnées '
+      + 'GPS. L’application redessine l’image avant de l’envoyer, ce qui les '
+      + 'efface, et le serveur retire lui-même ce qui resterait. Montrer un '
+      + 'chromatique ne publie pas ton salon.',
+      '**Elles ne s’accumulent pas dans ton dos.** Une capture de Switch part à '
+      + '1600 pixels de côté au lieu de sa taille d’origine, et supprimer une '
+      + 'chasse emporte sa photo. Soixante photos et quarante mégaoctets par '
+      + 'compte : de quoi tenir des années de chasse.',
+      '**Sur la version web, non.** Elle range tout dans ton navigateur, dont le '
+      + 'budget entier serait mangé par deux captures. L’appareil photo le dit '
+      + 'franchement plutôt que d’avaler une image qui disparaîtrait au '
+      + 'rechargement.',
+    ],
+  },
+  {
     version: '0.21.0', date: '2026-08-27',
     titre: 'Proposer un échange, en discuter, et un en-tête qui respire',
     points: [

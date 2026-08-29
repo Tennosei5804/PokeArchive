@@ -207,10 +207,18 @@ export async function profilParDefaut(dresseurId) {
       ORDER BY par_defaut DESC, id ASC LIMIT 1`, [dresseurId]);
   if (p) return p.id;
 
+  // public = 0. UNE AVENTURE NAIT PRIVEE, et celle-ci plus que les autres :
+  // personne ne l'a demandee, elle est creee d'office a la premiere connexion.
+  // La rendre publique sans que quiconque l'ait voulu, c'est exposer un Pokedex
+  // au nom de son proprietaire avant meme qu'il ait vu l'application.
+  //
+  // Consequence assumee, et c'est le prix du reglage : un compte neuf n'apparait
+  // nulle part — ni au classement, ni dans une comparaison, ni dans l'entraide.
+  // C'est un interrupteur a lever, pas un defaut a subir.
   const maintenant = horodatage();
   const r = await ecrire(
     `INSERT INTO pa_profils (dresseur_id, nom, nom_cle, public, par_defaut, cree_le, maj_le)
-     VALUES (?, ?, ?, 1, 1, ?, ?)`,
+     VALUES (?, ?, ?, 0, 1, ?, ?)`,
     [dresseurId, NOM_PREMIER_PROFIL, normaliser(NOM_PREMIER_PROFIL), maintenant, maintenant]);
   return r.insertId;
 }
@@ -289,15 +297,18 @@ export async function creerProfil(dresseurId, nomSouhaite, mode) {
 
   const maintenant = horodatage();
   const m = modeValide(mode);
+  // public = 0, comme partout ailleurs : on publie ce qu'on veut publier, on ne
+  // depublie pas ce qu'on n'a pas choisi de montrer. La bascule est sur la
+  // ligne de l'aventure, dans le Profil.
   const r = await ecrire(
     `INSERT INTO pa_profils (dresseur_id, nom, nom_cle, public, par_defaut, mode, niveau_formes, cree_le, maj_le)
-     VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?)`,
     // La première aventure devient forcément celle par défaut. Le niveau de
     // formes démarre au défaut : il se règle depuis la barre du Pokédex, pas à
     // la création — on ne fait pas choisir avant d'avoir vu.
     [dresseurId, nom, normaliser(nom), (combien?.n ?? 0) === 0 ? 1 : 0, m,
      niveauValide(undefined), maintenant, maintenant]);
-  return { id: r.insertId, nom, public: 1, par_defaut: (combien?.n ?? 0) === 0 ? 1 : 0,
+  return { id: r.insertId, nom, public: 0, par_defaut: (combien?.n ?? 0) === 0 ? 1 : 0,
            mode: m, niveau_formes: niveauValide(undefined),
            captures: 0, shiny: 0, cree_le: maintenant, maj_le: maintenant };
 }

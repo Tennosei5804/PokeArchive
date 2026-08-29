@@ -39,6 +39,44 @@ const trocJeu = document.getElementById('trocJeu');
 const trocEnvoyer = document.getElementById('trocEnvoyer');
 const trocEtat = document.getElementById('trocEtat');
 const trocListe = document.getElementById('trocListe');
+
+// Le plan de rangement, sur la fiche.
+const ficheRangement = document.getElementById('ficheRangement');
+
+// « Ce qui te bloquera », sur le Pokédex d'un jeu.
+const blocagesBtn = document.getElementById('blocagesBtn');
+const blocagesOverlay = document.getElementById('blocagesOverlay');
+const blocagesEyebrow = document.getElementById('blocagesEyebrow');
+const blocagesTitre = document.getElementById('blocagesTitre');
+const blocagesListe = document.getElementById('blocagesListe');
+const blocagesFermer = document.getElementById('blocagesFermer');
+
+// « Je cherche » : le marqueur sur la fiche, et la liste sur la page des amis.
+const ficheCherche = document.getElementById('ficheCherche');
+const rechercheTitre = document.getElementById('rechercheTitre');
+const rechercheListe = document.getElementById('rechercheListe');
+
+// Le défi du jour, et l'historique de ceux d'avant.
+const defiBloc = document.getElementById('defiBloc');
+const defisOverlay = document.getElementById('defisOverlay');
+const defisGrille = document.getElementById('defisGrille');
+const defisNote = document.getElementById('defisNote');
+const defisFermer = document.getElementById('defisFermer');
+
+// Les photos de chasse.
+const photoFichier = document.getElementById('photoFichier');
+const photoOverlay = document.getElementById('photoOverlay');
+const photoImage = document.getElementById('photoImage');
+const photoLegende = document.getElementById('photoLegende');
+const photoFermer = document.getElementById('photoFermer');
+const photoRetirer = document.getElementById('photoRetirer');
+const photosPlace = document.getElementById('photosPlace');
+const murOverlay = document.getElementById('murOverlay');
+const murEyebrow = document.getElementById('murEyebrow');
+const murTitre = document.getElementById('murTitre');
+const murNote = document.getElementById('murNote');
+const murGrille = document.getElementById('murGrille');
+const murFermer = document.getElementById('murFermer');
 const discussionOverlay = document.getElementById('discussionOverlay');
 const discussionEyebrow = document.getElementById('discussionEyebrow');
 const discussionTitre = document.getElementById('discussionTitre');
@@ -236,6 +274,14 @@ function resetAllProgress(){
     objectifs = [];
     if(typeof dessinerObjectifs === 'function') dessinerObjectifs();
   }
+  if(typeof defis !== 'undefined'){
+    defis = [];
+    if(typeof dessinerDefi === 'function') dessinerDefi();
+  }
+  if(typeof recherches !== 'undefined'){
+    recherches = [];
+    if(typeof dessinerRecherches === 'function') dessinerRecherches();
+  }
   if(typeof detailsCapture !== 'undefined') detailsCapture = {};
   useDexProgress(typeof currentTab !== 'undefined' ? currentTab : 'national');
 }
@@ -293,6 +339,18 @@ function progressFromJSON(data){
   if(typeof objectifs !== 'undefined'){
     objectifs = Array.isArray(data && data.objectifs) ? data.objectifs : [];
     if(typeof dessinerObjectifs === 'function') dessinerObjectifs();
+  }
+
+  // Les défis relevés, même chemin et même raison.
+  if(typeof defis !== 'undefined'){
+    defis = Array.isArray(data && data.defis) ? data.defis : [];
+    if(typeof dessinerDefi === 'function') dessinerDefi();
+  }
+
+  // Et la liste d'envies.
+  if(typeof recherches !== 'undefined'){
+    recherches = Array.isArray(data && data.recherches) ? data.recherches : [];
+    if(typeof dessinerRecherches === 'function') dessinerRecherches();
   }
 
   // Les fiches de capture, rangées par Pokedex puis par nom. Une sauvegarde

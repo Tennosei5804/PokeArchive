@@ -160,6 +160,15 @@
         <div class="home-section-title" id="objectifsTitre" hidden>Tes objectifs</div>
         <div class="objectifs" id="objectifsBloc" hidden></div>
 
+        <!-- Le défi du jour. Un Pokémon tiré au hasard dans un jeu tiré au
+             hasard, le même pour tout le monde, et RIEN D'OBLIGATOIRE : c'est
+             un prétexte à sortir une photo, pas une tâche.
+
+             Le tirage n'appelle aucun serveur — il se recalcule à l'identique
+             partout à partir de la date. Voir js/defi.js. -->
+        <div class="home-section-title">Le défi du jour</div>
+        <div class="defi" id="defiBloc"></div>
+
         <!-- « À portée » dit quel jeu est près de finir ; celui-ci dit quoi
              attraper ce soir, et où. Tiré du relevé des lieux, tirage stable
              dans la journée. Voir renderProgramme() dans accueil.js. -->
@@ -182,6 +191,11 @@
 
       <div class="scope-head" id="scopeHead" style="display:none;">
         <div class="scope-title" id="scopeTitle"></div>
+        <!-- « Est-ce que je peux boucler ce Pok&eacute;dex tout seul ? » Le relev&eacute; des
+             lieux connait la r&eacute;ponse ; il ne servait qu'&agrave; &eacute;carter ce qui n'est pas
+             capturable. Voir js/blocages.js. -->
+        <button class="scope-blocages" id="blocagesBtn" type="button" hidden
+                title="Ce que tu ne pourras pas attraper dans ce jeu">&#9940; Ce qui te bloquera</button>
       </div>
       <p class="scope-note" id="scopeNote" style="display:none;"></p>
 
@@ -428,6 +442,9 @@
         <div class="profil-identite" id="profilIdentite"></div>
 
         <div class="home-section-title">Mes aventures</div>
+        <p class="profil-bloc-note">Une aventure na&icirc;t <b>priv&eacute;e</b> : toi seul la vois.
+          Le cadenas de sa ligne la rend publique &mdash; elle entre alors au classement,
+          se compare, et sert &agrave; l&rsquo;entraide. Rien ne part avant ce clic.</p>
         <div class="profil-aventures" id="profilAventures"></div>
         <div class="profil-creation profil-creation-page">
           <input type="text" id="profilPageNom" maxlength="40"
@@ -516,17 +533,17 @@
 
         <div class="home-section-title">Ma présence Discord</div>
         <div class="profil-bloc">
-          <p class="profil-bloc-note">Discord peut afficher sous ton nom l'écran que tu
-            consultes, ton pseudo et le nom de ton aventure. Une présence se lit par
-            toute ta liste d'amis, y compris par des gens que tu ne connais pas :
-            c'est à toi de décider si elle s'affiche. Ton avancement chiffré n'y
-            figure jamais.</p>
+          <p class="profil-bloc-note"><b>Éteinte au départ.</b> Discord peut afficher
+            sous ton nom l'écran que tu consultes, ton pseudo et le nom de ton aventure
+            — mais une présence se lit par <b>toute</b> ta liste d'amis, y compris par
+            des gens que tu ne connais pas. C'est une décision à prendre, pas un
+            réglage à subir. Ton avancement chiffré n'y figure jamais.</p>
           <label class="profil-champ" for="presenceMode">
             <span class="profil-champ-nom">Afficher ma présence</span>
             <select id="presenceMode">
-              <option value="oui">Activée — l'écran, ton pseudo et ton aventure</option>
-              <option value="discrete">Discrète — l'écran seulement</option>
               <option value="non">Désactivée</option>
+              <option value="discrete">Discrète — l'écran seulement</option>
+              <option value="oui">Activée — l'écran, ton pseudo et ton aventure</option>
             </select>
           </label>
           <span class="profil-bloc-etat" id="presenceEtat"></span>
@@ -553,6 +570,15 @@
           <div class="apparence" id="apparenceListe"></div>
           <button class="toggle-btn" id="apparenceRaz" type="button">Remettre les couleurs d’origine</button>
         </div>
+        <div class="home-section-title">Mes photos</div>
+        <div class="profil-bloc">
+          <p class="profil-bloc-note">Les captures d'&eacute;cran attach&eacute;es &agrave; tes chasses
+            et &agrave; tes d&eacute;fis. Elles suivent la visibilit&eacute; de l'aventure &agrave; laquelle
+            elles appartiennent : publique, elles se montrent ; priv&eacute;e, elles ne
+            sortent pas. Supprimer une chasse emporte la sienne.</p>
+          <span class="profil-bloc-etat" id="photosPlace">&mdash;</span>
+        </div>
+
         <div class="home-section-title">Mes données</div>
         <div class="profil-bloc">
           <p class="profil-bloc-note">Tes aventures, tes Pokédex et ton journal, dans un
@@ -643,6 +669,11 @@
              se fait AVEC quelqu'un, et c'est ici qu'on a ces gens sous les
              yeux. Une dixieme entree dans la barre du haut aurait fait
              deborder la ligne, que l'on vient justement de degager. -->
+        <!-- Ce qu'on veut, et chez qui c'est. Placé AVANT les échanges : on
+             regarde ce qu'on cherche, puis on va le demander. -->
+        <div class="home-section-title" id="rechercheTitre" hidden>Je cherche</div>
+        <div class="cherche" id="rechercheListe"></div>
+
         <div class="home-section-title">&Eacute;changes</div>
         <p class="home-sub troc-preambule">Un accord, pas un transfert : Pok&eacute;Archive
            note qui donne quoi &agrave; qui, vous vous retrouvez ensuite dans le jeu pour le
@@ -1014,6 +1045,61 @@
   </div>
 </div>
 
+<!-- Ce qui bloque un Pok&eacute;dex : l'inverse du filtre qui sert au programme du
+     soir. Voir js/blocages.js. -->
+<div class="modal-overlay" id="blocagesOverlay" style="display:none;" role="dialog"
+     aria-modal="true" aria-labelledby="blocagesTitre">
+  <div class="modal-card blocages-card">
+    <button class="fiche-fermer" id="blocagesFermer" type="button" aria-label="Fermer">&#10005;</button>
+    <div class="modal-eyebrow" id="blocagesEyebrow"></div>
+    <h2 class="modal-title" id="blocagesTitre">Ce qui te bloquera</h2>
+    <div class="blocages" id="blocagesListe"></div>
+  </div>
+</div>
+
+<!-- Le mur d'un dresseur : ses photos. Les siennes, ou celles de quelqu'un
+     d'autre quand ses aventures sont publiques. Voir js/photos.js. -->
+<div class="modal-overlay" id="murOverlay" style="display:none;" role="dialog"
+     aria-modal="true" aria-labelledby="murTitre">
+  <div class="modal-card defis-card">
+    <button class="fiche-fermer" id="murFermer" type="button" aria-label="Fermer">&#10005;</button>
+    <div class="modal-eyebrow" id="murEyebrow">Photos</div>
+    <h2 class="modal-title" id="murTitre">Ses Pok&eacute;mon</h2>
+    <p class="defis-note" id="murNote"></p>
+    <div class="defis-grille" id="murGrille"></div>
+  </div>
+</div>
+
+<!-- Les défis passés. Une modale et non une section de plus : l'accueil est
+     deja long, et cette liste se consulte de temps en temps, pas tous les
+     jours. Voir js/defi.js. -->
+<div class="modal-overlay" id="defisOverlay" style="display:none;" role="dialog"
+     aria-modal="true" aria-labelledby="defisTitre">
+  <div class="modal-card defis-card">
+    <button class="fiche-fermer" id="defisFermer" type="button" aria-label="Fermer">&#10005;</button>
+    <div class="modal-eyebrow">Le d&eacute;fi du jour</div>
+    <h2 class="modal-title" id="defisTitre">Les pr&eacute;c&eacute;dents</h2>
+    <p class="defis-note" id="defisNote"></p>
+    <div class="defis-grille" id="defisGrille"></div>
+  </div>
+</div>
+
+<!-- La photo d'une chasse, en grand. Le champ reste cache : un
+     &lt;input type=file&gt; nu est laid et ne se style pas, c'est la vignette
+     du tableau qui l'ouvre. Meme procede que l'import de sauvegarde. -->
+<input type="file" id="photoFichier" accept="image/jpeg,image/png,image/webp" hidden>
+<div class="modal-overlay" id="photoOverlay" style="display:none;" role="dialog"
+     aria-modal="true" aria-label="Photo de la chasse">
+  <div class="modal-card photo-card">
+    <button class="fiche-fermer" id="photoFermer" type="button" aria-label="Fermer">&#10005;</button>
+    <img id="photoImage" alt="">
+    <div class="photo-bas">
+      <span class="photo-legende" id="photoLegende"></span>
+      <button class="toggle-btn danger" id="photoRetirer" type="button">Retirer</button>
+    </div>
+  </div>
+</div>
+
 <!-- La discussion d'un echange accepte. Elle n'existe pas ailleurs : on ne
      peut ecrire qu'a quelqu'un qui a dit oui a un echange avec soi. C'est ce
      qui empeche l'abonnement a sens unique de devenir une porte ouverte. -->
@@ -1243,11 +1329,22 @@
                celui-ci ne dit rien de la place qu'occupe l'espèce dans le jeu
                qu'on a sous la main — n° 149 au national, n° 66 à Kanto. -->
           <div class="dex-regionaux" id="ficheDexRegionaux"></div>
+          <!-- Où le ranger. La vue bo&icirc;tes dit d&eacute;j&agrave; o&ugrave; en est la collection ;
+               ceci dit la coordonn&eacute;e d'UNE esp&egrave;ce, celle qu'on lit la console en
+               main. L'ordre est celui du Pok&eacute;dex, jamais le tri affich&eacute;.
+               Voir js/rangement.js. -->
+          <div class="fiche-rangement" id="ficheRangement" hidden></div>
           <!-- Ce que les autres possèdent. Masquée sous cinq collections
                publiques : « un dresseur sur deux » n'est pas une rareté.
                Voir js/rarete.js. -->
           <p class="fiche-rarete" id="ficheRarete" hidden></p>
           <div class="etats" id="previewStates"></div>
+
+          <!-- « Je cherche » : une intention, pas un inventaire. Masqué sur ce
+               qu'on possède déjà — sauf si l'envie y est encore, pour pouvoir
+               la retirer. Voir js/recherches.js. -->
+          <button class="fiche-cherche" id="ficheCherche" type="button" hidden
+                  aria-pressed="false">&#128270; Je le cherche</button>
 
           <!-- La fiche de capture : ce que TON exemplaire a de particulier.
                Repliée par défaut, et absente tant que l'entrée n'est pas
@@ -1388,75 +1485,88 @@
   </div>
 </div>
 
-<script src="../src/js/donnees.js?v=1787918736"></script>
+<script src="../src/js/donnees.js?v=1787965090"></script>
 <!-- Généré par outils/generer-donnees.html. Doit précéder cache.js, qui y
      puise quand le stockage local est vide. -->
-<script src="../src/js/donnees-embarquees.js?v=1787918736"></script>
+<script src="../src/js/donnees-embarquees.js?v=1787965090"></script>
 <!-- Les notices du Pokédex, une par espèce et par jeu, relevées sur Poképédia
      par outils/relever-descriptions.py, ne sont PAS déclarées ici : fiche.js va
      les chercher à la première fiche ouverte, comme les attaques et les lieux.
      Une notice par jeu, c'est vingt-deux fois le texte d'une notice par espèce
      — de quoi allonger chaque démarrage pour une carte qu'on ne lit pas
      toujours. -->
-<script src="../src/js/cache.js?v=1787918736"></script>
-<script src="../src/js/noyau.js?v=1787918736"></script>
-<script src="../src/js/confirmer.js?v=1787918736"></script>
-<script src="../src/js/maj.js?v=1787918736"></script>
-<script src="../src/js/nouveautes.js?v=1787918736"></script>
+<script src="../src/js/cache.js?v=1787965090"></script>
+<script src="../src/js/noyau.js?v=1787965090"></script>
+<script src="../src/js/confirmer.js?v=1787965090"></script>
+<script src="../src/js/maj.js?v=1787965090"></script>
+<script src="../src/js/nouveautes.js?v=1787965090"></script>
 <!-- Le lexique. Autonome : il ne lit rien d'autre que ses propres définitions,
      et pose ses pastilles au DOMContentLoaded. -->
-<script src="../src/js/lexique.js?v=1787918736"></script>
-<script src="../src/js/serveur.js?v=1787918736"></script>
-<script src="../src/js/formes.js?v=1787918736"></script>
-<script src="../src/js/accueil.js?v=1787918736"></script>
-<script src="../src/js/dex.js?v=1787918736"></script>
+<script src="../src/js/lexique.js?v=1787965090"></script>
+<script src="../src/js/serveur.js?v=1787965090"></script>
+<script src="../src/js/formes.js?v=1787965090"></script>
+<script src="../src/js/accueil.js?v=1787965090"></script>
+<script src="../src/js/dex.js?v=1787965090"></script>
 <!-- Les distributions françaises, à la main. Doit précéder cadeaux.js et
      fiche.js, qui y puisent tous les deux. -->
-<script src="../src/js/evenements.js?v=1787918736"></script>
-<script src="../src/js/cadeaux.js?v=1787918736"></script>
-<script src="../src/js/fiche.js?v=1787918736"></script>
-<script src="../src/js/grille.js?v=1787918736"></script>
+<script src="../src/js/evenements.js?v=1787965090"></script>
+<script src="../src/js/cadeaux.js?v=1787965090"></script>
+<script src="../src/js/fiche.js?v=1787965090"></script>
+<script src="../src/js/grille.js?v=1787965090"></script>
 <!-- Après dex.js et grille.js : les objectifs figent currentFiltered. -->
-<script src="../src/js/objectifs.js?v=1787918736"></script>
+<script src="../src/js/objectifs.js?v=1787965090"></script>
 <!-- Après grille.js : la fiche de capture complète la fenêtre d'aperçu. -->
-<script src="../src/js/capture.js?v=1787918736"></script>
+<script src="../src/js/capture.js?v=1787965090"></script>
 <!-- Après compte.js : la rareté demande la table à l'API. -->
-<script src="../src/js/rarete.js?v=1787918736"></script>
-<script src="../src/js/lieux.js?v=1787918736"></script>
-<script src="../src/js/chasse.js?v=1787918736"></script>
+<script src="../src/js/rarete.js?v=1787965090"></script>
+<script src="../src/js/lieux.js?v=1787965090"></script>
+<script src="../src/js/chasse.js?v=1787965090"></script>
 <!-- Les règles de combat, puis l'écran qui s'appuie dessus. Tous deux après
      fiche.js (TYPE_RELATIONS, puceType, decoderBloc) et avant menus.js, qui
      stylise leurs menus déroulants. -->
-<script src="../src/js/combat.js?v=1787918736"></script>
-<script src="../src/js/strategie.js?v=1787918736"></script>
+<script src="../src/js/combat.js?v=1787965090"></script>
+<script src="../src/js/strategie.js?v=1787965090"></script>
 <!-- Après strategie.js : il lui emprunte creerSelecteur. -->
-<script src="../src/js/reproduction.js?v=1787918736"></script>
+<script src="../src/js/reproduction.js?v=1787965090"></script>
 <!-- Après donnees.js pour GAMES, et après reproduction.js par simple
      voisinage : les trois partagent la barre « Outils ». -->
-<script src="../src/js/transferts.js?v=1787918736"></script>
-<script src="../src/js/partage.js?v=1787918736"></script>
-<script src="../src/js/menus.js?v=1787918736"></script>
+<script src="../src/js/transferts.js?v=1787965090"></script>
+<script src="../src/js/partage.js?v=1787965090"></script>
+<script src="../src/js/menus.js?v=1787965090"></script>
 <!-- Redéfinit la couche de sauvegarde quand l'app tourne dans Tauri.
      Hors Tauri (serveur.py, ou fichier ouvert directement), il ne fait rien. -->
 
-<script src="../src/js/amis.js?v=1787918736"></script>
+<script src="../src/js/amis.js?v=1787965090"></script>
 <!-- Après partage.js, dont il complète le panneau d'entraide, et après
      compte.js pour nomJournal, libelleDex, avatarDiscord et dateLisible. -->
-<script src="../src/js/troc.js?v=1787918736"></script>
+<script src="../src/js/troc.js?v=1787965090"></script>
 <!-- Après amis.js (pontNotif, bullePermise) et troc.js (ouvrirDiscussion). -->
-<script src="../src/js/notifs.js?v=1787918736"></script>
-<script src="../src/js/retrospective.js?v=1787918736"></script>
-<script src="../src/js/succes.js?v=1787918736"></script>
+<script src="../src/js/notifs.js?v=1787965090"></script>
+<!-- Après chasse.js (nomDeChasse, dessinerTableauChasse) et compte.js
+     (perdreSession, profilCourant). -->
+<script src="../src/js/photos.js?v=1787965090"></script>
+<!-- Après formes.js (speciesForVariant, poolEntries), accueil.js (semeur,
+     hachage) et photos.js (vignettePhoto). -->
+<script src="../src/js/defi.js?v=1787965090"></script>
+<!-- Après compte.js (nomJournal, perdreSession) et amis.js. -->
+<script src="../src/js/recherches.js?v=1787965090"></script>
+<!-- Après dex.js (obtentionDe) et recherches.js (chercheDeja). -->
+<script src="../src/js/blocages.js?v=1787965090"></script>
+<!-- Après grille.js (BOITE_TAILLE, allerBoite, basculerBoites) et dex.js
+     (trierEntrees). -->
+<script src="../src/js/rangement.js?v=1787965090"></script>
+<script src="../src/js/retrospective.js?v=1787965090"></script>
+<script src="../src/js/succes.js?v=1787965090"></script>
 <!-- Après retrospective.js : la carte lit retroDonnees si elle est là, et se
      passe d'elle sinon. -->
-<script src="../src/js/carte.js?v=1787918736"></script>
+<script src="../src/js/carte.js?v=1787965090"></script>
 <!-- Après compte.js : le premier lancement lit profilCourant et profilsConnus. -->
-<script src="../src/js/depart.js?v=1787918736"></script>
-<script src="../src/js/donnees-perso.js?v=1787918736"></script>
-<script src="../src/js/presence.js?v=1787918736"></script>
+<script src="../src/js/depart.js?v=1787965090"></script>
+<script src="../src/js/donnees-perso.js?v=1787965090"></script>
+<script src="../src/js/presence.js?v=1787965090"></script>
 
-<script src="../src/js/selecteur-couleur.js?v=1787918736"></script>
-<script src="../src/js/apparence.js?v=1787918736"></script>
+<script src="../src/js/selecteur-couleur.js?v=1787965090"></script>
+<script src="../src/js/apparence.js?v=1787965090"></script>
 <script src="generer.js"></script>
 </body>
 </html>

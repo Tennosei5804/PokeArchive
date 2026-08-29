@@ -2999,6 +2999,8 @@ async function remplirFiche(entry){
   // La rareté arrive par le réseau : la fiche s'affiche sans l'attendre, et la
   // ligne se remplit quand la table est là.
   if(typeof assurerRarete === 'function') assurerRarete(entry);
+  if(typeof dessinerBoutonRecherche === 'function') dessinerBoutonRecherche();
+  if(typeof dessinerRangement === 'function') dessinerRangement(entry);
 
   // « Disponible dans » n'a de sens que sur le Pokédex Pokémon HOME : sur
   // l'onglet d'un jeu, la réponse est le jeu lui-même. On masque le bloc ici,

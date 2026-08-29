@@ -824,6 +824,11 @@ function dessinerTableauChasse(){
     n.title = c.fin ? 'Trouvé ' + depuisQuand(c.fin) : '';
     ligne.appendChild(n);
 
+    // La photo de la rencontre, s'il y en a une — et la case pour en poser une
+    // sinon. Elle vient de photos.js, chargé après celui-ci : le tableau se
+    // dessine sans elle dans les pages de génération, qui n'ont pas de pont.
+    if(typeof vignettePhoto === 'function') ligne.appendChild(vignettePhoto(c));
+
     liste.appendChild(ligne);
   });
   chasseTableau.appendChild(liste);

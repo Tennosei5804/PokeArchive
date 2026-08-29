@@ -525,6 +525,7 @@ async function applyScope(){
     scopeEntries = poolHome();
     dexRank = null;
     dexNumber = null;
+    if(typeof majBoutonBlocages === 'function') majBoutonBlocages();
     scopeHead.style.display = 'none';
     scopeNote.style.display = 'none';
     updateSortOptions();
@@ -538,6 +539,7 @@ async function applyScope(){
 
   const variant = activeVariant();
   updateSortOptions();
+  if(typeof majBoutonBlocages === 'function') majBoutonBlocages();
   scopeHead.style.display = '';
   scopeTitle.innerHTML = escapeHtml(game.title) + '<small>' + escapeHtml(game.machine) + '</small>';
 

@@ -924,6 +924,149 @@ async fn notifications_lues(
     .await
 }
 
+// ---- Les photos de chasse ---------------------------------------------------
+//
+// Deux allers-retours que `appeler` ne sait pas faire : envoyer des octets
+// bruts, et en recevoir. Tout le reste de l'API parle JSON ; une image, non.
+
+/// Envoie une image telle quelle, avec son type.
+async fn envoyer_octets(
+    chemin: &str,
+    jeton: &str,
+    mime: &str,
+    octets: Vec<u8>,
+) -> Result<serde_json::Value, String> {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(60))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let reponse = client
+        .post(format!("{}{}", api(), chemin))
+        .bearer_auth(jeton)
+        .header(reqwest::header::CONTENT_TYPE, mime)
+        .body(octets)
+        .send()
+        .await
+        .map_err(|_| "API injoignable. Vérifie ta connexion.".to_string())?;
+
+    let statut = reponse.status();
+    let texte = reponse.text().await.unwrap_or_default();
+    if !statut.is_success() {
+        if statut == reqwest::StatusCode::UNAUTHORIZED {
+            return Err("SESSION_INVALIDE".to_string());
+        }
+        let message = serde_json::from_str::<serde_json::Value>(&texte)
+            .ok()
+            .and_then(|v| v.get("erreur").and_then(|e| e.as_str()).map(String::from))
+            .unwrap_or_else(|| format!("Erreur {statut}"));
+        return Err(message);
+    }
+    serde_json::from_str(&texte).map_err(|e| e.to_string())
+}
+
+/// Dépose une photo sur une aventure. Rend son identifiant.
+///
+/// L'APPLICATION A DÉJÀ REDESSINÉ L'IMAGE avant d'arriver ici : redimensionnée
+/// dans un canvas, réencodée en JPEG, donc sans métadonnées. Le serveur ne s'y
+/// fie pas pour autant et revérifie tout — voir api/src/images.js.
+#[tauri::command]
+async fn image_envoyer(
+    etat: State<'_, Etat>,
+    profil: i64,
+    sujet: String,
+    mime: String,
+    octets: Vec<u8>,
+) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    let chemin = format!(
+        "/api/images?profil={profil}&sujet={}",
+        urlencode(&sujet)
+    );
+    envoyer_octets(&chemin, &jeton, &mime, octets).await
+}
+
+/// Une photo, rendue en adresse `data:` prête à poser dans un <img>.
+///
+/// POURQUOI DU BASE64 ET NON UN LIEN. La fenêtre ne peut pas aller chercher
+/// l'image elle-même : l'adresse exige le jeton de session, qui vit ici et ne
+/// descend jamais dans la page. Le passage par le pont coûte un tiers de
+/// volume en plus — c'est le prix d'un jeton qui reste où il est.
+#[tauri::command]
+async fn image_charger(etat: State<'_, Etat>, id: i64) -> Result<String, String> {
+    let jeton = etat.jeton()?;
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let reponse = client
+        .get(format!("{}/api/images/{id}", api()))
+        .bearer_auth(&jeton)
+        .send()
+        .await
+        .map_err(|_| "API injoignable. Vérifie ta connexion.".to_string())?;
+
+    let statut = reponse.status();
+    if !statut.is_success() {
+        if statut == reqwest::StatusCode::UNAUTHORIZED {
+            return Err("SESSION_INVALIDE".to_string());
+        }
+        return Err(format!("Erreur {statut}"));
+    }
+
+    let mime = reponse
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("image/jpeg")
+        .to_string();
+    let octets = reponse.bytes().await.map_err(|e| e.to_string())?;
+
+    Ok(format!(
+        "data:{mime};base64,{}",
+        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &octets)
+    ))
+}
+
+#[tauri::command]
+async fn image_supprimer(etat: State<'_, Etat>, id: i64) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    let chemin = format!("/api/images/{id}");
+    appeler(reqwest::Method::DELETE, &chemin, &jeton, None).await
+}
+
+/// Ce que les photos occupent, pour le dire dans les Paramètres.
+#[tauri::command]
+async fn images_place(etat: State<'_, Etat>) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(reqwest::Method::GET, "/api/images", &jeton, None).await
+}
+
+/// Le mur d'un dresseur : ses photos, celles qu'on a le droit de voir.
+#[tauri::command]
+async fn photos_de(etat: State<'_, Etat>, pseudo: String) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    let chemin = format!("/api/dresseurs/{}/photos", urlencode(&pseudo));
+    appeler(reqwest::Method::GET, &chemin, &jeton, None).await
+}
+
+/// « Je cherche » : chez qui, parmi mes amis, trouver ce que je veux.
+#[tauri::command]
+async fn qui_a(
+    etat: State<'_, Etat>,
+    noms: Vec<String>,
+) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(
+        reqwest::Method::POST,
+        "/api/amis/qui-a",
+        &jeton,
+        Some(serde_json::json!({ "noms": noms })),
+    )
+    .await
+}
+
 /// Les raccourcis globaux du compteur de chasse.
 ///
 /// POURQUOI GLOBAUX, ET PAS SEULEMENT DANS LA FENÊTRE. Un compteur se frappe
@@ -1053,6 +1196,12 @@ pub fn run() {
             echange_ecrire,
             notifications,
             notifications_lues,
+            image_envoyer,
+            image_charger,
+            image_supprimer,
+            images_place,
+            photos_de,
+            qui_a,
             presence::presence_maj,
             presence::presence_effacer,
             overlay::overlay_demarrer,

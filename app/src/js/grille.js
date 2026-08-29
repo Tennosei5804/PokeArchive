@@ -473,6 +473,22 @@ function dessinerNavBoites(total){
   boiteNav.appendChild(note);
 }
 
+/**
+ * Entre en vue boîtes, ou en sort.
+ *
+ * Extraite de l'écouteur du bouton : le plan de rangement doit pouvoir y
+ * emmener depuis une fiche, et une fonction anonyme ne s'appelle pas.
+ */
+function basculerBoites(){
+  vueBoites = !vueBoites;
+  // On revient toujours à la première boîte en entrant : garder la boîte 27
+  // d'un autre Pokédex n'aurait aucun sens.
+  boiteCourante = 0;
+  majBoutonBoites();
+  renderList(true);
+  listEl.scrollTop = 0;
+}
+
 function allerBoite(n){
   const tout = entreesEnBoites();
   const combien = nombreDeBoites(tout.length);
@@ -531,14 +547,6 @@ function renderBoites(){
 }
 
 if(boitesBtn){
-  boitesBtn.addEventListener('click', function(){
-    vueBoites = !vueBoites;
-    // On revient toujours à la première boîte en entrant : garder la boîte 27
-    // d'un autre Pokédex n'aurait aucun sens.
-    boiteCourante = 0;
-    majBoutonBoites();
-    renderList(true);
-    listEl.scrollTop = 0;
-  });
+  boitesBtn.addEventListener('click', basculerBoites);
   majBoutonBoites();
 }

@@ -191,3 +191,88 @@
     padding:12px;
   }
 
+
+/* ---- Le defi du jour ------------------------------------------------------
+   Un Pokemon tire au hasard dans un jeu tire au hasard, le meme pour tout le
+   monde, et RIEN D'OBLIGATOIRE. Le ton de la carte porte cela : elle ne crie
+   pas, elle n'a pas de compte a rebours, et rien n'y rougit quand on saute un
+   jour. C'est une invitation posee sur l'accueil, pas une tache.
+
+   D'ou le fond de carte ordinaire plutot qu'une couleur d'alerte : elle vit au
+   milieu des autres blocs, a la meme hauteur de voix. */
+.defi{ margin-bottom:18px; }
+
+.defi-carte{
+  display:flex; align-items:center; gap:14px;
+  padding:13px 15px;
+  background:var(--card); border:1px solid var(--card-border); border-radius:12px;
+}
+/* Releve : un liseré vert a gauche, et rien de plus. Une carte qui change
+   entierement de couleur donnerait a l'accueil un air de tableau de bord. */
+.defi-carte.releve{ border-left:3px solid var(--caught); }
+
+.defi-sprite{
+  flex:0 0 auto; width:64px; height:64px;
+  display:grid; place-items:center;
+  background:var(--screen); border-radius:10px;
+}
+.defi-sprite img{ width:58px; height:58px; object-fit:contain; }
+
+.defi-corps{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.defi-nom{
+  font-family:var(--font-body); font-size:17px; font-weight:700; color:var(--ink);
+}
+.defi-jeu{ font-family:var(--font-data); font-size:11px; color:var(--ink-soft); }
+.defi-etat{ font-family:var(--font-body); font-size:12.5px; color:var(--ink-faint); }
+
+.defi-actions{ display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+
+.defi-compte{
+  margin:7px 2px 0;
+  font-family:var(--font-data); font-size:10.5px; color:var(--ink-faint);
+}
+
+/* Sous 560 px la carte se plie : le nom et le jeu passent sous le sprite, et
+   les boutons prennent toute la largeur plutot que de compresser le nom a
+   trois caracteres. */
+@media (max-width:560px){
+  .defi-carte{ flex-wrap:wrap; }
+  .defi-actions{ width:100%; justify-content:flex-end; }
+}
+
+/* ---- Les defis passes -----------------------------------------------------
+   Une grille de vignettes, parce que c'est la PHOTO qu'on revient regarder :
+   une liste de noms et de dates ne se relit pas. */
+.defis-card{ width:min(660px, 94vw); }
+.defis-note{
+  font-family:var(--font-data); font-size:11px; color:var(--ink-soft);
+  margin:0 0 12px;
+}
+.defis-grille{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(96px, 1fr));
+  gap:10px; max-height:min(56vh, 420px); overflow-y:auto; padding:2px;
+}
+.defi-passe{
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:9px 6px;
+  background:var(--screen); border:1px solid var(--card-border); border-radius:9px;
+}
+/* Releve : le meme lisere vert que la carte du jour, en haut cette fois — la
+   vignette occupe la gauche. */
+.defi-passe.releve{ border-top:2px solid var(--caught); }
+.defi-passe .chasse-photo{ margin-left:0; width:76px; height:54px; }
+.defi-passe-nom{
+  font-family:var(--font-body); font-size:12px; color:var(--ink);
+  text-align:center; overflow-wrap:anywhere;
+}
+.defi-passe-jour{ font-family:var(--font-data); font-size:9.5px; color:var(--ink-faint); }
+
+/* Le lien vers l'historique, dans la ligne du compte. Un bouton nu : c'est une
+   phrase, pas une commande, et un bouton dessine y ferait une seconde action
+   concurrente de « Relever ». */
+.defi-lien{
+  border:none; background:none; padding:0; cursor:pointer;
+  font-family:var(--font-data); font-size:10.5px; color:var(--ink-soft);
+  text-decoration:underline;
+}
+.defi-lien:hover{ color:var(--ink); }

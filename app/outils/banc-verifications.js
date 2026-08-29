@@ -1038,6 +1038,176 @@ verifier('Les échanges',
 
 // ---------------------------------------------------------------------------
 
+verifier('Le rangement',
+  'La coordonnee de boite ne bouge pas quand on change de tri',
+  async function(){
+    // C'EST TOUTE LA RAISON D'ETRE DU PLAN. La vue boites obeit au tri
+    // affiche — trier par type y fait des boites par type, et c'est un usage
+    // legitime. Mais une coordonnee qui se deplace parce qu'on a clique
+    // « alphabetique » n'est pas un plan : on ne rearrange pas trente boites a
+    // chaque changement d'ecran.
+    if(!scopeEntries.length) return 'ignore : aucun perimetre charge';
+    const cible = scopeEntries[Math.min(40, scopeEntries.length - 1)];
+
+    const avant = sortEl.value;
+    sortEl.value = 'game';
+    const parJeu = placeDansLePlan(cible);
+    sortEl.value = 'name';
+    const parNom = placeDansLePlan(cible);
+    sortEl.value = 'rarete';
+    const parRarete = placeDansLePlan(cible);
+    sortEl.value = avant;
+
+    if(!parJeu) return 'échec : aucune place trouvee';
+    if(parJeu.boite !== parNom.boite || parJeu.place !== parNom.place){
+      return 'échec : boite ' + parJeu.boite + '/' + parJeu.place
+           + ' par jeu, ' + parNom.boite + '/' + parNom.place + ' par nom';
+    }
+    if(parJeu.boite !== parRarete.boite || parJeu.place !== parRarete.place){
+      return 'échec : le tri par rarete deplace la coordonnee';
+    }
+    // Et elle doit tomber juste : trente par boite, la case entre 1 et 30.
+    if(parJeu.place < 1 || parJeu.place > 30) return 'échec : case ' + parJeu.place;
+    return cible.name + ' en boite ' + (parJeu.boite + 1) + ' case ' + parJeu.place
+           + ', identique sous trois tris';
+  });
+
+verifier('Les blocages',
+  'On n annonce rien la ou le Pokedex n a pas ete releve',
+  function(){
+    // Un jeu sans releve n'a pas « aucun blocage » : il a une absence de
+    // source. Les confondre reviendrait a promettre qu'on peut tout attraper
+    // la ou l'on ne sait simplement pas — le pire des deux mensonges.
+    if(typeof DONNEES_LIEUX === 'undefined') return 'ignore : reserve des lieux absente';
+    const releves = DONNEES_LIEUX.pokedexReleve || [];
+    const avant = currentTab;
+
+    // Un jeu releve doit repondre, un jeu non releve doit se taire.
+    const dedans = GAMES.find(function(g){ return releves.indexOf(g.key) !== -1; });
+    const dehors = GAMES.find(function(g){ return releves.indexOf(g.key) === -1; });
+    if(!dedans) return 'ignore : aucun Pokedex releve';
+
+    currentTab = dedans.key;
+    const oui = jeuReleve();
+    currentTab = dehors ? dehors.key : 'national';
+    const non = jeuReleve();
+    currentTab = avant;
+
+    if(!oui) return 'échec : ' + dedans.key + ' est releve et le banc dit non';
+    if(dehors && non) return 'échec : ' + dehors.key + ' n est pas releve et le banc dit oui';
+    return releves.length + ' Pokedex releves ; ' + dedans.key + ' parle, '
+         + (dehors ? dehors.key + ' se tait' : 'tous sont releves');
+  });
+
+// ---------------------------------------------------------------------------
+// Le defi du jour.
+
+verifier('Le defi du jour',
+  'Le meme jour donne le meme Pokemon, deux jours donnent deux tirages',
+  function(){
+    // C'EST TOUTE LA MECANIQUE. Le defi ne s'ecrit nulle part et ne demande
+    // rien au serveur : il se deduit de la date. Si le tirage n'etait pas
+    // reproductible, il changerait a chaque rechargement et deux joueurs ne
+    // verraient jamais le meme — ce qui lui oterait son seul interet social.
+    const a = tirerDefi('2026-08-28');
+    const b = tirerDefi('2026-08-28');
+    const c = tirerDefi('2026-08-29');
+    if(!a) return 'ignore : la reserve n est pas chargee';
+    if(a.entree.name !== b.entree.name){
+      return 'échec : deux tirages du meme jour different';
+    }
+    if(!c) return 'échec : le lendemain ne tire rien';
+    // Deux jours PEUVENT tomber sur le meme par hasard ; sur trois dates, non.
+    const d = tirerDefi('2026-09-04');
+    const tous = [a, c, d].map(function(x){ return x && x.entree.name; });
+    if(tous[0] === tous[1] && tous[1] === tous[2]){
+      return 'échec : trois dates, un seul tirage — le semeur ne tourne pas';
+    }
+    return 'stable le meme jour, different le lendemain : ' + tous.join('  |  ');
+  });
+
+verifier('Le defi du jour',
+  'Le tirage ne depend d aucun reglage d aventure',
+  function(){
+    // POURQUOI CELA COMPTE. Le defi est le meme pour tout le monde, et il n'est
+    // synchronise par rien : c'est le tirage lui-meme qui doit etre identique
+    // partout. S'il lisait poolHome(), il suivrait niveauFormes — un reglage
+    // qui appartient a l'aventure — et deux joueurs regles differemment
+    // n'auraient pas le meme Pokemon le meme jour, sans que rien ne le dise.
+    const avant = niveauFormes;
+    niveauFormes = 1;
+    const bas = tirerDefi('2026-08-28');
+    niveauFormes = 4;
+    const haut = tirerDefi('2026-08-28');
+    niveauFormes = avant;
+    if(!bas || !haut) return 'ignore : la reserve n est pas chargee';
+    if(bas.entree.name !== haut.entree.name){
+      return 'échec : ' + bas.entree.name + ' au niveau 1, ' + haut.entree.name + ' au niveau 4';
+    }
+    // Et aucun jeu n'est nomme : le defi vaut partout.
+    if(bas.jeu) return 'échec : un jeu est encore attache au defi';
+    return bas.entree.name + ' aux niveaux 1 et 4, sans jeu impose';
+  });
+
+// ---------------------------------------------------------------------------
+// Les photos de chasse.
+
+/** Un fichier image fabrique a la volee, plus grand que la borne d'envoi. */
+function photoTemoin(largeur, hauteur){
+  const toile = document.createElement('canvas');
+  toile.width = largeur; toile.height = hauteur;
+  const ctx = toile.getContext('2d');
+  ctx.fillStyle = '#204080'; ctx.fillRect(0, 0, largeur, hauteur);
+  ctx.fillStyle = '#ffcc00'; ctx.fillRect(10, 10, largeur / 2, hauteur / 2);
+  // Le Blob rendu par toBlob suffit : FileReader le lit comme un fichier, et
+  // c'est tout ce que redessinerPhoto lui demande. Un File par-dessus
+  // n'ajouterait qu'un nom dont personne ne se sert.
+  return new Promise(function(r){
+    toile.toBlob(function(b){ r(b); }, 'image/png');
+  });
+}
+
+verifier('Les photos',
+  "Une capture trop grande est ramenee sous la borne avant de partir",
+  async function(){
+    // POURQUOI CETTE VERIFICATION. Une photo de telephone fait 4000 px et huit
+    // megaoctets ; l'envoyer telle quelle remplirait le disque du serveur pour
+    // une vignette de cent pixels. Et c'est le REDESSIN qui efface l'EXIF au
+    // passage : s'il saute, la position GPS part avec l'image.
+    const fichier = await photoTemoin(2400, 1350);
+    const r = await redessinerPhoto(fichier);
+    if(Math.max(r.largeur, r.hauteur) !== PHOTO_COTE_MAX){
+      return 'échec : ' + r.largeur + ' x ' + r.hauteur + ', borne a ' + PHOTO_COTE_MAX;
+    }
+    // Le rapport doit tenir : 2400/1350 vaut 16/9, donc 1600 x 900.
+    if(r.hauteur !== 900) return 'échec : rapport perdu, hauteur ' + r.hauteur;
+    // Et le resultat doit etre un JPEG, pas le PNG d'origine : les deux
+    // premiers octets d'un JPEG sont FF D8.
+    if(r.octets[0] !== 0xFF || r.octets[1] !== 0xD8){
+      return 'échec : ce qui part n est pas un JPEG';
+    }
+    return '2400x1350 devenu ' + r.largeur + 'x' + r.hauteur + ', ' + r.octets.length + ' octets en JPEG';
+  });
+
+verifier('Les photos',
+  "La vignette invite quand il n y a rien, et montre quand il y a quelque chose",
+  async function(){
+    const sans = vignettePhoto({ pokemon: 'eevee', dex: 'rby' });
+    if(!sans.classList.contains('vide')) return 'échec : la case vide ne se signale pas';
+    if(sans.querySelector('img')) return 'échec : une image sans photo';
+
+    const avec = vignettePhoto({ pokemon: 'eevee', dex: 'rby', image: 1 });
+    if(avec.classList.contains('vide')) return 'échec : la case pleine se dit vide';
+    const img = avec.querySelector('img');
+    if(!img) return 'échec : aucune image dans la case pleine';
+    await attendre(300);
+    if(!img.getAttribute('src')) return 'échec : la photo n arrive jamais';
+    return 'vide : ' + sans.textContent + '  //  pleine : image de '
+           + img.getAttribute('src').slice(0, 22) + '...';
+  });
+
+// ---------------------------------------------------------------------------
+
 async function lancerBanc(){
   const panneau = document.createElement('div');
   panneau.id = 'bancRapport';

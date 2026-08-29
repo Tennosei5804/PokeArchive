@@ -669,6 +669,23 @@
     notifications: () => ({ notifications: [], nonLues: 0 }),
     notifications_lues: () => ({ ok: true, nonLues: 0 }),
 
+    // Les photos de chasse supposent un disque où les poser. Le site n'en a
+    // pas : il tient une collection dans le localStorage du navigateur, dont
+    // le budget entier — quelques mégaoctets — serait mangé par deux captures
+    // d'écran, et la collection cesserait de s'enregistrer.
+    //
+    // On lève donc plutôt que de faire semblant : l'appareil photo du tableau
+    // de chasse dit franchement que ça ne marche pas ici, au lieu d'avaler une
+    // image qui disparaîtrait au rechargement.
+    image_envoyer: () => { throw HORS_LIGNE; },
+    image_charger: () => { throw HORS_LIGNE; },
+    image_supprimer: () => { throw HORS_LIGNE; },
+    images_place: () => ({ combien: 0, octets: 0, combienMax: 0, octetsMax: 0 }),
+    photos_de: () => ({ pseudo: '', photos: [] }),
+    // La liste d'envies vit dans la sauvegarde et marche donc hors ligne ;
+    // c'est « chez qui la trouver » qui suppose des amis, et il n'y en a pas.
+    qui_a: () => ({ chez: {} }),
+
     // --- Propres au bureau ----------------------------------------------------
     //
     // La présence Discord suppose un client Discord sur la machine. Ne rien

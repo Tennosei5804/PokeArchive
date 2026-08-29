@@ -60,6 +60,12 @@ const PROFILS = [
     captures:0, shiny:0, cree_le:'', maj_le:'' },
 ];
 
+// Une photo deja posee, comme sur une chasse aboutie d'il y a trois mois :
+// c'est l'etat courant du tableau, pas la case vide.
+let DERNIERE_IMAGE = 1;
+const IMAGES = new Map([[1, []]]);
+const PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
 let DERNIER_TROC = 2;
 const ECHANGES = [
   { id:1, sens:'recu', dex:'rby', jeDonne:'machop', jeRecois:'grimer', etat:'propose',
@@ -156,6 +162,21 @@ const REPONSES = {
   notifications:   () => ({ notifications: NOTIFS.map(n => ({ ...n })),
                             nonLues: NOTIFS.filter(n => !n.lu).length }),
   notifications_lues: () => { NOTIFS.forEach(n => { n.lu = true; }); return { ok:true, nonLues:0 }; },
+
+  // --- Les photos de chasse -------------------------------------------------
+  //
+  // Le stub retient les OCTETS RECUS : c'est la seule facon de verifier que
+  // l'application redessine bien avant d'envoyer, et n'expedie pas le fichier
+  // d'origine avec ses metadonnees.
+  image_envoyer:   (a) => { const id = ++DERNIERE_IMAGE;
+                            IMAGES.set(id, (a && a.octets) || []);
+                            return { ok:true, id, octets:((a&&a.octets)||[]).length,
+                                     largeur:0, hauteur:0 }; },
+  image_charger:   (a) => { if(!IMAGES.has(a && a.id)) throw new Error('Photo introuvable.');
+                            return PIXEL; },
+  image_supprimer: (a) => { IMAGES.delete(a && a.id); return { ok:true, id:(a&&a.id) }; },
+  images_place:    () => ({ combien: IMAGES.size, octets: 0,
+                            combienMax: 60, octetsMax: 41943040 }),
 };
 
 // Le journal des appels : sans lui, on ne peut pas distinguer « la fenetre s'est

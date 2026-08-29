@@ -852,3 +852,26 @@ table.attaques{
   line-height:1.5;
   color:var(--gold-deep);
 }
+
+/* ---- Le plan de rangement -------------------------------------------------
+   Une ligne sur la fiche, pas un panneau : c'est un renseignement qu'on lit en
+   une seconde, la console dans l'autre main. */
+.fiche-rangement{
+  display:flex; align-items:baseline; gap:9px; flex-wrap:wrap;
+  margin-top:8px; padding:7px 11px;
+  background:var(--screen); border-radius:8px;
+}
+.rangement-ou{
+  font-family:var(--font-body); font-size:13.5px; font-weight:700; color:var(--ink);
+}
+.rangement-quoi{
+  flex:1 1 auto;
+  font-family:var(--font-data); font-size:10px; color:var(--ink-faint);
+}
+.rangement-y-aller{
+  flex:0 0 auto;
+  border:none; background:none; padding:0; cursor:pointer;
+  font-family:var(--font-data); font-size:10px; color:var(--ink-soft);
+  text-decoration:underline;
+}
+.rangement-y-aller:hover{ color:var(--ink); }
