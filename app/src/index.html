@@ -361,6 +361,10 @@
 
         <div class="chasse-depart">
           <button class="toggle-btn primary" id="chasseNouvelle" type="button">✨ Créer une chasse</button>
+          <!-- Le catalogue des verrous. À côté de la création, parce que la
+               question se pose là : avant de lancer trois mille rencontres. -->
+          <button class="toggle-btn" id="verrousBtn" type="button"
+                  title="Les Pokémon dont la forme chromatique ne s'obtient pas — nulle part, ou pas dans ce jeu.">🔒 Shiny-lock</button>
           <!-- L'overlay OBS. Masqué sur le site : un navigateur ne peut pas
                ouvrir d'écoute locale. Voir overlay.rs et chasse.js. -->
           <button class="toggle-btn" id="overlayBtn" type="button" hidden
@@ -1149,6 +1153,37 @@
   </div>
 </div>
 
+<!-- Le catalogue des verrous chromatiques. Voir verrous.js : il se consulte,
+     il ne bloque rien — la table est tenue à la main et ne prétend pas être
+     complète. Les générations du filtre sont remplies par le script, comme les
+     jeux : deux listes de moins à tenir d'accord avec GEN_RANGES et GAMES. -->
+<div class="modal-overlay" id="verrousOverlay" style="display:none;" role="dialog"
+     aria-modal="true" aria-labelledby="verrousTitre">
+  <div class="modal-card verrou-card">
+    <button class="fiche-fermer" id="verrousFermer" type="button" aria-label="Fermer">✕</button>
+    <div class="modal-eyebrow">Avant de lancer une chasse</div>
+    <h2 class="modal-title" id="verrousTitre">Shiny-lock</h2>
+    <p class="verrou-note">Ces Pokémon ne peuvent pas être chromatiques — nulle part,
+      ou pas par cette rencontre-là. Rien n'est bloqué&nbsp;: la liste est tenue à la
+      main et reste incomplète.<br>
+      Rouge, Bleu et Jaune n'y figurent pas&nbsp;: le chromatique apparaît en Or et
+      Argent, et ces trois jeux n'en ont aucun.</p>
+    <div class="verrou-filtres">
+      <input type="search" id="verrouQ" class="lexique-q"
+             placeholder="Un nom, un numéro…" aria-label="Chercher un Pokémon"
+             autocomplete="off">
+      <select id="verrouGen" aria-label="Filtrer par génération">
+        <option value="tous">Toutes générations</option>
+      </select>
+      <select id="verrouJeu" aria-label="Filtrer par jeu">
+        <option value="tous">Tous les jeux</option>
+      </select>
+    </div>
+    <div class="verrou-compte" id="verrouCompte"></div>
+    <div class="verrou-liste" id="verrousListe"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="nouveautesOverlay" style="display:none;" role="dialog"
      aria-modal="true" aria-labelledby="nouveautesTitre">
   <div class="modal-card nouveautes-card">
@@ -1534,6 +1569,7 @@
 <script src="js/rarete.js"></script>
 <script src="js/lieux.js"></script>
 <script src="js/chasse.js"></script>
+<script src="js/verrous.js"></script>
 <!-- Les règles de combat, puis l'écran qui s'appuie dessus. Tous deux après
      fiche.js (TYPE_RELATIONS, puceType, decoderBloc) et avant menus.js, qui
      stylise leurs menus déroulants. -->

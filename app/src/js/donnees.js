@@ -204,6 +204,51 @@ const SHINY_LOCKED = new Set([
   1024, 1025   // Terapagos, Pêchaminus
 ]);
 
+// Les jeux sans chromatique du tout — Rouge, Bleu, Jaune — sont déjà déclarés
+// par chasse.js sous le nom SANS_CHROMATIQUES, et l'écran de chasse les écarte
+// déjà de son sélecteur. Une seconde liste ici serait une seconde vérité à tenir
+// d'accord avec la première.
+
+// Les verrous qui ne valent QUE dans certains jeux.
+//
+// SHINY_LOCKED dit « nulle part, jamais ». Ceci dit « pas ici, mais ailleurs
+// oui » — et c'est le cas le plus fréquent : un starter offert par le professeur
+// ne peut pas être chromatique, alors que la même espèce se chasse librement
+// dans un autre jeu, ou par reproduction dans celui-ci.
+//
+// LE VERROU PORTE SUR UNE RENCONTRE, PAS SUR UNE ESPÈCE. C'est ce qui rend cette
+// table longue à écrire et c'est ce qui la rend juste : le Ouistempo offert est
+// verrouillé, ses œufs ne le sont pas. Une table « espèce → jeux » mentirait sur
+// la moitié des cas, en annonçant impossible ce qui est simplement ailleurs.
+//
+// TENUE À LA MAIN, ET VOLONTAIREMENT COURTE. PokeAPI ne publie pas cette
+// information. On n'inscrit ici que ce dont on est certain : une chasse annoncée
+// à tort comme verrouillée coûte plus cher que pas d'avertissement du tout.
+// À compléter ligne à ligne — le code n'a pas à bouger pour cela.
+//
+//   espece   numéro national
+//   jeux     là où cette rencontre est verrouillée
+//   quoi     de quelle rencontre il s'agit
+//   ailleurs comment l'obtenir chromatique malgré tout, ou rien si on l'ignore
+const VERROUS_PAR_JEU = [
+  // Les starters d'Épée / Bouclier : offerts par Chichi, verrouillés. Leurs
+  // œufs, eux, ne le sont pas.
+  { espece: 810, jeux: ['swsh'], quoi: 'starter offert', ailleurs: 'par reproduction' },
+  { espece: 813, jeux: ['swsh'], quoi: 'starter offert', ailleurs: 'par reproduction' },
+  { espece: 816, jeux: ['swsh'], quoi: 'starter offert', ailleurs: 'par reproduction' },
+
+  // Ceux d'Écarlate / Violet, même règle.
+  { espece: 906, jeux: ['sv'], quoi: 'starter offert', ailleurs: 'par reproduction' },
+  { espece: 909, jeux: ['sv'], quoi: 'starter offert', ailleurs: 'par reproduction' },
+  { espece: 912, jeux: ['sv'], quoi: 'starter offert', ailleurs: 'par reproduction' },
+
+  // Ceux de Légendes Arceus. Pas de reproduction dans ce jeu : on ne propose
+  // donc aucune solution de rechange plutôt que d'en inventer une.
+  { espece: 722, jeux: ['pla'], quoi: 'starter offert' },
+  { espece: 155, jeux: ['pla'], quoi: 'starter offert' },
+  { espece: 501, jeux: ['pla'], quoi: 'starter offert' },
+];
+
 // Living Dex - donnees statiques.
 // Charge avant app.js ; volontairement en script classique (pas de module ES)
 // pour que l'application continue de fonctionner en ouverture directe file://.
