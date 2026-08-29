@@ -659,6 +659,9 @@
                  placeholder="Suivre un dresseur par son pseudo…"
                  aria-label="Pseudo du dresseur à suivre">
           <button class="toggle-btn primary" id="amisSuivre" type="button">Suivre</button>
+          <!-- Les propositions. « Ja » doit sortir « Jack » : personne ne
+               retient un pseudo au caract&egrave;re pr&egrave;s. Voir js/amis.js. -->
+          <div class="amis-propositions" id="amisPropositions" hidden></div>
         </div>
         <p class="modal-error" id="amisErreur" role="alert"></p>
 

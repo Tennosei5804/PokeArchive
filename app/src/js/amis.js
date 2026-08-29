@@ -26,6 +26,15 @@ let amisMinuteur = null;
 let amisNonLus = 0;
 let amisFilCurseur = null;
 
+// Qui l'on suit, en minuscules, pour reconnaître d'un coup d'œil quelqu'un
+// qu'on a déjà. Rempli par chargerListeAmis, et par lesAmisConnus() quand un
+// écran a besoin de la réponse avant d'être passé par la page des amis.
+//
+// null tant qu'on ne sait pas — à distinguer d'un ensemble vide, qui veut dire
+// « on a demandé, et tu ne suis personne ». Un bouton qui afficherait « ajouter »
+// à quelqu'un qu'on suit déjà serait pire que pas de bouton.
+let amisSuivis = null;
+
 // ---- Le réglage -------------------------------------------------------------
 
 /** 'tout', 'chromatiques' ou 'rien'. */
@@ -336,11 +345,12 @@ async function chargerListeAmis(){
     return;
   }
   const liste = r.amis || [];
+  amisSuivis = new Set(liste.map(function(a){ return a.pseudo.toLowerCase(); }));
   amisListe.innerHTML = '';
   if(!liste.length){
     amisListe.innerHTML = '<div class="state-msg">Personne pour l’instant. '
       + 'Ajoute quelqu’un par son pseudo ci-dessus.</div>';
-    return;
+    return;   // amisSuivis vaut un ensemble vide : on a demandé, la réponse est « personne »
   }
   liste.forEach(function(a){ amisListe.appendChild(ligneAmi(a)); });
 }
@@ -372,6 +382,127 @@ async function chargerFil(suite){
   // Ouvrir la page vaut lecture : la pastille retombe.
   amisNonLus = 0;
   majPastilleAmis();
+}
+
+/**
+ * L'ensemble des pseudos suivis, demandé au besoin.
+ *
+ * La fiche d'un dresseur s'ouvre souvent sans être jamais passé par la page des
+ * amis : sans cet appel, son bouton ne saurait pas quoi afficher. On ne
+ * redemande pas si la réponse est déjà là — elle ne change que par nos propres
+ * gestes, et ce sont eux qui la mettent à jour.
+ */
+async function lesAmisConnus(){
+  if(amisSuivis) return amisSuivis;
+  try{
+    const r = await invoke('amis');
+    amisSuivis = new Set((r.amis || []).map(function(a){ return a.pseudo.toLowerCase(); }));
+  }catch(e){
+    if(String(e) === 'SESSION_INVALIDE'){ await perdreSession(); return null; }
+    return null;                     // hors ligne : on ne sait pas, on ne prétend pas
+  }
+  return amisSuivis;
+}
+
+/**
+ * Suivre ou ne plus suivre, depuis n'importe où.
+ *
+ * `arreterDeSuivre` demande confirmation, ce qui est juste sur la page des amis
+ * — on y retire une ligne d'une liste — et pesant ailleurs. Celle-ci est la
+ * bascule nue ; l'écran qui l'appelle décide s'il demande d'abord.
+ */
+async function basculerAmi(pseudo, suivre){
+  await invoke(suivre ? 'suivre' : 'ne_plus_suivre', { pseudo: pseudo });
+  const connus = amisSuivis || new Set();
+  if(suivre) connus.add(pseudo.toLowerCase());
+  else connus.delete(pseudo.toLowerCase());
+  amisSuivis = connus;
+  // La page des amis peut être ouverte derrière : elle doit suivre.
+  if(typeof currentPage !== 'undefined' && currentPage === 'amis'){
+    chargerListeAmis();
+    chargerFil(false);
+  }
+}
+
+// ---- Les propositions -------------------------------------------------------
+//
+// « Suivre un dresseur par son pseudo » supposait qu'on le connaisse AU
+// CARACTÈRE PRÈS. C'est une exigence que rien ne justifie : la recherche de
+// dresseurs existait déjà, deux onglets plus loin, et il fallait aller y lire
+// un nom pour revenir le retaper ici.
+//
+// ELLE NE MONTRE QUE LES DRESSEURS VISIBLES. `chercherDresseurs` filtre sur
+// `visible = 1`, et c'est voulu : quelqu'un qui s'est retiré de la liste ne doit
+// pas reparaître dans une complétion. Il reste joignable — le champ accepte
+// toujours un pseudo tapé en entier, et `suivre` ne filtre pas, lui.
+
+let propositionsMinuteur = null;
+
+function fermerPropositions(){
+  if(!amisPropositions) return;
+  amisPropositions.hidden = true;
+  amisPropositions.innerHTML = '';
+}
+
+async function chercherPropositions(){
+  if(!amisPropositions || !amisQ) return;
+  const q = (amisQ.value || '').trim();
+  // Deux lettres au moins : sur une seule, la réponse est trop large pour
+  // aider, et c'est aussi la borne que le classement applique déjà.
+  if(q.length < 2){ fermerPropositions(); return; }
+
+  let r;
+  try{
+    r = await invoke('dresseurs', { recherche: q });
+  }catch(e){
+    fermerPropositions();            // hors ligne : le champ reste utilisable
+    return;
+  }
+  // La frappe a pu continuer pendant l'aller-retour : une réponse en retard ne
+  // doit pas écraser ce qu'on est en train d'écrire.
+  if((amisQ.value || '').trim() !== q) return;
+
+  const moi = (typeof dresseurCourant !== 'undefined' && dresseurCourant)
+    ? dresseurCourant.pseudo.toLowerCase() : null;
+  const vus = (r.dresseurs || [])
+    .filter(function(d){ return d.pseudo.toLowerCase() !== moi; })
+    .slice(0, 6);
+
+  amisPropositions.innerHTML = '';
+  if(!vus.length){ fermerPropositions(); return; }
+
+  vus.forEach(function(d){
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'amis-proposition';
+
+    if(typeof avatarDiscord === 'function'){
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = avatarDiscord(d.discord_id, d.avatar, 32);
+      b.appendChild(img);
+    }
+    const nom = document.createElement('span');
+    nom.className = 'proposition-nom';
+    nom.textContent = d.pseudo;
+    b.appendChild(nom);
+
+    // Déjà suivi : on le dit plutôt que de laisser cliquer pour rien.
+    const deja = amisSuivis && amisSuivis.has(d.pseudo.toLowerCase());
+    const etat = document.createElement('em');
+    etat.className = 'proposition-etat';
+    etat.textContent = deja ? 'déjà suivi' : (d.discord_nom || '');
+    b.appendChild(etat);
+
+    b.addEventListener('click', function(){
+      amisQ.value = d.pseudo;
+      fermerPropositions();
+      if(!deja) suivreQuelquun();
+      else amisErreur.textContent = 'Tu suis déjà ' + d.pseudo + '.';
+    });
+    amisPropositions.appendChild(b);
+  });
+  amisPropositions.hidden = false;
 }
 
 async function suivreQuelquun(){
@@ -417,6 +548,22 @@ async function arreterDeSuivre(pseudo){
 
 document.addEventListener('DOMContentLoaded', function(){
   if(amisSuivre) amisSuivre.addEventListener('click', suivreQuelquun);
+  if(amisQ){
+    amisQ.addEventListener('input', function(){
+      // On attend une frappe stable : interroger l'API à chaque lettre serait
+      // inutilement bavard. Même délai que la recherche du classement.
+      clearTimeout(propositionsMinuteur);
+      propositionsMinuteur = setTimeout(chercherPropositions, 300);
+    });
+    amisQ.addEventListener('blur', function(){
+      // Après le clic, pas avant : fermer sur-le-champ escamoterait la
+      // proposition avant que le clic ne l'atteigne.
+      setTimeout(fermerPropositions, 150);
+    });
+  }
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') fermerPropositions();
+  });
   if(amisQ) amisQ.addEventListener('keydown', function(e){
     if(e.key === 'Enter') suivreQuelquun();
   });

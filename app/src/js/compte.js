@@ -794,6 +794,18 @@ async function visiterDresseur(pseudo){
   });
   entete.appendChild(succes);
 
+  // « Ajouter en ami ». Il manquait, et c'était la friction la plus bête de
+  // l'application : on arrivait sur la fiche de quelqu'un par la recherche, et
+  // il fallait retenir son pseudo pour aller le retaper deux onglets plus loin.
+  //
+  // Pas sur sa propre fiche : se suivre soi-même est refusé par l'API, et un
+  // bouton qui ne peut qu'échouer n'a rien à faire là.
+  const cestMoi = typeof dresseurCourant !== 'undefined' && dresseurCourant
+                  && dresseurCourant.pseudo === chez.dresseur.pseudo;
+  if(typeof basculerAmi === 'function' && !cestMoi){
+    entete.appendChild(boutonAmi(chez.dresseur.pseudo));
+  }
+
   // Ses photos. Le bouton ne s'affiche que si photos.js est chargé : les pages
   // de génération n'ont ni pont ni session.
   if(typeof ouvrirMur === 'function'){
@@ -860,6 +872,49 @@ async function visiterDresseur(pseudo){
     ligne.appendChild(fleche);
     dresseurVisite.appendChild(ligne);
   });
+}
+
+/**
+ * Le bouton « ajouter en ami », qui sait déjà où l'on en est.
+ *
+ * Il se dessine EN ATTENTE puis se corrige, parce que savoir si l'on suit
+ * quelqu'un demande un aller-retour. L'alternative — retarder tout l'en-tête
+ * jusqu'à la réponse — ferait clignoter la fiche entière pour un seul bouton.
+ */
+function boutonAmi(pseudo){
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'toggle-btn';
+  b.textContent = '＋ Ajouter en ami';
+  b.disabled = true;
+
+  const peindre = function(suit){
+    b.disabled = false;
+    b.textContent = suit ? '✓ Tu le suis' : '＋ Ajouter en ami';
+    b.classList.toggle('primary', !suit);
+    b.title = suit
+      ? 'Cliquer pour ne plus suivre ' + pseudo
+      : 'Voir ses captures dans ton fil, et pouvoir lui proposer des échanges';
+  };
+
+  lesAmisConnus().then(function(connus){
+    if(!connus){ b.textContent = '＋ Ajouter en ami'; b.disabled = false; return; }
+    peindre(connus.has(pseudo.toLowerCase()));
+  });
+
+  b.addEventListener('click', async function(){
+    const suit = b.textContent.indexOf('✓') === 0;
+    b.disabled = true;
+    try{
+      await basculerAmi(pseudo, !suit);
+      peindre(!suit);
+    }catch(e){
+      if(String(e) === 'SESSION_INVALIDE'){ await perdreSession(); return; }
+      prevenirErreur('Impossible', String(e));
+      b.disabled = false;
+    }
+  });
+  return b;
 }
 
 /**

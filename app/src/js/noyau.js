@@ -122,6 +122,7 @@ const pageDresseursEl = document.getElementById('page-dresseurs');
 const pageAmisEl = document.getElementById('page-amis');
 const amisQ = document.getElementById('amisQ');
 const amisSuivre = document.getElementById('amisSuivre');
+const amisPropositions = document.getElementById('amisPropositions');
 const amisErreur = document.getElementById('amisErreur');
 const amisListe = document.getElementById('amisListe');
 const amisFil = document.getElementById('amisFil');
