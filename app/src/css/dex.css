@@ -150,6 +150,46 @@
     box-shadow:0 0 0 2px rgba(238,58,58,.14);
     font-weight:700;
   }
+  /* ---- Les filtres rendus visibles (voir js/filtres.js) ----
+     Quinze mots que la recherche comprenait déjà et qu'il fallait deviner.
+     Ils s'écrivent dans le champ : ce sont des raccourcis de frappe, pas un
+     second filtre, et leur allure le dit — plus légers que les menus. */
+  .filtres-rapides{
+    display:flex; flex-wrap:wrap; gap:6px;
+    margin-top:-4px; padding:10px 0 2px;
+  }
+  .filtre-chip{
+    font-family:var(--font-data); font-size:11px;
+    color:var(--ink-soft);
+    background:var(--screen);
+    border:1px solid var(--card-border);
+    border-radius:999px;
+    padding:5px 11px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:border-color 120ms, color 120ms, background 120ms;
+  }
+  .filtre-chip:hover{ border-color:var(--chrome-lo); color:var(--ink); }
+  .filtre-chip:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+  /* Actif : la même marque rouge que .filtering sur les menus, pour qu'un
+     filtre posé se reconnaisse d'un coup d'œil où qu'il soit dans la barre. */
+  .filtre-chip[aria-pressed="true"]{
+    background:var(--dex-red); color:#fff;
+    border-color:var(--dex-red); font-weight:700;
+  }
+  /* Les états parlent de TA collection, les autres du Pokédex lui-même. Un
+     trait suffit à les distinguer sans les séparer en deux rangées. */
+  .filtre-etat{ border-style:dashed; }
+  /* Sur un téléphone, les libellés sont trop longs pour tenir à deux par
+     ligne : quinze pastilles font quatorze rangées, soit la moitié de l'écran
+     avant la première carte. On plafonne le panneau et on le laisse défiler
+     chez lui — il reste entier, sans pousser la grille hors de vue. */
+  @media (max-width:560px){
+    .filtres-rapides{ max-height:38vh; overflow-y:auto; }
+    .filtre-chip{ padding:4px 9px; font-size:10.5px; }
+  }
+  @media (prefers-reduced-motion:reduce){ .filtre-chip{ transition:none; } }
+
   /* ---- Menus déroulants stylisés (voir js/menus.js) ---- */
   .select-native{ position:absolute; opacity:0; pointer-events:none; width:0; height:0; }
   .select-wrap{ position:relative; flex:1 1 0; min-width:0; }
@@ -694,6 +734,9 @@
 .obt-precision{
   color:var(--ink-faint); font-size:11.5px; font-style:italic; line-height:1.45;
 }
+/* La condition, quand elle n'est pas une date : « tant que le périphérique
+   est vendu ». Plus discrète que le lieu, plus lisible qu'une note en bas. */
+.obt-condition{ font-style:italic; color:var(--ink-faint); }
 /* Encore ouverte aujourd'hui : c'est la seule information de cette liste sur
    laquelle on peut encore agir, elle passe donc au vert de la collection. */
 .obt-ligne.distribution.permanente{ border-left-color:var(--caught); }

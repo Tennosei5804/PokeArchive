@@ -2008,3 +2008,30 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 @media (max-width:560px){
   .amis-propositions{ right:0; }
 }
+
+/* ===== « Où ouvrir le Cadeau Mystère » ==========================
+   Le menu change à chaque génération et la plupart des jeux le gardent fermé
+   jusqu'à un point de l'aventure. Voir OUVRIR_CADEAU dans evenements.js.   */
+.cadeaux-comment-btn{ margin:10px 0 0; }
+.cadeaux-comment{
+  margin:10px 0 4px; padding:12px 14px;
+  background:var(--screen); border:1px solid var(--card-border); border-radius:12px;
+}
+.cadeaux-comment-ligne{
+  padding:8px 0; border-bottom:1px solid var(--card-border);
+}
+.cadeaux-comment-ligne:last-of-type{ border-bottom:none; }
+.cadeaux-comment-jeux{
+  font-family:var(--font-body); font-size:12.5px; font-weight:700; color:var(--ink);
+}
+.cadeaux-comment-ou{
+  font-family:var(--font-data); font-size:11px; color:var(--ink-soft); margin-top:2px;
+}
+.cadeaux-comment-cond{
+  font-family:var(--font-body); font-size:11.5px; font-style:italic;
+  color:var(--ink-faint); margin-top:2px;
+}
+.cadeaux-comment-note{
+  margin:12px 0 0; padding-top:10px; border-top:1px solid var(--card-border);
+  font-family:var(--font-body); font-size:12px; color:var(--ink-soft); line-height:1.5;
+}

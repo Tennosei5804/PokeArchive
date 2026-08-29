@@ -33,6 +33,51 @@ const VOIES = {
   jeu:      { court: "En jeu",           long: "Objet distribué, puis rencontre dans le jeu" }
 };
 
+// Comment ouvrir le Cadeau Mystère, et ce qui le débloque.
+//
+// LA QUESTION D'AVANT. Toute cette page dit CE QU'ON PEUT recevoir ; aucune ne
+// disait OÙ APPUYER. Le menu change à chaque génération — carte Miracle en 2G,
+// menu titre en 4G, Poké Portail en 9G — et la plupart des jeux le gardent
+// fermé jusqu'à un point précis de l'aventure. Quelqu'un qui vient chercher un
+// code et ne trouve pas l'entrée du menu croit que le code est mort.
+//
+// Les clés sont celles de GAMES : le banc vérifie qu'aucune ne s'est égarée.
+// Rouge, Bleu et Jaune n'y figurent pas — le Cadeau Mystère n'existait pas.
+//
+// Relevé sur le Registre des distributions, §1.3, lui-même tiré de Pokébip.
+const OUVRIR_CADEAU = [
+  { jeux: ['gsc', 'cristal'], ou: 'Carte Miracle, dans le menu' },
+  { jeux: ['rse', 'emeraude', 'frlg'], ou: 'Carte Miracle e-Reader, ou lien sans fil',
+    condition: 'adaptateur sans fil requis sur Émeraude, Rouge Feu et Vert Feuille' },
+  { jeux: ['dp', 'pt'], ou: 'Menu titre → Cadeau Mystère',
+    condition: 'après avoir parlé au journaliste du Centre Pokémon de Jubiléville' },
+  { jeux: ['hgss'], ou: 'Menu titre → Cadeau Mystère',
+    condition: 'après avoir parlé au journaliste, à Ville Griotte' },
+  { jeux: ['bw', 'b2w2'], ou: 'Menu titre → Cadeau Mystère',
+    condition: 'disponible dès le début' },
+  { jeux: ['xy', 'oras'], ou: 'Menu principal → Cadeau Mystère',
+    condition: 'après avoir obtenu le Pokédex' },
+  { jeux: ['sm', 'usum'], ou: 'Menu → Cadeau Mystère',
+    condition: 'après avoir obtenu le Pokédex' },
+  { jeux: ['letsgo'], ou: 'Communication → Cadeau Mystère',
+    condition: 'après Jadielle' },
+  { jeux: ['swsh'], ou: 'Menu X → Cadeau Mystère',
+    condition: 'après réception du Pokédex' },
+  { jeux: ['bdsp'], ou: 'Menu → Cadeau Mystère',
+    condition: 'après Vestigion' },
+  { jeux: ['pla'], ou: 'Menu → Cadeau Mystère',
+    condition: 'après la mission 2' },
+  { jeux: ['sv'], ou: 'Menu X → Poké Portail → Cadeau Mystère',
+    condition: 'après le tutoriel d’Ambrelune' },
+  { jeux: ['za'], ou: 'Menu → Cadeau Mystère',
+    condition: 'après la mission principale 3, au Labo Pokémon' }
+];
+
+// La règle qui vaut partout, et qu'on découvre en général trop tard.
+const CADEAU_UNE_FOIS =
+  'Un même cadeau ne peut être reçu qu’une seule fois par sauvegarde. Pour en '
+  + 'obtenir un second, il faut une seconde sauvegarde.';
+
 // Par identifiant PokeAPI : le numéro national pour un fabuleux, celui de la
 // forme pour une forme évènementielle. Les deux ne se chevauchent jamais.
 const DISTRIBUTIONS_FR = {
@@ -45,10 +90,16 @@ const DISTRIBUTIONS_FR = {
     { ev: "Mew Automne 2010", quand: "15 – 30 octobre 2010", annee: 2010, jeux: "HeartGold · SoulSilver", voie: "wifi" },
     { ev: "Mew GF", quand: "27 janvier – 30 juin 2016", annee: 2016, jeux: "X · Y · Rubis Oméga · Saphir Alpha",
       voie: "code", ou: "20 ans de Pokémon" },
+    // ENCORE OUVERTS EN 2026, et ils ne l'étaient pas ici : le filtre « encore
+    // obtenables » cachait donc le seul fabuleux qu'on puisse encore obtenir en
+    // magasin. La condition n'est pas une date mais un objet en vente — d'où
+    // `condition`, qui dit ce que `quand` ne peut pas dire.
     { ev: "Mew Poké Ball Plus", quand: "à partir du 16 novembre 2018", annee: 2018,
-      jeux: "Let's Go Pikachu · Let's Go Évoli", voie: "ballplus" },
+      jeux: "Let's Go Pikachu · Let's Go Évoli", voie: "ballplus", permanent: true,
+      condition: "une fois par Poké Ball Plus neuve, tant que le périphérique est vendu" },
     { ev: "Mew Poké Ball Plus", quand: "à partir du 15 novembre 2019", annee: 2019, jeux: "Épée · Bouclier",
-      voie: "ballplus" }
+      voie: "ballplus", permanent: true,
+      condition: "une fois par Poké Ball Plus neuve, tant que le périphérique est vendu" }
   ],
   251: [ // Celebi
     { ev: "Celebi Tour", quand: "2001", annee: 2001, jeux: "Or · Argent", voie: "local",
@@ -136,7 +187,10 @@ const DISTRIBUTIONS_FR = {
     { ev: "Diancie Automne 2014", quand: "23 octobre 2014 – 25 février 2015", annee: 2014, jeux: "X · Y",
       voie: "code" },
     { ev: "Diancie Hope", quand: "24 – 27 juillet 2015", annee: 2015, jeux: "Rubis Oméga · Saphir Alpha",
-      voie: "nintendo" }
+      voie: "nintendo" },
+    { ev: "Diancie + Diancite", quand: "à partir du 6 novembre 2025, sans date de fin annoncée",
+      annee: 2025, jeux: "Légendes Pokémon : Z-A", voie: "wifi", permanent: true,
+      condition: "débloque la mission EX « Un scintillement sans pareil »" }
   ],
   720: [ // Hoopa
     { ev: "Hoopa Harry", quand: "10 octobre 2015 – 15 avril 2016", annee: 2016,

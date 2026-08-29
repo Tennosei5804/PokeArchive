@@ -266,7 +266,15 @@
         <select id="typeFilter" aria-label="Filtrer par type">
           <option value="all">Tous les types</option>
         </select>
+        <button class="toggle-btn" id="filtresBascule" type="button"
+                aria-expanded="false" aria-controls="filtresRapides"
+                title="Quinze filtres que la recherche comprend déjà, mais qu’il fallait deviner : légendaires, fossiles, Gigamax, manquants…">🧲 Plus de filtres</button>
       </div>
+
+      <!-- Les mots de la recherche, rendus cliquables. Bâtis par filtres.js sur
+           MOTS_CLES_RECHERCHE et ETATS_RECHERCHE : aucune liste ici, et cliquer
+           revient à taper le mot. -->
+      <div class="toolbar filtres-rapides" id="filtresRapides" hidden></div>
 
       <!-- Ce que la recherche a compris dans ce qu'on a tapé. Sans cette
            ligne, un mot qui filtre en silence est indiscernable d'un mot
@@ -410,6 +418,14 @@
             <option value="all">Toutes les méthodes</option>
           </select>
         </div>
+
+        <!-- Où appuyer, jeu par jeu. Toute cette page dit CE QU'ON PEUT recevoir ;
+             il manquait où se trouve l'entrée du menu, et à partir de quand.
+             Rempli par dessinerOuvrirCadeau() depuis OUVRIR_CADEAU. -->
+        <button class="toggle-btn cadeaux-comment-btn" id="ouvrirCadeauBtn" type="button"
+                aria-expanded="false" aria-controls="ouvrirCadeauBloc"
+                title="Le menu change à chaque génération, et la plupart des jeux le gardent fermé jusqu’à un point précis de l’aventure.">❓ Où ouvrir le Cadeau Mystère&nbsp;?</button>
+        <div class="cadeaux-comment" id="ouvrirCadeauBloc" hidden></div>
 
         <div class="cadeaux-generations" id="cadeauxListe"></div>
         <p class="cadeaux-source-note">
@@ -1565,6 +1581,7 @@
 <!-- Après compte.js : la rareté demande la table à l'API. -->
 <script src="js/rarete.js"></script>
 <script src="js/lieux.js"></script>
+<script src="js/filtres.js"></script>
 <script src="js/chasse.js"></script>
 <script src="js/verrous.js"></script>
 <!-- Les règles de combat, puis l'écran qui s'appuie dessus. Tous deux après

@@ -558,6 +558,14 @@ function majJetonsRecherche(){
       }).join('');
 }
 
+// Les pastilles de filtres.js s'alignent sur le champ au même moment que la
+// ligne des jetons : une recherche tapée à la main, une remise à zéro venue
+// d'un autre écran ou un changement d'onglet les mettent d'accord.
+function majJetonsEtFiltres(){
+  majJetonsRecherche();
+  if(typeof majFiltresActifs === 'function') majFiltresActifs();
+}
+
 // Le pendant d'assurerLieux() pour la table des types : on la demande, et la
 // grille se redessine une fois qu'elle est là.
 let typesDemandes = false;

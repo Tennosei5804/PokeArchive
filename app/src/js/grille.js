@@ -5,7 +5,7 @@ function renderList(reset){
   // La vue boîtes ne pagine pas et ne filtre pas : elle a son propre dessin,
   // et il vaut mieux le dire ici que d'émailler la suite de conditions.
   if(typeof vueBoites !== 'undefined' && vueBoites){
-    if(typeof majJetonsRecherche === 'function') majJetonsRecherche();
+    if(typeof majJetonsEtFiltres === 'function') majJetonsEtFiltres();
     renderBoites();
     return;
   }
@@ -16,7 +16,7 @@ function renderList(reset){
     currentFiltered = getFiltered();
     // Ce que la recherche a compris. Elle se met à jour au même moment que la
     // liste, sans quoi la ligne dirait l'analyse d'avant.
-    if(typeof majJetonsRecherche === 'function') majJetonsRecherche();
+    if(typeof majJetonsEtFiltres === 'function') majJetonsEtFiltres();
     renderedCount = 0;
     lastGenHeader = null;
     listEl.innerHTML = '';

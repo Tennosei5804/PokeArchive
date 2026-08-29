@@ -195,6 +195,68 @@ function filtreCadeaux(entree, home){
   return true;
 }
 
+/**
+ * Où appuyer, jeu par jeu.
+ *
+ * Bâtie sur OUVRIR_CADEAU et sur GAMES pour les noms : aucune liste de jeux ici,
+ * et un jeu renommé se renomme tout seul. Les jeux inconnus de GAMES sont
+ * ignorés plutôt qu'affichés sous leur clé brute — dire « za » à quelqu'un ne
+ * l'avance pas.
+ */
+function dessinerOuvrirCadeau(){
+  const bloc = document.getElementById('ouvrirCadeauBloc');
+  if(!bloc || bloc.dataset.pret) return;
+  if(typeof OUVRIR_CADEAU === 'undefined') return;
+
+  OUVRIR_CADEAU.forEach(function(r){
+    const noms = r.jeux.map(function(cle){
+      const g = GAMES.find(function(x){ return x.key === cle; });
+      return g ? g.tab : null;
+    }).filter(Boolean);
+    if(!noms.length) return;
+
+    const ligne = document.createElement('div');
+    ligne.className = 'cadeaux-comment-ligne';
+
+    const quels = document.createElement('div');
+    quels.className = 'cadeaux-comment-jeux';
+    quels.textContent = noms.join(' · ');
+    ligne.appendChild(quels);
+
+    const ou = document.createElement('div');
+    ou.className = 'cadeaux-comment-ou';
+    ou.textContent = r.ou;
+    ligne.appendChild(ou);
+
+    if(r.condition){
+      const c = document.createElement('div');
+      c.className = 'cadeaux-comment-cond';
+      c.textContent = r.condition;
+      ligne.appendChild(c);
+    }
+    bloc.appendChild(ligne);
+  });
+
+  if(typeof CADEAU_UNE_FOIS === 'string'){
+    const note = document.createElement('p');
+    note.className = 'cadeaux-comment-note';
+    note.textContent = CADEAU_UNE_FOIS;
+    bloc.appendChild(note);
+  }
+  bloc.dataset.pret = '1';
+}
+
+const ouvrirCadeauBtn = document.getElementById('ouvrirCadeauBtn');
+const ouvrirCadeauBloc = document.getElementById('ouvrirCadeauBloc');
+if(ouvrirCadeauBtn && ouvrirCadeauBloc){
+  ouvrirCadeauBtn.addEventListener('click', function(){
+    const ouvert = ouvrirCadeauBloc.hidden;
+    if(ouvert) dessinerOuvrirCadeau();
+    ouvrirCadeauBloc.hidden = !ouvert;
+    ouvrirCadeauBtn.setAttribute('aria-expanded', String(ouvert));
+  });
+}
+
 function marquerFiltresCadeaux(){
   [cadeauxGenEl, cadeauxEtatEl, cadeauxVoieEl].forEach(function(el){
     if(el) el.classList.toggle('filtering', el.value !== 'all');

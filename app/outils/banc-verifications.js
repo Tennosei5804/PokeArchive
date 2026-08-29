@@ -1403,6 +1403,116 @@ verifier('Shiny-lock',
     return cadeaux.size + ' distributions, aucune en conflit avec les verrous';
   });
 
+verifier('Filtres visibles',
+  'Une pastille fait exactement ce que ferait la frappe',
+  function(){
+    // C'EST TOUTE LA RAISON DE LEUR FORME. Les pastilles écrivent dans le champ
+    // de recherche au lieu d'avoir un filtre à elles ; si un jour l'une d'elles
+    // prenait un raccourci, on aurait deux moteurs à tenir d'accord — le défaut
+    // qu'on venait de corriger sur normaliser() et sur les jeux sans chromatique.
+    // On compare donc, pour chaque mot, le clic et la frappe.
+    if(typeof filtresDisponibles !== 'function') return 'échec : filtres.js absent';
+    const avant = searchEl.value;
+    const ecarts = [];
+    filtresDisponibles().forEach(function(f){
+      searchEl.value = f.mot;
+      const parLaFrappe = getFiltered().length;
+      searchEl.value = '';
+      basculerFiltre(f.mot);
+      const parLeClic = getFiltered().length;
+      if(parLaFrappe !== parLeClic){
+        ecarts.push(f.mot + ' (' + parLaFrappe + ' vs ' + parLeClic + ')');
+      }
+      searchEl.value = '';
+    });
+    searchEl.value = avant;
+    if(ecarts.length) return 'échec : ' + ecarts.join(', ');
+    return filtresDisponibles().length + ' filtres, clic et frappe identiques';
+  });
+
+verifier('Filtres visibles',
+  'Aucun alias ne se retrouve en double sur la barre',
+  function(){
+    // « manquants », « restants », « coches », « vus » mènent au même test que
+    // leur canonique. Six pastilles pour un seul filtre, ce serait six fois la
+    // même chose — et une pastille qui n'éteint pas l'autre.
+    if(typeof filtresDisponibles !== 'function') return 'échec : filtres.js absent';
+    const vus = new Map();
+    const doubles = [];
+    filtresDisponibles().forEach(function(f){
+      const test = resoudre(f.mot);
+      if(vus.has(test)) doubles.push(vus.get(test) + ' = ' + f.mot);
+      else vus.set(test, f.mot);
+    });
+    if(doubles.length) return 'échec : ' + doubles.join(', ');
+    const total = Object.keys(MOTS_CLES_RECHERCHE).length + Object.keys(ETATS_RECHERCHE).length;
+    return vus.size + ' filtres distincts sur ' + total + ' mots reconnus';
+  });
+
+verifier('Cadeau Mystère',
+  'Toutes les clés de jeu de « où ouvrir » existent',
+  function(){
+    // Treize lignes, vingt-cinq clés tapées à la main. Une faute de frappe ne
+    // casse rien : elle fait disparaître la ligne en silence, et personne ne
+    // saura jamais où ouvrir le menu sur ce jeu-là.
+    if(typeof OUVRIR_CADEAU === 'undefined') return 'échec : OUVRIR_CADEAU absente';
+    const connues = new Set(GAMES.map(function(g){ return g.key; }));
+    const fautes = [];
+    let n = 0;
+    OUVRIR_CADEAU.forEach(function(r){
+      r.jeux.forEach(function(c){ n++; if(!connues.has(c)) fautes.push(c); });
+    });
+    if(fautes.length) return 'échec : ' + fautes.join(', ');
+    return n + ' clés sur ' + OUVRIR_CADEAU.length + ' lignes, toutes connues de GAMES';
+  });
+
+verifier('Cadeau Mystère',
+  'Chaque jeu à Cadeau Mystère dit où l’ouvrir',
+  function(){
+    // Le trou qu'elle guette : un jeu ajouté à GAMES sans sa ligne ici. La page
+    // resterait juste, et muette précisément sur le jeu le plus récent — celui
+    // pour lequel on cherche l'information.
+    //
+    // Rouge, Bleu et Jaune sont écartés : le Cadeau Mystère n'existait pas.
+    // HOME et les jeux hors série non plus : ils n'ont pas ce menu.
+    if(typeof OUVRIR_CADEAU === 'undefined') return 'échec : OUVRIR_CADEAU absente';
+    const SANS_CADEAU = ['rby', 'jaune', 'home', 'go', 'cobblemon'];
+    const couverts = new Set();
+    OUVRIR_CADEAU.forEach(function(r){
+      r.jeux.forEach(function(c){ couverts.add(c); });
+    });
+    const oublies = GAMES.filter(function(g){
+      return SANS_CADEAU.indexOf(g.key) === -1 && !couverts.has(g.key);
+    }).map(function(g){ return g.key; });
+    if(oublies.length) return 'échec : ' + oublies.join(', ') + ' sans ligne';
+    return couverts.size + ' jeux couverts, aucun oubli';
+  });
+
+verifier('Cadeau Mystère',
+  'Ce qui est annoncé ouvert porte de quoi le croire',
+  function(){
+    // Le défaut qu'elle arrête : Mew par Poké Ball Plus était encore obtenable
+    // et n'était pas marqué — le filtre « encore obtenables » cachait donc le
+    // seul fabuleux qu'on puisse encore aller chercher en magasin.
+    //
+    // Une distribution permanente doit dire pourquoi elle l'est : soit son
+    // `quand` porte la permanence, soit une `condition` la remplace. Sans l'un
+    // des deux, « encore ouvert » est une affirmation sans pièce jointe.
+    if(typeof DISTRIBUTIONS_FR === 'undefined') return 'échec : DISTRIBUTIONS_FR absente';
+    const muettes = [];
+    let n = 0;
+    Object.keys(DISTRIBUTIONS_FR).forEach(function(id){
+      DISTRIBUTIONS_FR[id].forEach(function(d){
+        if(!d.permanent) return;
+        n++;
+        const dit = /permanence|sans date de fin|une fois/i.test(d.quand || '');
+        if(!dit && !d.condition) muettes.push('#' + id + ' ' + d.ev);
+      });
+    });
+    if(muettes.length) return 'échec : ' + muettes.join(', ');
+    return n + ' distributions encore ouvertes, toutes justifiées';
+  });
+
 // ---------------------------------------------------------------------------
 
 async function lancerBanc(){

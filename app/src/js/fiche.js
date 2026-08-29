@@ -1669,6 +1669,16 @@ function dessinerDistributionsFr(entry){
       ligne.appendChild(ou);
     }
 
+    // À quelle CONDITION, quand elle n'est pas une date. « Tant que le
+    // périphérique est vendu » ne rentre pas dans `quand`, et sans cette ligne
+    // un « encore ouvert » sans échéance laisse croire à un simple téléchargement.
+    if(d.condition){
+      const c = document.createElement('div');
+      c.className = 'obt-lieu obt-condition';
+      c.textContent = d.condition;
+      ligne.appendChild(c);
+    }
+
     const voie = document.createElement('span');
     voie.className = 'obt-cat';
     voie.textContent = libelleVoie(d.voie);
