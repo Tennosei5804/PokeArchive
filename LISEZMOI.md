@@ -1199,6 +1199,23 @@ d'une aventure privée.
 
 ### Sur le disque, pas en base
 
+### Le dossier ne se déduit pas du répertoire courant
+
+`process.cwd()` a été une erreur, et elle s'est vue en production : un service
+n'est pas lancé depuis le dossier où il vit. Chez alwaysdata le répertoire
+courant est le dossier personnel, et la première photo est partie dans
+`~/donnees/images` au lieu de `~/PokeArchive/api/donnees/images`.
+
+Le contournement évident — poser `IMAGES_DOSSIER` dans `api/.env` — ne servait à
+rien non plus : **le service ne lit pas ce fichier**. `npm start` passe
+`--env-file-if-exists=.env`, un chemin relatif, cherché depuis ce même répertoire
+courant où il n'y a rien. Les identifiants MySQL viennent du panneau de
+l'hébergeur, ce qui masquait le problème.
+
+Le chemin se déduit donc de `import.meta.url` : l'endroit où le module se trouve
+sur le disque, qui ne dépend de personne. `IMAGES_DOSSIER` reste accepté, pour
+qui veut ranger les photos sur un autre volume, mais plus rien ne l'exige.
+
 `pa_images` ne garde que la fiche — propriétaire, aventure, type, taille,
 dimensions. Le fichier vit dans `api/donnees/images`, hors du dépôt.
 

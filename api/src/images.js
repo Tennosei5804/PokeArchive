@@ -29,13 +29,31 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { lire, une, ecrire } from './base.js';
 import { ErreurCompte, horodatage } from './comptes.js';
 
 // Le dossier des fichiers. Hors du dépôt, et créé au besoin.
+//
+// LE CHEMIN SE DÉDUIT DE CE FICHIER-CI, jamais du répertoire courant. Un service
+// n'est pas lancé depuis le dossier où il vit : chez alwaysdata, `process.cwd()`
+// vaut le dossier personnel, et la première photo est partie dans
+// `~/donnees/images` au lieu de `~/PokeArchive/api/donnees/images`.
+//
+// Le contournement évident — poser IMAGES_DOSSIER dans api/.env — ne servait à
+// rien : le service ne lit pas ce fichier. `npm start` passe
+// `--env-file-if-exists=.env`, un chemin RELATIF, donc cherché depuis ce même
+// répertoire courant où il n'y a rien. Les identifiants MySQL, eux, viennent du
+// panneau de l'hébergeur.
+//
+// import.meta.url, lui, ne dépend de personne : il dit où ce module se trouve
+// sur le disque, et `../../donnees/images` en découle toujours au même endroit.
+// La variable d'environnement reste acceptée, pour qui veut ranger les photos
+// sur un autre volume — mais plus rien ne l'exige.
+const ICI = path.dirname(fileURLToPath(import.meta.url));
 const DOSSIER = process.env.IMAGES_DOSSIER
-  || path.join(process.cwd(), 'donnees', 'images');
+  || path.join(ICI, '..', 'donnees', 'images');
 
 // Ce qu'on accepte, et rien d'autre. Le SVG est exclu volontairement : c'est du
 // balisage exécutable, pas une image, et le servir depuis notre domaine
