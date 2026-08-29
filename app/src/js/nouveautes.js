@@ -20,6 +20,27 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.23.0', date: '2026-08-29',
+    titre: 'Ajouter quelqu’un sans retenir son pseudo',
+    points: [
+      '**➕ Ajouter en ami, depuis sa fiche.** Tu arrivais chez quelqu’un par '
+      + 'la recherche, et il fallait retenir son pseudo pour aller le retaper '
+      + 'deux onglets plus loin. Le bouton est maintenant là, entre ses succès '
+      + 'et ses photos — et il sait où tu en es : « ✓ Tu le suis » quand c’est '
+      + 'déjà fait, et un clic retire.',
+      '**🔍 Le champ propose des noms.** « Suivre un dresseur par son pseudo » '
+      + 'supposait que tu le connaisses **au caractère près**. Tape « Ja », il te '
+      + 'sort « Jack ». Un clic remplit et suit dans la foulée.',
+      '**Seuls les dresseurs visibles sont proposés.** Qui s’est retiré de la '
+      + 'liste ne reparaît pas par une complétion — mais reste joignable : le '
+      + 'champ accepte toujours un pseudo tapé en entier.',
+      '**Correction :** sur le serveur, les photos de chasse atterrissaient dans '
+      + 'un dossier voisin du bon. Rien n’était perdu, mais elles ne '
+      + 's’affichaient pas. Le chemin ne dépend plus de la façon dont le service '
+      + 'est lancé.',
+    ],
+  },
+  {
     version: '0.22.0', date: '2026-08-28',
     titre: 'Montrer son Pokémon',
     points: [
