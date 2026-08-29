@@ -20,6 +20,23 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.26.0', date: '2026-08-29',
+    titre: 'Ce qui ne peut pas briller',
+    points: [
+      '**🔒 Un bouton Shiny-lock à côté de Créer une chasse.** Certains '
+      + 'Pokémon n’ont pas de forme chromatique — jamais, ou pas par la rencontre '
+      + 'que tu vises. La liste te les montre, avec un filtre par nom, par '
+      + 'génération et par jeu.',
+      '**🧭 Elle te dit surtout où aller.** Ouistempo ne peut pas briller '
+      + 'quand le professeur te l’offre, mais ses œufs, si : le bouton au bout de '
+      + 'la ligne ouvre la création de chasse avec le bon jeu déjà choisi.',
+      'Rien n’est bloqué. La liste est tenue à la main et reste incomplète : elle '
+      + 't’avertit, elle ne t’interdit rien. Et Rouge, Bleu et Jaune n’y figurent '
+      + 'pas — le chromatique apparaît en Or et Argent, ces trois jeux n’en ont '
+      + 'aucun.',
+    ],
+  },
+  {
     version: '0.25.0', date: '2026-08-29',
     titre: 'Le « ? » répond à ta question',
     points: [
