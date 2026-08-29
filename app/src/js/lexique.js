@@ -357,7 +357,7 @@ function blocLexique(t){
       b.type = 'button';
       b.className = 'lex-lien';
       b.textContent = autre.terme;
-      b.addEventListener('click', function(){ viserTerme(cle); });
+      b.addEventListener('click', function(){ montrerTerme(cle); });
       voir.appendChild(b);
     });
     if(voir.children.length) bloc.appendChild(voir);
@@ -365,13 +365,26 @@ function blocLexique(t){
   return bloc;
 }
 
-function dessinerLexique(filtre){
+/**
+ * Dessine le lexique.
+ *
+ * `cleSeule` réduit la liste à un seul terme. C'est ce que fait la pastille
+ * « ? » : elle est posée à côté d'UN réglage, et répond à UNE question. Ouvrir
+ * les vingt entrées et faire défiler jusqu'à la bonne, c'était répondre à côté
+ * — on demandait « qu'est-ce que ça veut dire, ça » et l'on recevait le
+ * dictionnaire entier.
+ *
+ * Le bouton 📖 de l'en-tête, lui, ouvre toujours tout : là, c'est bien le
+ * dictionnaire qu'on vient chercher.
+ */
+function dessinerLexique(filtre, cleSeule){
   if(!lexiqueListe) return;
   lexiqueListe.innerHTML = '';
   const q = (filtre || '').trim().toLowerCase();
   let groupe = null;
   let combien = 0;
   LEXIQUE.forEach(function(t){
+    if(cleSeule && t.cle !== cleSeule) return;
     if(q){
       const dansLeTexte = (t.terme + ' ' + t.court + ' ' + t.texte).toLowerCase();
       if(dansLeTexte.indexOf(q) === -1) return;
@@ -389,30 +402,48 @@ function dessinerLexique(filtre){
   if(!combien){
     lexiqueListe.innerHTML = '<div class="state-msg">Aucun terme ne correspond.</div>';
   }
+  // La porte vers le reste. Sans elle, la réponse ciblée deviendrait un cul-de-sac :
+  // on saurait ce qu'est « living dex » sans soupçonner qu'il y a dix-neuf autres
+  // mots expliqués juste à côté.
+  if(cleSeule && combien){
+    const tout = document.createElement('button');
+    tout.type = 'button';
+    tout.className = 'lex-tout';
+    tout.textContent = 'Voir tout le lexique  (' + LEXIQUE.length + ' termes)';
+    tout.addEventListener('click', function(){
+      lexiqueCible = null;
+      dessinerLexique('');
+      if(lexiqueQ) lexiqueQ.focus();
+    });
+    lexiqueListe.appendChild(tout);
+  }
 }
 
-// Met un terme en évidence et l'amène sous les yeux. La surbrillance retombe
-// d'elle-même : elle sert à retrouver le terme, pas à le marquer.
-function viserTerme(cle){
-  const bloc = document.getElementById('lex-' + cle);
-  if(!bloc) return;
-  lexiqueListe.querySelectorAll('.lex-terme.vise')
-    .forEach(function(x){ x.classList.remove('vise'); });
-  bloc.classList.add('vise');
-  bloc.scrollIntoView({ block: 'center', behavior: 'smooth' });
-  setTimeout(function(){ bloc.classList.remove('vise'); }, 2400);
+/**
+ * Bascule sur un terme, depuis un lien « voir aussi ».
+ *
+ * Elle remplace viserTerme(), qui faisait DÉFILER jusqu'au terme lié — un geste
+ * qui n'a plus d'objet quand un seul terme est à l'écran. Suivre un renvoi,
+ * c'est maintenant changer de page, pas se déplacer dans une liste.
+ */
+function montrerTerme(cle){
+  if(!lexiquePar[cle]) return;
+  lexiqueCible = cle;
+  if(lexiqueQ) lexiqueQ.value = '';
+  dessinerLexique('', cle);
+  if(lexiqueListe) lexiqueListe.scrollTop = 0;
 }
+
+// Le terme demandé, tant qu'on n'a pas élargi. Une recherche l'annule : taper
+// dans le champ veut dire qu'on cherche autre chose.
+let lexiqueCible = null;
 
 function ouvrirLexique(cle){
   if(!lexiqueOverlay) return;
   if(lexiqueQ) lexiqueQ.value = '';
-  dessinerLexique('');
+  lexiqueCible = (cle && lexiquePar[cle]) ? cle : null;
+  dessinerLexique('', lexiqueCible);
   lexiqueOverlay.style.display = 'flex';
-  if(cle && lexiquePar[cle]){
-    // Après l'affichage : un scrollIntoView sur un élément encore masqué ne
-    // fait rien du tout, et le terme visé restait hors de l'écran.
-    setTimeout(function(){ viserTerme(cle); }, 20);
-  }
   setTimeout(function(){ (lexiqueQ || lexiqueFermer).focus(); }, 10);
 }
 
@@ -464,7 +495,13 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
   if(lexiqueQ){
-    lexiqueQ.addEventListener('input', function(){ dessinerLexique(lexiqueQ.value); });
+    lexiqueQ.addEventListener('input', function(){
+      // Taper dans le champ, c'est chercher autre chose : la réduction à un
+      // seul terme tombe d'elle-même. Sans cela, chercher « chasse » depuis la
+      // pastille de « living dex » ne rendrait jamais rien.
+      lexiqueCible = null;
+      dessinerLexique(lexiqueQ.value);
+    });
   }
   document.addEventListener('keydown', function(e){
     if(e.key === 'Escape' && lexiqueOverlay

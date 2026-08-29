@@ -177,13 +177,6 @@ function pastilleMode(cle){
 
 detectServer = async function(){ return true; };
 
-// Le dossier « save » local n'existe plus : la progression vit sur le compte.
-// Laisser l'ancien libellé afficherait un emplacement qui n'a plus de sens.
-updateSaveModeLabel = function(){
-  saveModeLabel.textContent = dresseurCourant
-    ? 'Données : PokéAPI · Sprites : rendus Pokémon HOME · Suivi enregistré sur ton compte'
-    : 'Données : PokéAPI · Sprites : rendus Pokémon HOME · Connecte-toi pour enregistrer';
-};
 
 // Rien à maintenir en vie : la fenêtre fait foi.
 startHeartbeat = function(){};
@@ -305,7 +298,6 @@ function appliquerDresseur(d){
   img.alt = 'Avatar de ' + d.pseudo;
   compteMenu.hidden = false;
 
-  updateSaveModeLabel();
   chargerDresseurs();
 }
 
@@ -1223,7 +1215,6 @@ document.getElementById('authAnnuler').addEventListener('click', function(){
   authLibelle.textContent = 'Se connecter avec Discord';
   // Sans compte il n'y a rien à enregistrer : on le dit dans le bandeau plutôt
   // que de laisser croire à une application prête à l'emploi.
-  updateSaveModeLabel();
 });
 
 // ---- Choisir avec qui se comparer -------------------------------------------

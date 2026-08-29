@@ -177,7 +177,6 @@ const homeNormalTotal = document.getElementById('homeNormalTotal');
 const homeShinyCount = document.getElementById('homeShinyCount');
 const homeShinyTotal = document.getElementById('homeShinyTotal');
 const readoutLeft = document.getElementById('readout-left');
-const saveModeLabel = document.getElementById('saveModeLabel');
 const playerBadge = document.getElementById('playerBadge');
 const playerNameText = document.getElementById('playerNameText');
 const importCodeBtn = document.getElementById('importCodeBtn');
@@ -534,11 +533,3 @@ async function storageSet(key, value){
   catch(e){ console.error('Erreur de sauvegarde locale :', e); }
 }
 
-function updateSaveModeLabel(){
-  const prefix = 'Données : PokéAPI · Sprites : rendus Pokémon HOME · Suivi ';
-  let where;
-  if(serverMode) where = 'sauvegardé dans le dossier « save »';
-  else if(usingClaudeStorage) where = 'sauvegardé automatiquement';
-  else where = 'sauvegardé dans ce navigateur (localStorage)';
-  saveModeLabel.textContent = prefix + where;
-}

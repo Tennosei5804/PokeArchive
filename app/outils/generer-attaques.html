@@ -958,17 +958,24 @@
   </div>
 
   <div class="bottom-bar">
+    <!-- LA MENTION, ET RIEN D'AUTRE.
+         Il y avait ici trois lignes de coulisses — l'endroit de la sauvegarde,
+         la taille de la r&eacute;serve embarqu&eacute;e, la date du relev&eacute;. Elles
+         r&eacute;pondaient &agrave; des questions que personne ne pose au bas d'un &eacute;cran, et
+         celles qui valaient la peine ont leur place ailleurs : la sauvegarde
+         dans &#9881;&#65039; Param&egrave;tres &rarr; Mes donn&eacute;es, la r&eacute;serve dans les Nouveaut&eacute;s.
+
+         Ce qui doit y figurer, en revanche, c'est ceci. Le nom du projet porte
+         une marque qui ne lui appartient pas ; le dire est la moindre des
+         choses, et c'est aussi ce qui distingue un projet de fan d'une
+         contrefa&ccedil;on. Les sources restent cr&eacute;dit&eacute;es sur la m&ecirc;me ligne : la
+         r&eacute;serve enti&egrave;re en vient. -->
     <div class="credit-block">
-      <span class="credit" id="saveModeLabel">Données : PokéAPI · Sprites : rendus Pokémon HOME · Suivi sauvegardé automatiquement</span>
-      <!-- Rempli par majEtatCache(), appelé au démarrage : ce que l'application
-           garde en réserve, et depuis quand. Sans cette ligne, la fonction
-           s'exécutait dans le vide et « fonctionne hors ligne » restait une
-           promesse invisible. -->
-      <span class="credit credit-folder" id="cacheLabel"></span>
-      <!-- L'âge du relevé, rempli par majEtatReleve(). Toute la matière de
-           l'application vient d'un relevé daté ; sans cette ligne, le joueur
-           croit lire l'état du monde alors qu'il lit celui d'un jour donné. -->
-      <span class="credit credit-releve" id="releveLabel"></span>
+      <span class="credit">Projet ind&eacute;pendant, sans lien avec Nintendo, Game Freak
+        ou The Pok&eacute;mon Company. Pok&eacute;mon est une marque d&eacute;pos&eacute;e de ses
+        propri&eacute;taires respectifs.</span>
+      <span class="credit credit-releve">Donn&eacute;es : PokeAPI, Pok&eacute;p&eacute;dia &middot;
+        Sprites : rendus Pok&eacute;mon HOME</span>
     </div>
   </div>
 </div>
@@ -1491,88 +1498,88 @@
   </div>
 </div>
 
-<script src="../src/js/donnees.js?v=1787994006"></script>
+<script src="../src/js/donnees.js?v=1787997227"></script>
 <!-- Généré par outils/generer-donnees.html. Doit précéder cache.js, qui y
      puise quand le stockage local est vide. -->
-<script src="../src/js/donnees-embarquees.js?v=1787994006"></script>
+<script src="../src/js/donnees-embarquees.js?v=1787997227"></script>
 <!-- Les notices du Pokédex, une par espèce et par jeu, relevées sur Poképédia
      par outils/relever-descriptions.py, ne sont PAS déclarées ici : fiche.js va
      les chercher à la première fiche ouverte, comme les attaques et les lieux.
      Une notice par jeu, c'est vingt-deux fois le texte d'une notice par espèce
      — de quoi allonger chaque démarrage pour une carte qu'on ne lit pas
      toujours. -->
-<script src="../src/js/cache.js?v=1787994006"></script>
-<script src="../src/js/noyau.js?v=1787994006"></script>
-<script src="../src/js/confirmer.js?v=1787994006"></script>
-<script src="../src/js/maj.js?v=1787994006"></script>
-<script src="../src/js/nouveautes.js?v=1787994006"></script>
+<script src="../src/js/cache.js?v=1787997227"></script>
+<script src="../src/js/noyau.js?v=1787997227"></script>
+<script src="../src/js/confirmer.js?v=1787997227"></script>
+<script src="../src/js/maj.js?v=1787997227"></script>
+<script src="../src/js/nouveautes.js?v=1787997227"></script>
 <!-- Le lexique. Autonome : il ne lit rien d'autre que ses propres définitions,
      et pose ses pastilles au DOMContentLoaded. -->
-<script src="../src/js/lexique.js?v=1787994006"></script>
-<script src="../src/js/serveur.js?v=1787994006"></script>
-<script src="../src/js/formes.js?v=1787994006"></script>
-<script src="../src/js/accueil.js?v=1787994006"></script>
-<script src="../src/js/dex.js?v=1787994006"></script>
+<script src="../src/js/lexique.js?v=1787997227"></script>
+<script src="../src/js/serveur.js?v=1787997227"></script>
+<script src="../src/js/formes.js?v=1787997227"></script>
+<script src="../src/js/accueil.js?v=1787997227"></script>
+<script src="../src/js/dex.js?v=1787997227"></script>
 <!-- Les distributions françaises, à la main. Doit précéder cadeaux.js et
      fiche.js, qui y puisent tous les deux. -->
-<script src="../src/js/evenements.js?v=1787994006"></script>
-<script src="../src/js/cadeaux.js?v=1787994006"></script>
-<script src="../src/js/fiche.js?v=1787994006"></script>
-<script src="../src/js/grille.js?v=1787994006"></script>
+<script src="../src/js/evenements.js?v=1787997227"></script>
+<script src="../src/js/cadeaux.js?v=1787997227"></script>
+<script src="../src/js/fiche.js?v=1787997227"></script>
+<script src="../src/js/grille.js?v=1787997227"></script>
 <!-- Après dex.js et grille.js : les objectifs figent currentFiltered. -->
-<script src="../src/js/objectifs.js?v=1787994006"></script>
+<script src="../src/js/objectifs.js?v=1787997227"></script>
 <!-- Après grille.js : la fiche de capture complète la fenêtre d'aperçu. -->
-<script src="../src/js/capture.js?v=1787994006"></script>
+<script src="../src/js/capture.js?v=1787997227"></script>
 <!-- Après compte.js : la rareté demande la table à l'API. -->
-<script src="../src/js/rarete.js?v=1787994006"></script>
-<script src="../src/js/lieux.js?v=1787994006"></script>
-<script src="../src/js/chasse.js?v=1787994006"></script>
+<script src="../src/js/rarete.js?v=1787997227"></script>
+<script src="../src/js/lieux.js?v=1787997227"></script>
+<script src="../src/js/chasse.js?v=1787997227"></script>
 <!-- Les règles de combat, puis l'écran qui s'appuie dessus. Tous deux après
      fiche.js (TYPE_RELATIONS, puceType, decoderBloc) et avant menus.js, qui
      stylise leurs menus déroulants. -->
-<script src="../src/js/combat.js?v=1787994006"></script>
-<script src="../src/js/strategie.js?v=1787994006"></script>
+<script src="../src/js/combat.js?v=1787997227"></script>
+<script src="../src/js/strategie.js?v=1787997227"></script>
 <!-- Après strategie.js : il lui emprunte creerSelecteur. -->
-<script src="../src/js/reproduction.js?v=1787994006"></script>
+<script src="../src/js/reproduction.js?v=1787997227"></script>
 <!-- Après donnees.js pour GAMES, et après reproduction.js par simple
      voisinage : les trois partagent la barre « Outils ». -->
-<script src="../src/js/transferts.js?v=1787994006"></script>
-<script src="../src/js/partage.js?v=1787994006"></script>
-<script src="../src/js/menus.js?v=1787994006"></script>
+<script src="../src/js/transferts.js?v=1787997227"></script>
+<script src="../src/js/partage.js?v=1787997227"></script>
+<script src="../src/js/menus.js?v=1787997227"></script>
 <!-- Redéfinit la couche de sauvegarde quand l'app tourne dans Tauri.
      Hors Tauri (serveur.py, ou fichier ouvert directement), il ne fait rien. -->
 
-<script src="../src/js/amis.js?v=1787994006"></script>
+<script src="../src/js/amis.js?v=1787997227"></script>
 <!-- Après partage.js, dont il complète le panneau d'entraide, et après
      compte.js pour nomJournal, libelleDex, avatarDiscord et dateLisible. -->
-<script src="../src/js/troc.js?v=1787994006"></script>
+<script src="../src/js/troc.js?v=1787997227"></script>
 <!-- Après amis.js (pontNotif, bullePermise) et troc.js (ouvrirDiscussion). -->
-<script src="../src/js/notifs.js?v=1787994006"></script>
+<script src="../src/js/notifs.js?v=1787997227"></script>
 <!-- Après chasse.js (nomDeChasse, dessinerTableauChasse) et compte.js
      (perdreSession, profilCourant). -->
-<script src="../src/js/photos.js?v=1787994006"></script>
+<script src="../src/js/photos.js?v=1787997227"></script>
 <!-- Après formes.js (speciesForVariant, poolEntries), accueil.js (semeur,
      hachage) et photos.js (vignettePhoto). -->
-<script src="../src/js/defi.js?v=1787994006"></script>
+<script src="../src/js/defi.js?v=1787997227"></script>
 <!-- Après compte.js (nomJournal, perdreSession) et amis.js. -->
-<script src="../src/js/recherches.js?v=1787994006"></script>
+<script src="../src/js/recherches.js?v=1787997227"></script>
 <!-- Après dex.js (obtentionDe) et recherches.js (chercheDeja). -->
-<script src="../src/js/blocages.js?v=1787994006"></script>
+<script src="../src/js/blocages.js?v=1787997227"></script>
 <!-- Après grille.js (BOITE_TAILLE, allerBoite, basculerBoites) et dex.js
      (trierEntrees). -->
-<script src="../src/js/rangement.js?v=1787994006"></script>
-<script src="../src/js/retrospective.js?v=1787994006"></script>
-<script src="../src/js/succes.js?v=1787994006"></script>
+<script src="../src/js/rangement.js?v=1787997227"></script>
+<script src="../src/js/retrospective.js?v=1787997227"></script>
+<script src="../src/js/succes.js?v=1787997227"></script>
 <!-- Après retrospective.js : la carte lit retroDonnees si elle est là, et se
      passe d'elle sinon. -->
-<script src="../src/js/carte.js?v=1787994006"></script>
+<script src="../src/js/carte.js?v=1787997227"></script>
 <!-- Après compte.js : le premier lancement lit profilCourant et profilsConnus. -->
-<script src="../src/js/depart.js?v=1787994006"></script>
-<script src="../src/js/donnees-perso.js?v=1787994006"></script>
-<script src="../src/js/presence.js?v=1787994006"></script>
+<script src="../src/js/depart.js?v=1787997227"></script>
+<script src="../src/js/donnees-perso.js?v=1787997227"></script>
+<script src="../src/js/presence.js?v=1787997227"></script>
 
-<script src="../src/js/selecteur-couleur.js?v=1787994006"></script>
-<script src="../src/js/apparence.js?v=1787994006"></script>
+<script src="../src/js/selecteur-couleur.js?v=1787997227"></script>
+<script src="../src/js/apparence.js?v=1787997227"></script>
 <script src="generer-attaques.js"></script>
 </body>
 </html>

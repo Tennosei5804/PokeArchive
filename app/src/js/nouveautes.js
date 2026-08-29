@@ -20,6 +20,23 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.25.0', date: '2026-08-29',
+    titre: 'Le « ? » répond à ta question',
+    points: [
+      '**📖 La pastille ? ne montre plus que son terme.** Elle est posée à côté '
+      + 'd’un réglage et répond à une question : ouvrir les vingt entrées et te '
+      + 'faire chercher la bonne, c’était répondre à côté. Un bouton **Voir tout '
+      + 'le lexique** reste dessous, et le 📖 de l’en-tête ouvre toujours tout.',
+      'Les renvois « voir aussi » **basculent** désormais sur le terme lié, au lieu '
+      + 'de faire défiler une liste qui n’est plus là.',
+      '**Le bas de l’écran dit l’essentiel.** Trois lignes de coulisses — où va la '
+      + 'sauvegarde, la taille de la réserve, la date du relevé — ont laissé la '
+      + 'place à la mention qui doit y figurer : **PokéArchive est un projet '
+      + 'indépendant, sans lien avec Nintendo, Game Freak ou The Pokémon '
+      + 'Company.** Les sources restent créditées.',
+    ],
+  },
+  {
     version: '0.24.0', date: '2026-08-29',
     titre: 'Un PNG reste un PNG',
     points: [

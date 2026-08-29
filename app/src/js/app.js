@@ -89,7 +89,6 @@ async function init(){
   sortEl.value = 'name';
   triChoisi = false;
   resetFilters();          // resynchronise aussi les menus stylisés
-  updateSaveModeLabel();
   await loadProgress();
 
   // Dans PokéArchive, l'identité vient de Discord : plus de pseudo à saisir ni
@@ -110,7 +109,6 @@ async function init(){
     resetAllProgress();
   }
 
-  updateSaveModeLabel();
   updatePlayerBadge();
   // Le cache d'abord : l'application démarre instantanément et fonctionne
   // hors ligne. Le réseau n'est sollicité que s'il n'y a rien en réserve.
@@ -125,8 +123,6 @@ async function init(){
     readoutLeft.textContent = 'Pokémon HOME — ' + scopeEntries.length + ' entrées · réserve locale';
     updateProgress();
     renderList(true);
-    majEtatCache();
-    majEtatReleve();
     return;
   }
 
@@ -137,8 +133,6 @@ async function init(){
     scopeEntries = poolHome();   // le scope de départ est le Dex National
     updateProgress();
     renderList(true);
-    majEtatCache();
-    majEtatReleve();
   }catch(err){
     stateMsg.textContent = "Connexion au PokéAPI impossible, et aucune donnée en réserve. "
       + "Connecte-toi une fois : tout sera ensuite disponible hors ligne.";

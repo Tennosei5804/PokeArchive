@@ -924,3 +924,13 @@
     line-height:17px; text-align:center;
     box-shadow:0 0 0 2px var(--dex-red, #b5211f);
   }
+
+/* Le bouton qui elargit, sous un terme montre seul. Un lien plutot qu'un
+   bouton dessine : c'est une porte de sortie, pas l'action de l'ecran. */
+.lex-tout{
+  display:block; width:100%; margin-top:14px; padding:9px;
+  border:1px dashed var(--card-border); border-radius:8px;
+  background:transparent; color:var(--ink-soft); cursor:pointer;
+  font-family:var(--font-body); font-size:12.5px;
+}
+.lex-tout:hover{ border-color:var(--ink-faint); color:var(--ink); }
