@@ -19,7 +19,7 @@
 //     n'a jamais répondu » et « il a refusé » ne se vivent pas pareil.
 
 import { lire, une, ecrire } from './base.js';
-import { ErreurCompte, horodatage } from './comptes.js';
+import { ErreurCompte, horodatage, normaliser } from './comptes.js';
 import { notifier } from './notifications.js';
 
 // Combien de propositions en attente chez la MÊME personne. Au-delà ce n'est
@@ -32,10 +32,6 @@ const MESSAGE_MAX = 1000;
 const MOT_MAX = 280;
 const MESSAGES_PAGE = 200;
 
-const normaliser = (p) => (p || '')
-  .trim().replace(/\s+/g, ' ')
-  .normalize('NFD').replace(/\p{Diacritic}/gu, '')
-  .toLowerCase();
 
 async function dresseurParPseudo(pseudo) {
   const d = await une(

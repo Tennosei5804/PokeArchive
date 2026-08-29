@@ -18,10 +18,16 @@
 // hébergement gratuit ; y maintenir une socket par joueur coûterait bien plus
 // que trois requêtes à l'heure. Deux minutes de retard sur une proposition
 // d'échange ne gênent personne — on n'échange pas à la seconde.
+//
+// ET CE SONDAGE N'EST PLUS LE SIEN. Il tournait ici, à la même cadence que
+// celui des amis et décalé d'une seconde : deux allers-retours toutes les deux
+// minutes pour une seule cadence. C'est `veiller()`, dans amis.js, qui demande
+// désormais une fois pour deux et distribue — la cloche reçoit par
+// recevoirVeille().
 
-const NOTIFS_INTERVALLE = 120000;         // deux minutes, comme le fil des amis
-const NOTIFS_ATTENTE_AU_LANCEMENT = 9000; // après celui des amis, pas en même temps
-
+// La cadence n'est plus ici : c'est la veille commune d'amis.js qui rythme les
+// deux, en une seule requête. Le minuteur reste déclaré pour qu'arreterSondageNotifs
+// ait quelque chose à annuler si un jour la cloche reprend un sondage à elle.
 let notifsMinuteur = null;
 let notifsListe = [];
 let notifsNonLues = 0;
@@ -158,20 +164,24 @@ function fermerCloche(){
  * Si l'application se ferme entre les deux, on reverra la notification — un
  * doublon se pardonne, une proposition jamais vue ne se rattrape pas.
  */
-async function verifierNotifs(enOuvrant){
+async function verifierNotifs(enOuvrant, deja){
   if(typeof invoke !== 'function') return;
   if(typeof dresseurCourant !== 'undefined' && !dresseurCourant) return;
 
-  let r;
-  try{
-    r = await invoke('notifications');
-  }catch(e){
-    // Hors ligne, ou session expirée : on se tait. Un sondage de fond n'a pas à
-    // faire surgir une erreur que personne n'a demandée.
-    if(enOuvrant && clocheListe){
-      clocheListe.innerHTML = '<div class="state-msg">Indisponible pour le moment.</div>';
+  // `deja` arrive de la veille commune, qui a demandé pour deux. Sans elle —
+  // ouverture du panneau, marquage manuel — on demande pour son compte.
+  let r = deja;
+  if(!r){
+    try{
+      r = await invoke('notifications');
+    }catch(e){
+      // Hors ligne, ou session expirée : on se tait. Un sondage de fond n'a pas
+      // à faire surgir une erreur que personne n'a demandée.
+      if(enOuvrant && clocheListe){
+        clocheListe.innerHTML = '<div class="state-msg">Indisponible pour le moment.</div>';
+      }
+      return;
     }
-    return;
   }
 
   notifsListe = (r && r.notifications) || [];
@@ -230,10 +240,20 @@ async function marquerCloche(){
   }catch(e){ /* on réessaiera à la prochaine ouverture */ }
 }
 
-function lancerSondageNotifs(){
-  if(notifsMinuteur) return;
-  setTimeout(verifierNotifs, NOTIFS_ATTENTE_AU_LANCEMENT);
-  notifsMinuteur = setInterval(verifierNotifs, NOTIFS_INTERVALLE);
+/**
+ * Ce que la veille commune rapporte pour la cloche.
+ *
+ * LE SONDAGE PROPRE À NOTIFS.JS N'EXISTE PLUS. Il tournait à la même cadence que
+ * celui des amis, décalé d'une seconde : deux allers-retours toutes les deux
+ * minutes pour une seule cadence. C'est amis.js qui appelle désormais, une fois,
+ * et qui distribue — voir veiller().
+ */
+function recevoirVeille(notifications){
+  verifierNotifs(false, notifications);
+}
+
+function arreterSondageNotifs(){
+  if(notifsMinuteur){ clearInterval(notifsMinuteur); notifsMinuteur = null; }
 }
 
 // ---- Le câblage -------------------------------------------------------------

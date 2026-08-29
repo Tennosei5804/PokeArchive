@@ -158,17 +158,20 @@ async function annoncerAuSysteme(annonces){
  * l'application se ferme entre les deux, la nouveauté sera reproposée — un
  * doublon se pardonne, une capture jamais annoncée ne se rattrape pas.
  */
-async function verifierNouveautes(){
+async function verifierNouveautes(r){
   if(typeof invoke !== 'function') return;
   if(typeof dresseurCourant !== 'undefined' && !dresseurCourant) return;
 
-  let r;
-  try{
-    r = await invoke('amis_nouveautes');
-  }catch(e){
-    // Hors ligne, ou session expirée : on se tait. Un sondage de fond n'a pas à
-    // faire surgir une erreur que personne n'a demandée.
-    return;
+  // `r` arrive de la veille commune quand c'est elle qui appelle ; sinon on
+  // demande pour son compte — l'ouverture manuelle de la page, par exemple.
+  if(!r){
+    try{
+      r = await invoke('amis_nouveautes');
+    }catch(e){
+      // Hors ligne, ou session expirée : on se tait. Un sondage de fond n'a pas
+      // à faire surgir une erreur que personne n'a demandée.
+      return;
+    }
   }
   const annonces = r.annonces || [];
   if(!annonces.length) return;
@@ -191,10 +194,43 @@ async function verifierNouveautes(){
   if(typeof currentPage !== 'undefined' && currentPage === 'amis') chargerFil(false);
 }
 
+/**
+ * La veille de fond : une requête, deux réponses.
+ *
+ * Elle remplace deux sondages indépendants qui tournaient à la même cadence,
+ * décalés d'une seconde au lancement. Les deux lectures restent distinctes côté
+ * serveur — l'une se déduit du journal, l'autre lit une table — mais elles
+ * voyagent ensemble, ce qui divise par deux le trafic de fond.
+ */
+async function veiller(){
+  if(typeof invoke !== 'function') return;
+  if(typeof dresseurCourant !== 'undefined' && !dresseurCourant) return;
+  let r;
+  try{
+    r = await invoke('veille');
+  }catch(e){
+    return;                          // hors ligne : on se tait, on réessaiera
+  }
+  await verifierNouveautes(r.amis);
+  if(typeof recevoirVeille === 'function') recevoirVeille(r.notifications);
+}
+
 function lancerSondageAmis(){
   if(amisMinuteur) return;
-  setTimeout(verifierNouveautes, AMIS_ATTENTE_AU_LANCEMENT);
-  amisMinuteur = setInterval(verifierNouveautes, AMIS_INTERVALLE);
+  setTimeout(veiller, AMIS_ATTENTE_AU_LANCEMENT);
+  amisMinuteur = setInterval(veiller, AMIS_INTERVALLE);
+}
+
+/**
+ * Arrête la veille.
+ *
+ * Les minuteurs ne s'arrêtaient jamais : après une déconnexion ils continuaient
+ * de sonner dans le vide, échouant en silence toutes les deux minutes jusqu'à
+ * la fermeture de la fenêtre.
+ */
+function arreterSondages(){
+  if(amisMinuteur){ clearInterval(amisMinuteur); amisMinuteur = null; }
+  if(typeof arreterSondageNotifs === 'function') arreterSondageNotifs();
 }
 
 // ---- La pastille ------------------------------------------------------------
@@ -572,11 +608,9 @@ document.addEventListener('DOMContentLoaded', function(){
     amisNotif.value = amisReglage();
     amisNotif.addEventListener('change', function(){ poserAmisReglage(amisNotif.value); });
   }
+  // Une seule veille pour les deux : elle demande, puis distribue. La cloche
+  // n'a plus de sondage à elle. Voir veiller().
   lancerSondageAmis();
-  // La cloche a son propre sondage : elle regarde une autre table, et son
-  // délai de départ est décalé pour ne pas ouvrir deux requêtes ensemble au
-  // lancement. Voir notifs.js.
-  if(typeof lancerSondageNotifs === 'function') lancerSondageNotifs();
 });
 
 /** Appelé par showPage('amis'). */

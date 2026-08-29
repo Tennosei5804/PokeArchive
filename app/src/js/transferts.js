@@ -173,10 +173,6 @@ function etatRoute(route){
   return banqueFermee() ? 'ferme' : 'sursis';
 }
 
-function routeFermee(route){
-  return etatRoute(route) === 'ferme';
-}
-
 // ---- La page ----------------------------------------------------------------
 
 const transfertsListe = document.getElementById('transfertsListe');

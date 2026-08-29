@@ -31,6 +31,7 @@ function peindreTemoinComparaison(el, entry, moi){
 }
 
 function quitterComparaison(){
+  const retour = amiProgression && amiProgression.retour;
   amiProgression = null;
   compareBar.style.display = 'none';
   [...filterEl.options].forEach(function(o){
@@ -38,7 +39,11 @@ function quitterComparaison(){
   });
   if(filterEl.value !== 'all'){ filterEl.value = 'all'; }
   markActiveFilters();
+  // On repeint AVANT de partir : sans cela le Pokédex garderait ses témoins de
+  // comparaison, et l'on retomberait dessus plus tard sans comprendre d'où ils
+  // sortent.
   renderList(true);
+  if(retour) retour();
 }
 
 // Sans cet écouteur, on entrait en comparaison sans pouvoir en sortir : le
@@ -108,8 +113,17 @@ function majBarreComparaison(){
  * sache résoudre en dresseur. Il vaut null quand la comparaison vient d'un code
  * de partage : on connaît alors une collection, pas quelqu'un, et il n'y a
  * personne à qui proposer un échange.
+ *
+ * `retour` dit OÙ REVENIR en quittant. Comparer fait basculer sur un Pokédex,
+ * et en sortir laissait devant ce Pokédex — celui de personne en particulier,
+ * puisque la comparaison venait de s'éteindre. On se retrouvait quelque part
+ * sans savoir comment y était arrivé, et il fallait retraverser deux écrans
+ * pour revenir chez le dresseur qu'on regardait.
+ *
+ * Une fonction plutôt qu'un nom de page : revenir chez quelqu'un demande
+ * d'ouvrir sa fiche, pas seulement l'onglet qui la contient.
  */
-function demarrerComparaison(nomAmi, dexDistant, modeAmi, niveauAmi, pseudoAmi){
+function demarrerComparaison(nomAmi, dexDistant, modeAmi, niveauAmi, pseudoAmi, retour){
   const caught = new Set(dexDistant.captures || dexDistant.caught || []);
   const shiny = new Set(dexDistant.shiny || []);
   const parJeu = dexDistant.dex || {};
@@ -120,7 +134,8 @@ function demarrerComparaison(nomAmi, dexDistant, modeAmi, niveauAmi, pseudoAmi){
 
   amiProgression = { joueur: nomAmi, pseudo: pseudoAmi || null, dex: 'national',
                      mode: modeAmi || null, niveau: niveauAmi || null,
-                     caught: caught, shiny: shiny };
+                     caught: caught, shiny: shiny,
+                     retour: (typeof retour === 'function') ? retour : null };
 
   if(!filterEl.querySelector('option[value="ami-oui-moi-non"]')){
     [['ami-oui-moi-non', 'Il l\'a, pas moi'], ['moi-oui-ami-non', 'Je l\'ai, pas lui']]

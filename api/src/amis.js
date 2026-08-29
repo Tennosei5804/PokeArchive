@@ -15,7 +15,7 @@
 // écriture qu'il faudrait tenir d'accord avec la première.
 
 import { lire, une, ecrire } from './base.js';
-import { ErreurCompte, horodatage } from './comptes.js';
+import { ErreurCompte, horodatage, normaliser } from './comptes.js';
 
 const MAX_AMIS = 100;
 // Autant d'envies qu'on peut inscrire. Au-delà ce n'est plus une liste
@@ -28,10 +28,6 @@ const FIL_MAX = 200;
 // le ton ; au-delà, « et 37 autres » en dit autant en moins de place.
 const NOMS_CITES = 3;
 
-const normaliser = (p) => (p || '')
-  .trim().replace(/\s+/g, ' ')
-  .normalize('NFD').replace(/\p{Diacritic}/gu, '')
-  .toLowerCase();
 
 /** Le dresseur derrière un pseudo, ou une erreur claire. */
 async function dresseurParPseudo(pseudo) {

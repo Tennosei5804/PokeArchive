@@ -45,11 +45,97 @@ const PHOTO_PNG_MAX = 1024 * 1024;
 const PHOTO_COTE_MAX = 1600;
 const PHOTO_QUALITE = 0.82;
 
-// Les data: rendues par le pont, gardées le temps de la session. Une photo ne
-// change jamais — son identifiant est créé avec elle et n'est pas réattribué —
-// donc la relire à chaque ouverture du tableau serait un aller-retour pour un
-// contenu déjà connu.
+// Les data: rendues par le pont. Une photo ne change jamais — son identifiant
+// est créé avec elle et n'est jamais réattribué — donc la relire à chaque
+// ouverture du tableau serait un aller-retour pour un contenu déjà connu.
+//
+// MAIS LE CACHE OUBLIE, et il le faut. Une photo pèse deux cent mille octets, un
+// tiers de plus une fois en base64 : garder tout ce qu'une session croise, c'est
+// trente mégaoctets en mémoire au bout de trois murs parcourus, jusqu'à la
+// fermeture de la fenêtre. On garde les dernières, et le reste se relit — c'est
+// un aller-retour, pas une perte.
+const PHOTOS_EN_CACHE_MAX = 30;
 const photosEnCache = new Map();
+
+function retenirPhoto(id, url){
+  // Map garde l'ordre d'insertion : la plus ancienne est la première clé.
+  if(photosEnCache.size >= PHOTOS_EN_CACHE_MAX){
+    photosEnCache.delete(photosEnCache.keys().next().value);
+  }
+  photosEnCache.set(id, url);
+}
+
+// ---- Le chargement paresseux ------------------------------------------------
+//
+// LE MUR EN DEMANDAIT CENT VINGT D'UN COUP. Le serveur en rend jusqu'à cent
+// vingt, chaque carte appelait le pont dès sa création : cent vingt requêtes
+// simultanées, une trentaine de mégaoctets d'un bloc, sur un hébergement
+// gratuit. L'historique des défis était pire — il dessine tout ce qui est
+// gardé, jusqu'à deux ans.
+//
+// On ne charge donc que ce qui entre à l'écran. Un seul observateur pour toute
+// la page : en créer un par vignette coûterait plus cher que le problème.
+
+let guetteurPhotos = null;
+
+function guetteur(){
+  if(guetteurPhotos) return guetteurPhotos;
+  if(typeof IntersectionObserver !== 'function') return null;
+  guetteurPhotos = new IntersectionObserver(function(entrees, obs){
+    entrees.forEach(function(e){
+      if(!e.isIntersecting) return;
+      obs.unobserve(e.target);        // une fois chargée, on ne la guette plus
+      const charger = e.target._chargerPhoto;
+      if(typeof charger === 'function') charger();
+    });
+  }, {
+    // Un écran d'avance : la vignette est prête quand elle arrive sous les yeux,
+    // au lieu d'apparaître vide puis de se remplir.
+    rootMargin: '300px',
+  });
+  return guetteurPhotos;
+}
+
+/**
+ * Charge quand l'élément approche — et un filet de sécurité derrière.
+ *
+ * L'OBSERVATEUR PEUT NE JAMAIS PARLER. Une page qui ne compose pas d'images —
+ * fenêtre réduite, onglet occulté, volet de rendu inactif — ne produit aucune
+ * intersection : mesuré, un observateur neuf y voit zéro passage pour un
+ * élément pourtant fixé en haut à gauche. Sans filet, la vignette resterait
+ * vide pour toujours, et l'attente paresseuse deviendrait une attente tout
+ * court.
+ *
+ * On double donc d'un contrôle unique, un quart de seconde plus tard : si
+ * l'élément est réellement dans la fenêtre au calcul des rectangles, on charge
+ * sans attendre le rappel. Cela ne réveille que ce qui est visible — les cent
+ * vingt vignettes d'un mur restent endormies.
+ */
+function chargerQuandVisible(el, charger){
+  let fait = false;
+  const uneFois = function(){
+    if(fait) return;
+    fait = true;
+    charger();
+  };
+
+  const g = guetteur();
+  if(!g){ uneFois(); return; }
+  el._chargerPhoto = uneFois;
+  g.observe(el);
+
+  setTimeout(function(){
+    if(fait || !el.isConnected) return;
+    const r = el.getBoundingClientRect();
+    const haut = window.innerHeight || document.documentElement.clientHeight;
+    const large = window.innerWidth || document.documentElement.clientWidth;
+    // La même marge que l'observateur, pour que les deux chemins s'accordent.
+    if(r.bottom > -300 && r.top < haut + 300 && r.right > -300 && r.left < large + 300){
+      g.unobserve(el);
+      uneFois();
+    }
+  }, 250);
+}
 
 // Ce qui attend une photo, entre l'ouverture du sélecteur et son retour : le
 // sujet, et ce qu'il faudra redessiner ensuite.
@@ -204,7 +290,7 @@ async function retirerPhoto(sujet, apres){
 async function chargerPhoto(id){
   if(photosEnCache.has(id)) return photosEnCache.get(id);
   const url = await invoke('image_charger', { id: id });
-  photosEnCache.set(id, url);
+  retenirPhoto(id, url);
   return url;
 }
 
@@ -232,15 +318,17 @@ function vignettePhoto(c, apres, genre){
   const img = document.createElement('img');
   img.alt = '';
   cadre.appendChild(img);
-  chargerPhoto(c.image).then(function(url){
-    img.src = url;
-  }, function(e){
-    if(String(e) === 'SESSION_INVALIDE'){ perdreSession(); return; }
-    // Introuvable ou hors ligne : la case redevient un appareil photo plutôt
-    // qu'un carré cassé, et reste cliquable pour en reposer une.
-    cadre.classList.add('vide');
-    cadre.textContent = '📷';
-    cadre.title = 'Photo indisponible — clique pour en poser une autre';
+  chargerQuandVisible(cadre, function(){
+    chargerPhoto(c.image).then(function(url){
+      img.src = url;
+    }, function(e){
+      if(String(e) === 'SESSION_INVALIDE'){ perdreSession(); return; }
+      // Introuvable ou hors ligne : la case redevient un appareil photo plutôt
+      // qu'un carré cassé, et reste cliquable pour en reposer une.
+      cadre.classList.add('vide');
+      cadre.textContent = '📷';
+      cadre.title = 'Photo indisponible — clique pour en poser une autre';
+    });
   });
 
   cadre.addEventListener('click', function(){
@@ -350,9 +438,11 @@ function carteMur(p){
   const img = document.createElement('img');
   img.alt = '';
   cadre.appendChild(img);
-  chargerPhoto(p.id).then(function(url){ img.src = url; }, function(){
-    cadre.classList.add('vide');
-    cadre.textContent = '📷';
+  chargerQuandVisible(cadre, function(){
+    chargerPhoto(p.id).then(function(url){ img.src = url; }, function(){
+      cadre.classList.add('vide');
+      cadre.textContent = '📷';
+    });
   });
   cadre.addEventListener('click', function(){ ouvrirPhotoSeule(p); });
   carte.appendChild(cadre);

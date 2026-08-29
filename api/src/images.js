@@ -32,7 +32,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { lire, une, ecrire } from './base.js';
-import { ErreurCompte, horodatage } from './comptes.js';
+import { ErreurCompte, horodatage, normaliser } from './comptes.js';
 
 // Le dossier des fichiers. Hors du dépôt, et créé au besoin.
 //
@@ -348,10 +348,6 @@ export async function menage(profilId, donnees) {
   return orphelines.length;
 }
 
-const normaliser = (p) => (p || '')
-  .trim().replace(/\s+/g, ' ')
-  .normalize('NFD').replace(/\p{Diacritic}/gu, '')
-  .toLowerCase();
 
 /**
  * Toutes les photos d'un dresseur, celles qu'on a le droit de voir.

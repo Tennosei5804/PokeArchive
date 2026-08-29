@@ -1210,8 +1210,24 @@ verifier('Les photos',
     if(avec.classList.contains('vide')) return 'échec : la case pleine se dit vide';
     const img = avec.querySelector('img');
     if(!img) return 'échec : aucune image dans la case pleine';
-    await attendre(300);
-    if(!img.getAttribute('src')) return 'échec : la photo n arrive jamais';
+
+    // ON L'ACCROCHE À LA PAGE. Depuis le chargement paresseux, la photo n'arrive
+    // que lorsque la vignette approche de l'écran — et un élément détaché
+    // n'approche jamais de rien. Le test échouait donc en disant « la photo
+    // n'arrive jamais », ce qui était vrai, et sans rapport avec un défaut.
+    // EN VUE, ET PAS SEULEMENT DANS LA PAGE. Ajoutee en fin de <body>, la
+    // vignette atterrit des centaines de pixels sous le pli : l'observateur ne
+    // la voit pas davantage que detachee. On la fixe donc dans le coin, ce qui
+    // ne depend ni de la longueur de la page ni du defilement courant.
+    avec.style.position = 'fixed';
+    avec.style.top = '0';
+    avec.style.left = '0';
+    avec.style.zIndex = '999999';
+    document.body.appendChild(avec);
+    await attendre(600);
+    const venue = !!img.getAttribute('src');
+    avec.remove();
+    if(!venue) return 'échec : la photo n arrive jamais, même à l écran';
     return 'vide : ' + sans.textContent + '  //  pleine : image de '
            + img.getAttribute('src').slice(0, 22) + '...';
   });

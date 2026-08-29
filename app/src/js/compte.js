@@ -365,6 +365,10 @@ async function demarrerProfils(){
 
 async function perdreSession(){
   await invoke('deconnexion').catch(function(){});
+  // La veille de fond n'a plus rien à surveiller : sans cet arrêt, elle
+  // continuait de sonner toutes les deux minutes, échouant en silence jusqu'à
+  // la fermeture de la fenêtre.
+  if(typeof arreterSondages === 'function') arreterSondages();
   // La présence Discord porte le pseudo et le nom d'aventure : la laisser
   // après une déconnexion, c'est continuer à les afficher à toute une liste
   // d'amis alors qu'on a justement voulu partir.
@@ -934,7 +938,8 @@ async function comparerAvec(pseudo, profil){
     // du dex distant tel quel, il a la même forme que le nôtre.
     demarrerComparaison(pseudo + ' · ' + profil.nom, autre.dex,
       (autre.profil && autre.profil.mode) || profil.mode,
-      autre.profil && autre.profil.niveau_formes, pseudo);
+      autre.profil && autre.profil.niveau_formes, pseudo,
+      function(){ showPage('dresseurs'); visiterDresseur(pseudo); });
     showPage('national');
   }catch(e){
     if(String(e) === 'SESSION_INVALIDE'){ await perdreSession(); return; }
@@ -2092,7 +2097,10 @@ async function voirPokedexDe(pseudo, profil){
   comparer.addEventListener('click', function(){
     demarrerComparaison(pseudo + ' · ' + profil.nom, autre.dex,
       (autre.profil && autre.profil.mode) || profil.mode,
-      autre.profil && autre.profil.niveau_formes, pseudo);
+      autre.profil && autre.profil.niveau_formes, pseudo,
+      // On revient sur SA FICHE, et non sur le Pokédex qu'on regardait : c'est
+      // de là qu'on est parti, et c'est là qu'on retrouve ses autres aventures.
+      function(){ showPage('dresseurs'); visiterDresseur(pseudo); });
     showPage('national');
   });
 

@@ -20,6 +20,29 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.24.0', date: '2026-08-29',
+    titre: 'Un PNG reste un PNG',
+    points: [
+      '**🖼️ Tes captures ne sont plus reconverties.** L’application '
+      + 'transformait toutes les photos en JPEG avant de les envoyer, et une '
+      + 'capture d’écran y perdait : le texte d’une boîte, le liseré d’un '
+      + 'chromatique, les aplats d’une interface s’y couvraient d’artefacts. Le '
+      + 'format que tu donnes est désormais conservé — un PNG reste un PNG, '
+      + 'sans perte.',
+      'Au-delà d’un mégaoctet, le JPEG reprend la main : un PNG de plusieurs '
+      + 'mégaoctets mangerait ton quota pour une différence que personne ne voit '
+      + 'sur une photographie.',
+      '**Arrêter de comparer te ramène d’où tu viens.** Comparer bascule sur un '
+      + 'Pokédex ; en sortir te laissait devant ce Pokédex — celui de personne, '
+      + 'puisque la comparaison venait de s’éteindre. Le bouton te repose '
+      + 'maintenant sur la fiche du dresseur que tu regardais.',
+      '**Le serveur nettoie aussi les PNG.** Ils portent eux aussi de quoi en '
+      + 'dire trop — la position GPS, et des blocs de texte où certains '
+      + 'logiciels écrivent le nom de ta machine. Ils sont retirés à l’arrivée, '
+      + 'comme c’était déjà le cas pour les JPEG.',
+    ],
+  },
+  {
     version: '0.23.0', date: '2026-08-29',
     titre: 'Ajouter quelqu’un sans retenir son pseudo',
     points: [

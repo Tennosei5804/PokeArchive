@@ -84,7 +84,8 @@ sessionStorage navigator location btoa atob structuredClone queueMicrotask reque
 getComputedStyle matchMedia
 await new delete void in of do else try finally throw class extends super this URL URLSearchParams
 Uint8Array TextEncoder TextDecoder Infinity NaN undefined null true false crypto performance
-AbortController Image Audio Blob FileReader CustomEvent Event KeyboardEvent MouseEvent
+AbortController Image Audio Blob File FileReader CustomEvent Event KeyboardEvent MouseEvent
+IntersectionObserver ResizeObserver MutationObserver
 BigInt Option Proxy Reflect globalThis
 async constructor static process Buffer setImmediate queueMicrotask
 Response Request Headers FormData AbortSignal AggregateError

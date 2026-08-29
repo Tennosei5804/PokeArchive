@@ -1125,7 +1125,7 @@ function conditionEvolution(det){
     const s = seuilBonheur();
     if(s.valeur){
       bouts.push('bonheur ' + s.valeur
-        + (s.ancien ? ' (220 avant la 8ᵉ génération)' : ''));
+        + (s.ancien ? ' (' + BONHEUR_ANCIEN + ' avant la 8ᵉ génération)' : ''));
     }
   }
   if(det.genre) bouts.push(det.genre === 1 ? 'femelle uniquement' : 'mâle uniquement');

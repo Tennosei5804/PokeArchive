@@ -1380,7 +1380,7 @@ en pratique.
 
 ## Se relire, et se vérifier
 
-Trois outils, aucune dépendance, rien à installer.
+Quatre outils, aucune dépendance, rien à installer.
 
 ```
 cd app
@@ -1388,6 +1388,37 @@ py outils/verifier.py     # relecture statique, deux secondes
 py outils/banc.py         # l'application tourne et se vérifie
 py outils/verif.py        # l'application tourne et SE MONTRE
 ```
+
+```
+cd api
+npm run banc              # le serveur se vérifie, sur la vraie base
+```
+
+### Le banc de l'API
+
+Il a longtemps manqué, et l'absence se voyait : trente-sept vérifications côté
+application, dix-huit côté site, **zéro côté serveur** — alors que c'est lui qui
+porte le plus délicat. L'inversion du sens dans un échange, la règle de
+visibilité des photos, le ménage déclenché par une sauvegarde, le retrait de
+l'EXIF, « qui a ce Pokémon ». Tout cela avait été éprouvé une fois, à la main,
+au curl. Rien n'était rejouable.
+
+**Il tourne sur la vraie base**, et c'est délibéré : ce qu'on veut éprouver, ce
+sont les requêtes SQL, les clés étrangères et les contraintes. Les simuler
+reviendrait à valider une imitation. Les modules sont appelés directement, sans
+passer par HTTP : on vérifie la règle, pas le routage.
+
+**Il ne touche à aucun compte réel.** Ses dresseurs portent des identifiants
+Discord d'une plage réservée — `991…`, voisine de celle de `peupler.js` et
+distincte d'elle — et il les efface en partant, y compris quand une vérification
+échoue, par un `try/finally`. Un banc qui laisse ses figurants derrière lui
+pollue le classement de tout le monde.
+
+**Chaque vérification part d'une ardoise propre** quand elle compte quelque
+chose. La première version du contrôle de ménage attendait « une photo effacée »
+et en trouvait trois : les vérifications précédentes avaient laissé les leurs.
+C'était un défaut du test, pas du code — mais il aurait tout aussi bien pu
+masquer l'inverse.
 
 Les deux premiers répondent à « est-ce que ça marche » et rendent un verdict.
 **`verif.py`** répond à « qu'est-ce que ça donne » et rend la main : il sert

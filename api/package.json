@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "node --env-file-if-exists=.env src/serveur.js",
-    "dev": "node --env-file=.env --watch src/serveur.js"
+    "dev": "node --env-file=.env --watch src/serveur.js",
+    "banc": "node --env-file=.env outils/banc.js"
   },
   "dependencies": {
     "express": "^5.1.0",

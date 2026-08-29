@@ -43,7 +43,15 @@ const cle = (v) => createHash('sha256').update(v, 'utf8').digest('hex');
  * ce repli, il suffirait d'un accent pour se faire passer pour quelqu'un
  * d'autre, et personne ne verrait la différence dans une liste.
  */
-const normaliser = (p) => (p || '')
+/**
+ * La clé d'un pseudo : sert à comparer, jamais à afficher.
+ *
+ * EXPORTÉE, ET UNE SEULE FOIS. Elle vivait recopiée à l'identique dans amis.js,
+ * echanges.js et images.js. Quatre copies d'une fonction qui décide de QUI EST
+ * QUI : il aurait suffi qu'une seule dérive pour que la recherche trouve
+ * quelqu'un que l'abonnement ne sache plus résoudre.
+ */
+export const normaliser = (p) => (p || '')
   .trim().replace(/\s+/g, ' ')
   .normalize('NFD').replace(/\p{Diacritic}/gu, '')
   .toLowerCase();

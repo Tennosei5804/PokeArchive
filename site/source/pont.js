@@ -645,6 +645,8 @@
     amis: () => ({ amis: [] }),
     amis_fil: () => ({ lignes: [] }),
     amis_nouveautes: () => ({ groupes: [] }),
+    veille: () => ({ amis: { annonces: [], jusqua: 0, total: 0 },
+                     notifications: { notifications: [], nonLues: 0 } }),
     amis_vu: () => ({ ok: true }),
     suivre: () => { throw HORS_LIGNE; },
     ne_plus_suivre: () => { throw HORS_LIGNE; },

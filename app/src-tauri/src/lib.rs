@@ -786,6 +786,13 @@ async fn amis_fil(etat: State<'_, Etat>, avant: Option<i64>) -> Result<serde_jso
     appeler(reqwest::Method::GET, &chemin, &jeton, None).await
 }
 
+/// La veille : les nouveautés des amis et les notifications, en un aller-retour.
+#[tauri::command]
+async fn veille(etat: State<'_, Etat>) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(reqwest::Method::GET, "/api/veille", &jeton, None).await
+}
+
 /// Ce qui n'a pas encore été annoncé, déjà groupé par l'API.
 #[tauri::command]
 async fn amis_nouveautes(etat: State<'_, Etat>) -> Result<serde_json::Value, String> {
@@ -1186,6 +1193,7 @@ pub fn run() {
             ne_plus_suivre,
             amis_fil,
             amis_nouveautes,
+            veille,
             amis_vu,
             echanges,
             echange_proposer,

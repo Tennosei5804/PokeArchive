@@ -506,6 +506,22 @@ app.get('/api/dresseurs/:pseudo/photos', route(async (req, res) => {
   res.json(await images.mur(d.id, req.params.pseudo));
 }));
 
+// La veille : les deux questions de fond en une requete.
+//
+// L'application demandait separement « quoi de neuf chez mes amis » et « qu'y
+// a-t-il pour moi », toutes les deux minutes chacune, a une seconde d'ecart.
+// Deux allers-retours pour une seule cadence, sur un hebergement gratuit. Les
+// deux lectures restent distinctes cote serveur — ce sont deux mecanismes
+// differents, l'un deduit, l'autre ecrit — mais elles voyagent ensemble.
+app.get('/api/veille', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  const [nouveautes, avis] = await Promise.all([
+    amis.nouveautes(d.id),
+    notifications.mesNotifications(d.id),
+  ]);
+  res.json({ amis: nouveautes, notifications: avis });
+}));
+
 // --- Les notifications ------------------------------------------------------
 
 app.get('/api/notifications', route(async (req, res) => {
