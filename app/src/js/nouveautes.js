@@ -20,6 +20,25 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.28.0', date: '2026-08-29',
+    titre: 'Les cadeaux mystères qui pouvaient briller',
+    points: [
+      '**🎁 Un cadeau mystère est verrouillé par défaut** — c’est la règle, et '
+      + 'presque tous la suivent. Cent trente-trois distributions y échappaient : '
+      + 'les œufs de la « Gotta catch ’em all! Station » de 2001, ceux des Pokémon '
+      + 'Centers japonais, les Pikachu partenaires de 2017. L’écran Shiny-lock te '
+      + 'les montre désormais.',
+      'Elles n’encombrent pas la liste : elles apparaissent quand tu choisis un jeu '
+      + 'ou tapes un nom. Cherche « ronflex » et tu verras les deux faces — celui '
+      + 'qui bloque la Route 6, verrouillé sur X et Y, et l’œuf de 2003 qui, lui, '
+      + 'pouvait éclore chromatique.',
+      'Presque toutes exploitaient la même faille, vivante de Rubis et Saphir '
+      + 'jusqu’à Ultra-Soleil : échanger l’œuf entre sauvegardes d’identifiants '
+      + 'différents jusqu’à ce qu’il éclose chromatique. Aucune de ces distributions '
+      + 'n’a plus cours — c’est de l’histoire, utile sur une vieille cartouche.',
+    ],
+  },
+  {
     version: '0.27.0', date: '2026-08-29',
     titre: 'Trois Pokémon qu’on t’avait dit impossibles',
     points: [
