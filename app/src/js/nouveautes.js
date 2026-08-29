@@ -20,6 +20,25 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.27.0', date: '2026-08-29',
+    titre: 'Trois Pokémon qu’on t’avait dit impossibles',
+    points: [
+      '**🎯 Solgaleo, Lunala et Necrozma sont chassables.** L’application '
+      + 'affirmait le contraire, et elle avait tort. Ils ne profitent simplement '
+      + 'jamais du taux amélioré — ni Charme Chroma, ni bonus de rencontre — mais '
+      + 'un chromatique existe. Vémini et Mandrillon aussi, sauf sur Soleil et '
+      + 'Lune. Si tu as renoncé à une chasse à cause de ça, elle était possible.',
+      '**La liste Shiny-lock a doublé**, et elle te dit maintenant, jeu par jeu, '
+      + 'ce qui va te bloquer : sur Épée et Bouclier, « tous les Pokémon offerts '
+      + 'sauf les fossiles », par exemple. Dix-neuf espèces manquaient, dont les '
+      + 'quatre Trésors Funestes. Relevé sur le Dossier Shasse de Pokébip.',
+      '**🎡 Les menus tournent.** Dès six choix, un menu devient une '
+      + 'molette qui défile et s’aimante au centre — plus agréable que de traquer '
+      + 'une barre de défilement dans vingt-quatre jeux ou cent capacités. En '
+      + 'dessous de six, la liste reste comme avant.',
+    ],
+  },
+  {
     version: '0.26.0', date: '2026-08-29',
     titre: 'Ce qui ne peut pas briller',
     points: [
