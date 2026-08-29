@@ -1301,6 +1301,28 @@
 .verrou-partout{
   font-family:var(--font-body); font-size:12px; color:var(--danger); margin-top:4px;
 }
+/* Un cadeau mystère qui faisait exception. VERT : c'est la seule ligne de
+   l'écran qui annonce une possibilité, et elle ne doit pas se lire comme un
+   verrou de plus. */
+.verrou-cadeau{
+  font-family:var(--font-body); font-size:12px; color:var(--caught); margin-top:4px;
+}
+
+/* Le séparateur de section. Les cadeaux disent le contraire du reste : sans
+   titre entre les deux, la liste se lirait à l'envers. */
+.verrou-section{
+  margin:18px 0 8px; padding-top:12px;
+  border-top:1px solid var(--card-border);
+}
+.verrou-section-titre{
+  font-family:var(--font-data); font-size:10px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--caught);
+}
+.verrou-section-note{
+  font-family:var(--font-body); font-size:11.5px; color:var(--ink-faint);
+  margin-top:3px;
+}
+
 /* Chromatique possible, mais pas au taux amélioré. Ambre et non rouge : ce
    n'est pas un mur, c'est un ralentissement, et la couleur doit le dire. */
 .verrou-taux{

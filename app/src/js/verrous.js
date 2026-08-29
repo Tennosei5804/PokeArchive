@@ -22,6 +22,8 @@
 //   · VERROUS_PAR_JEU — CETTE RENCONTRE-CI est verrouillée, les autres non.
 //   · REGLES_VERROU — une catégorie entière l'est, sur ce jeu, et on ne peut
 //     l'énumérer : elle s'affiche alors en toutes lettres.
+//   · CADEAUX_SHASSABLES — l'exception à la règle des cadeaux mystères, qui va
+//     dans l'autre sens : ce qui A PU être chromatique.
 
 // Combien de jeux on nomme avant d'abréger.
 const VERROU_JEUX_CITES = 3;
@@ -102,6 +104,36 @@ function verrousTous(){
   });
 }
 
+/**
+ * Les cadeaux mystères chassables, filtrés.
+ *
+ * SEULEMENT SUR DEMANDE, et c'est délibéré : cent cinquante-quatre distributions
+ * ajoutées à la vue par défaut noieraient les soixante-dix-neuf verrous, qui sont
+ * la raison d'être de l'écran. Un jeu choisi ou un nom tapé, c'est le moment où
+ * la question se pose — avant, c'est du bruit.
+ */
+function cadeauxPour(cleJeu, q){
+  if(cleJeu === 'tous' && !q) return [];
+  const vus = new Map();
+  CADEAUX_SHASSABLES.forEach(function(groupe){
+    if(cleJeu !== 'tous' && groupe.jeux.indexOf(cleJeu) === -1) return;
+    groupe.especes.forEach(function(id){
+      if(vus.has(id)) return;
+      const e = poolEntries().find(function(x){ return x.speciesId === id; });
+      if(!e) return;
+      if(q){
+        const nom = nomAffiche(e).toLowerCase();
+        if(nom.indexOf(q) === -1 && String(id).indexOf(q) === -1) return;
+      }
+      vus.set(id, { entry: e, genre: 'cadeau', fermes: [], ouverts: jeuxOuverts(id),
+                    quoi: groupe.quoi });
+    });
+  });
+  return Array.from(vus.values()).sort(function(a, b){
+    return a.entry.speciesId - b.entry.speciesId;
+  });
+}
+
 /** Les règles qui ne se comptent pas, pour un jeu donné. */
 function reglesPour(cleJeu){
   if(cleJeu === 'tous') return [];
@@ -169,7 +201,7 @@ function dessinerVerrous(){
   const regles = reglesPour(jeu);
   if(regles.length) verrousListe.appendChild(blocRegles(regles));
 
-  if(!gardes.length && !regles.length){
+  if(!gardes.length && !regles.length && !cadeauxPour(jeu, q).length){
     const rienNeBrille = SANS_CHROMATIQUES.indexOf(jeu) !== -1;
     verrousListe.innerHTML = '<div class="state-msg">' + (rienNeBrille
       ? 'Aucun Pokémon n’est chromatique dans ce jeu : la forme apparaît en Or '
@@ -178,16 +210,42 @@ function dessinerVerrous(){
   }
   gardes.forEach(function(v){ verrousListe.appendChild(ligneVerrou(v, jeu)); });
 
-  if(verrouCompte) verrouCompte.textContent = resumeVerrous(gardes, regles, jeu);
+  // L'exception, tout en bas : elle dit le contraire du reste de l'écran, et
+  // mélangée aux verrous elle se lirait à l'envers.
+  const cadeaux = cadeauxPour(jeu, q);
+  if(cadeaux.length){
+    verrousListe.appendChild(titreSection('Cadeaux mystères — l’exception',
+      'Un cadeau mystère est verrouillé par défaut. Ceux-ci ne l’étaient pas.'));
+    cadeaux.forEach(function(v){ verrousListe.appendChild(ligneVerrou(v, jeu)); });
+  }
+
+  if(verrouCompte) verrouCompte.textContent = resumeVerrous(gardes, regles, cadeaux, jeu);
 }
 
-function resumeVerrous(gardes, regles, jeu){
+function titreSection(titre, note){
+  const bloc = document.createElement('div');
+  bloc.className = 'verrou-section';
+  const h = document.createElement('div');
+  h.className = 'verrou-section-titre';
+  h.textContent = titre;
+  const p = document.createElement('div');
+  p.className = 'verrou-section-note';
+  p.textContent = note;
+  bloc.appendChild(h);
+  bloc.appendChild(p);
+  return bloc;
+}
+
+function resumeVerrous(gardes, regles, cadeaux, jeu){
   const bouts = [];
   if(gardes.length){
     bouts.push(gardes.length + (gardes.length > 1 ? ' espèces' : ' espèce'));
   }
   if(regles.length){
     bouts.push(regles.length + (regles.length > 1 ? ' règles' : ' règle'));
+  }
+  if(cadeaux.length){
+    bouts.push(cadeaux.length + ' cadeau' + (cadeaux.length > 1 ? 'x' : ''));
   }
   if(!bouts.length) return '';
   return bouts.join('  ·  ') + (jeu !== 'tous' ? ' sur ce jeu' : ' au total');
@@ -240,6 +298,11 @@ function ligneVerrou(v, jeuFiltre){
   if(v.genre === 'partout'){
     infos.appendChild(phrase('verrou-partout',
       'Verrouillé partout — aucun exemplaire légitime n’existe.'));
+  } else if(v.genre === 'cadeau'){
+    infos.appendChild(phrase('verrou-cadeau',
+      'Cadeau mystère — cette distribution pouvait être chromatique.'));
+    if(v.quoi) infos.appendChild(phrase('verrou-quoi', v.quoi));
+    infos.appendChild(etiquettesVerrou(v, jeuFiltre));
   } else if(v.genre === 'taux'){
     infos.appendChild(phrase('verrou-taux',
       'Chromatique possible, mais jamais au taux amélioré : ni Charme Chroma, '
@@ -311,6 +374,7 @@ function boutonVerrou(v){
   b.className = 'verrou-chasser';
 
   const cible = v.genre === 'partout' ? null : v.ouverts[0];
+
   if(!cible){
     b.textContent = v.genre === 'partout' ? 'Nulle part' : '—';
     b.disabled = true;

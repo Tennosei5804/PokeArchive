@@ -298,6 +298,60 @@ const REGLES_VERROU = [
   { jeux: ['za'], texte: 'Les Légendaires et Fabuleux, sauf Latias, Latios, Cobaltium, Terrakium et Viridium.' }
 ];
 
+// 5. L'EXCEPTION QUI VA DANS L'AUTRE SENS : ce qui A PU être chromatique.
+//
+//    SOURCE : la page « Liste des Cadeaux Mystères pouvant être shassés » du même
+//    dossier. Elle complète une phrase de la première : « tout Pokémon événement
+//    reçu par Cadeau Mystère et NON listé ici est impossible à obtenir en
+//    chromatique ». La règle est donc négative, et cette table en est la seule
+//    dérogation : cent cinquante-quatre distributions, presque toutes des œufs.
+//
+//    POURQUOI ÇA COMPTE. La plupart exploitent une faille qui a vécu de Rubis et
+//    Saphir jusqu'à Ultra-Soleil : échanger l'œuf entre sauvegardes d'identifiants
+//    différents jusqu'à ce qu'il éclose chromatique. Ce sont de vraies chasses,
+//    pas des curiosités — sauf qu'aucune de ces distributions n'a plus cours.
+//
+//    ELLES NE S'AFFICHENT PAS PAR DÉFAUT. Cent cinquante-quatre lignes de plus
+//    noieraient les soixante-dix-neuf verrous, qui sont la raison d'être de
+//    l'écran. Elles apparaissent quand on choisit un jeu ou qu'on tape un nom —
+//    c'est-à-dire au moment où la question se pose vraiment.
+const CADEAUX_SHASSABLES = [
+  { jeux: ['gsc', 'cristal'], quoi: 'Gotta catch ’em all! Station, 2001-2003',
+    especes: [
+    1, 4, 7, 21, 29, 32, 41, 43, 46, 54, 60, 63,
+    66, 69, 72, 74, 77, 81, 83, 84, 86, 95, 96, 98,
+    100, 102, 104, 108, 113, 114, 115, 116, 118, 120, 122, 123,
+    127, 128, 129, 131, 133, 137, 138, 140, 142, 143, 147, 152,
+    155, 158, 161, 163, 165, 167, 170, 172, 173, 174, 177, 183,
+    185, 187, 190, 191, 193, 194, 198, 200, 202, 204, 206, 209,
+    211, 214, 215, 216, 220, 223, 225, 226, 227, 231, 234, 236,
+    238, 239, 240, 241, 246, 251
+    ] },
+  { jeux: ['rse', 'emeraude', 'frlg'], quoi: 'œufs des Pokémon Centers et PokéPark, 2003-2005',
+    especes: [
+    43, 52, 54, 60, 69, 83, 96, 102, 108, 113, 115, 172,
+    174, 222, 263, 276, 280, 283, 293, 300, 311, 312, 325, 327,
+    331, 333, 341, 359, 360, 371, 385
+    ] },
+  { jeux: ['dp'], quoi: 'distribution unique',
+    especes: [
+    172
+    ] },
+  { jeux: ['bw', 'b2w2'], quoi: 'œufs de l’animé et campagnes japonaises, 2012',
+    especes: [
+    1, 4, 7, 25, 254, 257, 260, 272, 282, 350, 365, 373,
+    376, 382, 383, 393, 511, 519, 610
+    ] },
+  { jeux: ['xy', 'oras'], quoi: 'Méga Campagne et Pokémon Centers, 2015',
+    especes: [
+    129, 280, 318, 322, 333, 371
+    ] },
+  { jeux: ['sm', 'usum'], quoi: 'œufs de Pâques et Pikachu partenaire, 2017',
+    especes: [
+    25, 704, 747, 765, 766, 776, 780
+    ] },
+];
+
 // Living Dex - donnees statiques.
 // Charge avant app.js ; volontairement en script classique (pas de module ES)
 // pour que l'application continue de fonctionner en ouverture directe file://.

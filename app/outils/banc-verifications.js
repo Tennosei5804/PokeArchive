@@ -1360,6 +1360,49 @@ verifier('Shiny-lock',
     return controles + ' lignes sur cinq jeux, toutes présentes au relevé';
   });
 
+verifier('Shiny-lock',
+  'Les cadeaux mystères restent hors de la vue par défaut',
+  async function(){
+    // Cent cinquante-quatre distributions ajoutées d'office noieraient les
+    // soixante-dix-neuf verrous, qui sont la raison d'être de l'écran. Elles
+    // n'apparaissent qu'avec un jeu choisi ou un nom tapé. La règle est facile
+    // à casser d'une ligne, et le symptôme — « l'écran est devenu illisible » —
+    // ne pointerait vers rien.
+    if(typeof ouvrirVerrous !== 'function') return 'échec : ouvrirVerrous absente';
+    await ouvrirVerrous();
+    const parDefaut = verrousListe.querySelectorAll('.verrou-cadeau').length;
+    verrouJeu.value = 'gsc';
+    dessinerVerrous();
+    const surUnJeu = verrousListe.querySelectorAll('.verrou-cadeau').length;
+    verrouJeu.value = 'tous';
+    verrouQ.value = 'ronflex';
+    dessinerVerrous();
+    const surUnNom = verrousListe.querySelectorAll('.verrou-cadeau').length;
+    verrouQ.value = '';
+    dessinerVerrous();
+    fermerVerrous();
+    if(parDefaut) return 'échec : ' + parDefaut + ' cadeau(x) dans la vue par défaut';
+    if(!surUnJeu) return 'échec : aucun cadeau sur Or / Argent, qui en compte pourtant';
+    if(!surUnNom) return 'échec : la recherche « ronflex » n\'en trouve aucun';
+    return 'aucun par défaut, ' + surUnJeu + ' sur Or / Argent, ' + surUnNom + ' par le nom';
+  });
+
+verifier('Shiny-lock',
+  'Les cadeaux ne contredisent aucun verrou',
+  function(){
+    // Une espèce à la fois « verrouillée partout » et « distribuée chromatique »
+    // serait une contradiction pure : l'écran afficherait les deux lignes, l'une
+    // sous l'autre, sans trancher. Les deux pages de la source doivent s'accorder.
+    const cadeaux = new Set();
+    CADEAUX_SHASSABLES.forEach(function(g){
+      g.especes.forEach(function(id){ cadeaux.add(id); });
+    });
+    const conflits = [];
+    cadeaux.forEach(function(id){ if(SHINY_LOCKED.has(id)) conflits.push(id); });
+    if(conflits.length) return 'échec : #' + conflits.join(', #') + ' verrouillé(s) ET distribué(s)';
+    return cadeaux.size + ' distributions, aucune en conflit avec les verrous';
+  });
+
 // ---------------------------------------------------------------------------
 
 async function lancerBanc(){
