@@ -260,9 +260,6 @@
     padding:3px 9px;
   }
   .jeu-puce.premier{ background:var(--dex-red); border-color:var(--dex-red); color:#fff; }
-
-  /* ---- Shiny-lockés : aucun chromatique légitime n'existe ---- */
-  .card.shiny-locked .chip-check{ opacity:.5; }
   .card-lock{
     position:absolute; bottom:5px; right:5px;
     font-size:11px; line-height:1;

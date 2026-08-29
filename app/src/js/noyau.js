@@ -154,7 +154,6 @@ const pageProfilEl = document.getElementById('page-profil');
 const pageParametresEl = document.getElementById('page-parametres');
 const pageChasseEl = document.getElementById('page-chasse');
 const pageJeuxEl = document.getElementById('page-jeux');
-const pageCadeauxEl = document.getElementById('page-cadeaux');
 const pageStrategieEl = document.getElementById('page-strategie');
 const pageReproductionEl = document.getElementById('page-reproduction');
 const pageTransfertsEl = document.getElementById('page-transferts');

@@ -95,7 +95,8 @@
         <button class="page-tab" type="button" data-page="dresseurs">👥 Dresseurs</button>
         <button class="page-tab" type="button" data-page="amis">📣 Amis</button>
         <button class="page-tab" type="button" data-page="chasse">✨ Chasse</button>
-        <button class="page-tab" type="button" data-page="cadeaux">🎁 Cadeau Mystère</button>
+        <!-- RETIRÉ POUR LE MOMENT, comme l'overlay OBS plus bas : l'écran et
+             ses données restent en place, seule la porte d'entrée est fermée.
         <!-- UN SEUL onglet pour trois écrans. À dix entrées la barre débordait
              sur deux rangées, et c'est déjà ce qui avait fait sortir les jeux
              de la nav. Stratégie, Reproduction et Transferts répondent à la
@@ -228,7 +229,7 @@
         <input type="search" id="search"
                placeholder="Un nom, un n°, « feu », « gen3 », « manquants »…"
                aria-label="Rechercher : un nom, un numéro, un type, une génération, un état ou un mot-clé"
-               title="Se cumulent : un nom, un n° (national ou du jeu), un type (feu, eau…), une génération (gen3, kanto…), un état (manquants, capturés, shiny) et un mot-clé (légendaire, fabuleux, starter, fossile, méga, gigamax, alola, galar, hisui, paldea, shiny-lock). Tout mot inconnu cherche dans le nom."
+               title="Se cumulent : un nom, un n° (national ou du jeu), un type (feu, eau…), une génération (gen3, kanto…), un état (manquants, capturés, shiny) et un mot-clé (légendaire, fabuleux, starter, fossile, méga, gigamax, alola, galar, hisui, paldea). Tout mot inconnu cherche dans le nom."
                autocomplete="off">
         <select id="sort" aria-label="Trier">
           <option value="game">Tri : N° du jeu</option>
@@ -248,7 +249,6 @@
             <option value="obt-echange">Par échange</option>
             <option value="obt-evolution">Par évolution</option>
             <option value="obt-indisponible">Indisponible — à transférer</option>
-            <option value="obt-shiny-lock">Shiny-lock</option>
           </optgroup>
         </select>
         <select id="genFilter" aria-label="Filtrer par génération">
@@ -369,10 +369,6 @@
 
         <div class="chasse-depart">
           <button class="toggle-btn primary" id="chasseNouvelle" type="button">✨ Créer une chasse</button>
-          <!-- Le catalogue des verrous. À côté de la création, parce que la
-               question se pose là : avant de lancer trois mille rencontres. -->
-          <button class="toggle-btn" id="verrousBtn" type="button"
-                  title="Les Pokémon dont la forme chromatique ne s'obtient pas — nulle part, ou pas dans ce jeu.">🔒 Shiny-lock</button>
           <!-- L'overlay OBS. Masqué sur le site : un navigateur ne peut pas
                ouvrir d'écoute locale. Voir overlay.rs et chasse.js. -->
           <button class="toggle-btn" id="overlayBtn" type="button" hidden
@@ -392,48 +388,6 @@
         <div class="chasse-tableau" id="chasseTableau" hidden></div>
       </section>
 
-      <section class="page" id="page-cadeaux">
-        <div class="home-hero">
-          <div class="home-eyebrow">Distributions</div>
-          <h2 class="home-title">Cadeau Mystère</h2>
-          <p class="home-sub">Les Pokémon fabuleux ne se rencontrent nulle part : ils s'obtiennent
-             lors de distributions officielles, puis se transfèrent de jeu en jeu.
-             Les dates sont celles des distributions <strong>françaises</strong> :
-             un évènement réservé au Japon n'aurait jamais aidé personne ici.</p>
-        </div>
-        <div class="cadeaux-resume" id="cadeauxResume"></div>
-
-        <div class="toolbar cadeaux-filtres">
-          <select id="cadeauxGen" aria-label="Filtrer par génération">
-            <option value="all">Toutes générations</option>
-          </select>
-          <select id="cadeauxEtat" aria-label="Filtrer par état">
-            <option value="all">Tout afficher</option>
-            <option value="obtenu">⬤ Obtenus</option>
-            <option value="manquant">Manquants</option>
-            <option value="shiny">✨ Obtenus en chromatique</option>
-            <option value="dispo">Encore obtenables aujourd'hui</option>
-          </select>
-          <select id="cadeauxVoie" aria-label="Filtrer par méthode de distribution">
-            <option value="all">Toutes les méthodes</option>
-          </select>
-        </div>
-
-        <!-- Où appuyer, jeu par jeu. Toute cette page dit CE QU'ON PEUT recevoir ;
-             il manquait où se trouve l'entrée du menu, et à partir de quand.
-             Rempli par dessinerOuvrirCadeau() depuis OUVRIR_CADEAU. -->
-        <button class="toggle-btn cadeaux-comment-btn" id="ouvrirCadeauBtn" type="button"
-                aria-expanded="false" aria-controls="ouvrirCadeauBloc"
-                title="Le menu change à chaque génération, et la plupart des jeux le gardent fermé jusqu’à un point précis de l’aventure.">❓ Où ouvrir le Cadeau Mystère&nbsp;?</button>
-        <div class="cadeaux-comment" id="ouvrirCadeauBloc" hidden></div>
-
-        <div class="cadeaux-generations" id="cadeauxListe"></div>
-        <p class="cadeaux-source-note">
-          Dates et évènements relevés sur l'Evendex de Pokébip, pages
-          « Distributions ayant eu lieu en France » —
-          <span>pokebip.com/page/jeux-video/evendex/accueil</span>
-        </p>
-      </section>
 
       <!-- L'aide aux transferts. Ces règles dépendent du JEU et jamais de
            l'espèce : les répéter sur mille deux cent quatre-vingt-une fiches
@@ -1169,33 +1123,6 @@
   </div>
 </div>
 
-<!-- Le catalogue des verrous chromatiques. Voir verrous.js : il se consulte,
-     il ne bloque rien — la table est tenue à la main et ne prétend pas être
-     complète. Les jeux du filtre sont remplis par le script depuis GAMES : une
-     liste de moins à tenir d'accord avec elle. -->
-<div class="modal-overlay" id="verrousOverlay" style="display:none;" role="dialog"
-     aria-modal="true" aria-labelledby="verrousTitre">
-  <div class="modal-card verrou-card">
-    <button class="fiche-fermer" id="verrousFermer" type="button" aria-label="Fermer">✕</button>
-    <div class="modal-eyebrow">Avant de lancer une chasse</div>
-    <h2 class="modal-title" id="verrousTitre">Shiny-lock</h2>
-    <p class="verrou-note">Ces Pokémon ne peuvent pas être chromatiques — nulle part,
-      ou pas par cette rencontre-là. Rien n'est bloqué&nbsp;: la liste est tenue à la
-      main et reste incomplète.<br>
-      Rouge, Bleu et Jaune n'y figurent pas&nbsp;: le chromatique apparaît en Or et
-      Argent, et ces trois jeux n'en ont aucun.</p>
-    <div class="verrou-filtres">
-      <input type="search" id="verrouQ" class="lexique-q"
-             placeholder="Un nom, un numéro…" aria-label="Chercher un Pokémon"
-             autocomplete="off">
-      <select id="verrouJeu" aria-label="Filtrer par jeu">
-        <option value="tous">Tous les jeux</option>
-      </select>
-    </div>
-    <div class="verrou-compte" id="verrouCompte"></div>
-    <div class="verrou-liste" id="verrousListe"></div>
-  </div>
-</div>
 
 <div class="modal-overlay" id="nouveautesOverlay" style="display:none;" role="dialog"
      aria-modal="true" aria-labelledby="nouveautesTitre">
@@ -1568,10 +1495,6 @@
 <script src="js/formes.js"></script>
 <script src="js/accueil.js"></script>
 <script src="js/dex.js"></script>
-<!-- Les distributions françaises, à la main. Doit précéder cadeaux.js et
-     fiche.js, qui y puisent tous les deux. -->
-<script src="js/evenements.js"></script>
-<script src="js/cadeaux.js"></script>
 <script src="js/fiche.js"></script>
 <script src="js/grille.js"></script>
 <!-- Après dex.js et grille.js : les objectifs figent currentFiltered. -->
@@ -1583,7 +1506,6 @@
 <script src="js/lieux.js"></script>
 <script src="js/filtres.js"></script>
 <script src="js/chasse.js"></script>
-<script src="js/verrous.js"></script>
 <!-- Les règles de combat, puis l'écran qui s'appuie dessus. Tous deux après
      fiche.js (TYPE_RELATIONS, puceType, decoderBloc) et avant menus.js, qui
      stylise leurs menus déroulants. -->

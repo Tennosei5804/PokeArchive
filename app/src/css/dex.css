@@ -622,17 +622,6 @@
    La méthode passe du rouge de la rencontre au vert pour le dire. */
 .obt-cat.offert{ color:var(--caught); border-color:var(--caught); }
 
-/* Cadeau Mystère : ni lieu ni rencontre, une distribution datée. Le bloc se
-   démarque de la liste des lieux, parce qu'il ne répond pas à la même
-   question — « où le trouver » n'a simplement pas de réponse ici. */
-.obt-ligne.cadeau-mystere{
-  border-left-color:#a86fd0;
-  background:linear-gradient(180deg, rgba(168,111,208,.10), transparent 70%), var(--card);
-}
-.cadeau-mystere .obt-jeu{ color:#c79bea; }
-.cadeau-mystere .obt-lieu{ line-height:1.5; }
-.cadeau-mystere .obt-cat{ color:var(--ink-faint); }
-
 /* ---- Le relevé Pokébip / Pokékalos ---- */
 /* Deux sources cohabitent dans « Où l'obtenir » : les rencontres de PokeAPI,
    qui s'arrêtent à la septième génération, et le relevé, qui couvre le reste et
@@ -986,7 +975,6 @@
   font-family:var(--font-data); font-size:10px; letter-spacing:.3px;
   color:var(--ink-faint);
 }
-.obt-mention.mention-shiny-lock{ color:var(--gold); border-color:var(--gold); }
 .obt-mention.mention-introuvable{ color:var(--dex-red); border-color:var(--dex-red); }
 
 /* La pastille d'obtention, en bas à gauche du sprite : le pendant du témoin
@@ -998,11 +986,6 @@
   filter:grayscale(.35);
 }
 .card-obtention.obt-indisponible{ opacity:.95; filter:none; }
-/* Un chromatique verrouillé se voit de loin : c'est l'information qui fait
-   renoncer à une chasse, autant qu'elle saute aux yeux. */
-.card-obtention.shiny-lock::after{
-  content:'✨'; margin-left:1px; filter:grayscale(1) brightness(1.6);
-}
 
 /* La légende des pastilles. Elle emprunte au champ de recherche juste
    au-dessus — même fond, même bordure, même arrondi — pour se lire comme un
@@ -1259,168 +1242,12 @@
    afin de savoir si on l'a deja demandee. */
 .blocage-cherche{ font-style:normal; font-size:11px; }
 
-/* ===== Le catalogue des verrous chromatiques ==============================
-   Voir verrous.js. Il se consulte avant de lancer une chasse : trois mille
-   rencontres sur un Pokémon verrouillé, c'est le genre d'erreur qu'on ne
-   découvre qu'après. Les filtres reprennent la barre du Pokédex : mêmes
-   contrôles, même disposition, rien à réapprendre.                        */
-
-/* max-width AUTANT que width : .modal-card plafonne à 360px, et width seul
-   ne le défait pas. C'est la forme qu'emploie .lexique-card, pour la même
-   raison — une liste ne tient pas dans la largeur d'une boîte de dialogue. */
-.verrou-card{ width:min(760px, 95vw); max-width:min(760px, 95vw); }
-/* .modal-card centre son texte, et c'est le bon choix pour tout ce qui tient du
-   propos : le titre, la note, le compte. Seule LA LISTE revient à gauche — une
-   colonne de noms centrée n'a pas de bord commun à suivre pour l'œil. */
-.verrou-card .verrou-liste{ text-align:left; }
-.verrou-card .verrou-note{ max-width:52ch; margin-left:auto; margin-right:auto; }
-
-/* La barre de filtres reprend celle du Pokédex : mêmes contrôles, même
-   disposition. Personne n'a à réapprendre à filtrer. */
-/* Centrés, et non étirés d'un bord à l'autre. À 760 px de large, une recherche
-   élastique poussait le menu contre le bord droit et laissait un vide au milieu :
-   deux contrôles isolés aux extrémités d'une barre au lieu d'un groupe. */
-.verrou-filtres{
-  display:flex; gap:8px; flex-wrap:wrap;
-  justify-content:center; align-items:center; margin-bottom:12px;
-}
-/* La recherche emprunte .lexique-q, qui porte un margin-top:12px destiné à la
-   modale du lexique où elle est seule sous un titre. Dans une barre à deux
-   contrôles, cette marge la décalait de sept pixels sous le menu : c'est le
-   prix d'une classe empruntée, et il se paie ici plutôt qu'à l'œil. */
-.verrou-filtres input[type="search"]{
-  flex:0 1 300px; min-width:0; margin-top:0; height:38px;
-}
-/* .modal-card .select-wrap impose width:100% — même spécificité que la nôtre,
-   donc c'est l'ordre des fichiers qui tranchait. On passe au-dessus plutôt que
-   de dépendre de l'ordre de chargement. */
-.modal-card .verrou-filtres .select-wrap{ flex:0 0 auto; width:auto; min-width:190px; }
-
-.verrou-compte{
-  font-family:var(--font-data); font-size:11px; color:var(--ink-soft);
-  margin:0 0 10px;
-}
-
-.verrou-liste{ max-height:min(58vh, 460px); overflow-y:auto; padding-right:4px; }
-
-/* Une ligne : le sprite chromatique — celui qu'on n'aura pas —, le nom, et
-   surtout OÙ. C'est le « où » qui est l'information. */
-.verrou-ligne{
-  display:flex; align-items:center; gap:12px;
-  padding:9px 11px; border-radius:9px;
-  border-bottom:1px solid var(--card-border);
-}
-.verrou-ligne:last-child{ border-bottom:none; }
-.verrou-ligne:hover{ background:var(--screen); }
-.verrou-sprite{
-  width:46px; height:46px; flex:0 0 auto;
-  display:grid; place-items:center;
-  background:var(--screen); border-radius:8px;
-}
-.verrou-sprite img{ max-width:100%; max-height:100%; }
-.verrou-infos{ flex:1 1 auto; min-width:0; }
-.verrou-nom{ font-family:var(--font-body); font-size:14px; font-weight:700; color:var(--ink); }
-.verrou-no{ font-family:var(--font-data); font-size:10px; color:var(--ink-faint); margin-left:6px; }
-
-.verrou-quoi{
-  margin-top:3px;
-  font-family:var(--font-body); font-size:11.5px; color:var(--ink-soft);
-  font-style:italic;
-}
-.verrou-jeux{ margin-top:4px; display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
-.verrou-etiq{
-  font-family:var(--font-data); font-size:10px;
-  border-radius:999px; padding:2px 8px; white-space:nowrap;
-}
-/* Rouge : verrouillé là. Vert : chassable là. Deux couleurs, deux décisions. */
-.verrou-etiq.ferme{ color:var(--danger); border:1px solid var(--danger); }
-.verrou-etiq.ouvert{ color:var(--caught); border:1px solid var(--caught); }
-.verrou-libelle{
-  font-family:var(--font-data); font-size:9.5px; letter-spacing:.06em;
-  text-transform:uppercase; color:var(--ink-faint); margin-right:2px;
-}
-
-/* Verrouillé partout : pas d'étiquette verte, une phrase à la place. */
-.verrou-partout{
-  font-family:var(--font-body); font-size:12px; color:var(--danger); margin-top:4px;
-}
-/* Un cadeau mystère qui faisait exception. VERT : c'est la seule ligne de
-   l'écran qui annonce une possibilité, et elle ne doit pas se lire comme un
-   verrou de plus. */
-.verrou-cadeau{
-  font-family:var(--font-body); font-size:12px; color:var(--caught); margin-top:4px;
-}
-
-/* Le séparateur de section. Les cadeaux disent le contraire du reste : sans
-   titre entre les deux, la liste se lirait à l'envers. */
-.verrou-section{
-  margin:18px 0 8px; padding-top:12px;
-  border-top:1px solid var(--card-border);
-}
-.verrou-section-titre{
-  font-family:var(--font-data); font-size:10px; letter-spacing:.1em;
-  text-transform:uppercase; color:var(--caught);
-}
-.verrou-section-note{
-  font-family:var(--font-body); font-size:11.5px; color:var(--ink-faint);
-  margin-top:3px;
-}
-
-/* Chromatique possible, mais pas au taux amélioré. Ambre et non rouge : ce
-   n'est pas un mur, c'est un ralentissement, et la couleur doit le dire. */
-.verrou-taux{
-  font-family:var(--font-body); font-size:12px; color:var(--gold-deep); margin-top:4px;
-}
-
-/* Les catégories qu'on ne peut pas énumérer, en tête quand un jeu est choisi.
-   « Tous les Pokémon offerts sur Épée et Bouclier » pèse plus lourd que les
-   deux espèces nommées en dessous : elle passe donc devant. */
-.verrou-regles{
-  margin:0 0 12px; padding:11px 13px;
-  background:var(--screen); border:1px solid var(--card-border);
-  border-radius:11px;
-}
-.verrou-regles-titre{
-  font-family:var(--font-data); font-size:9.5px; letter-spacing:.08em;
-  text-transform:uppercase; color:var(--ink-faint); margin-bottom:6px;
-}
-.verrou-regle{
-  font-family:var(--font-body); font-size:12.5px; color:var(--ink-soft);
-  line-height:1.5; padding-left:14px; position:relative; margin-top:4px;
-}
-.verrou-regle::before{
-  /* Le caractere en clair, pas une sequence d echappement CSS : elle a
-     traverse deux couches d outils et en est ressortie en octal. */
-  content:'—';
-  position:absolute; left:0; color:var(--danger);
-}
-
-.verrou-chasser{
-  flex:0 0 auto; padding:5px 11px; border-radius:8px;
-  border:1px solid var(--card-border); background:var(--card);
-  color:var(--ink-soft); cursor:pointer;
-  font-family:var(--font-body); font-size:12px;
-}
-.verrou-chasser:hover{ border-color:var(--caught); color:var(--ink); }
-.verrou-chasser:disabled{ opacity:.35; cursor:not-allowed; }
-
-.verrou-note{
-  margin-top:12px; padding-top:11px; border-top:1px solid var(--card-border);
-  font-family:var(--font-body); font-size:12px; color:var(--ink-faint);
-  line-height:1.55;
-}
-
 /* L'étroit. Le site se lit au téléphone, et à 375 px la ligne se pliait mal : les
    deux sélecteurs tombaient à la largeur de leur flèche, et le bouton s'insérait
    au milieu des pastilles au lieu de les suivre. */
 @media (max-width:560px){
   /* La recherche prend sa ligne, les deux sélecteurs se partagent la suivante. */
-  .verrou-filtres input[type="search"]{ flex:1 1 100%; }
-  .modal-card .verrou-filtres .select-wrap{ flex:1 1 100%; width:100%; }
 
   /* La ligne se plie : sprite et nom en haut, le bouton dessous, sur toute la
      largeur — c'est la cible d'un pouce, elle a besoin de place. */
-  .verrou-ligne{ flex-wrap:wrap; gap:9px; }
-  .verrou-infos{ flex:1 1 calc(100% - 60px); }
-  .verrou-chasser{ flex:1 1 100%; text-align:center; padding:8px 11px; }
 }

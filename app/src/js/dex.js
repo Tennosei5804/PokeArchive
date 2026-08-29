@@ -5,15 +5,12 @@ function updateProgress(){
   // Les compteurs de la page Dex parlent du scope affiché : sur l'onglet
   // Épée/Bouclier, « 12 / 664 » veut dire 12 sur les 664 de ce jeu.
   const total = scopeEntries.length;
-  let caught = 0, shiny = 0, lockedCount = 0;
+  let caught = 0, shiny = 0;
   scopeEntries.forEach(function(entry){
     if(caughtSet.has(entry.name)) caught++;
     if(shinySet.has(entry.name)) shiny++;
-    if(isShinyLocked(entry)) lockedCount++;
   });
-  // Les shiny-lockés sortent du dénominateur chromatique : sans ça le
-  // compteur shiny ne pourrait jamais atteindre son maximum.
-  const shinyTotal = total - lockedCount;
+  const shinyTotal = total;
   // La jauge suit le mode actif, sur le périmètre affiché.
   const done = shinyView ? shiny : caught;
   const base = shinyView ? shinyTotal : total;
@@ -199,9 +196,7 @@ typeFilterEl.addEventListener('change', async function(){
 // existante de plusieurs centaines de Pokémon.
 function bulkTargets(){
   const target = activeSet();
-  const eligible = currentFiltered.filter(function(e){
-    return !(shinyView && isShinyLocked(e));   // on ne coche pas un shiny-locké
-  });
+  const eligible = currentFiltered.slice();
   return {
     eligible: eligible,
     toCheck: eligible.filter(function(e){ return !target.has(e.name); }),
@@ -450,9 +445,6 @@ const MOTS_CLES_RECHERCHE = {
       if(!activeSet().has(e.name)) return false;
       return rangRarete(e) < 0.20;
     } },
-  verrouille: { libelle: '🔒 Shiny-lockés',
-    test: function(e){ return isShinyLocked(e); } },
-  'shiny-lock': { alias: 'verrouille' }
 };
 
 // Les états. Ils parlent de la collection ouverte, comme le menu « Filtrer ».
@@ -832,20 +824,6 @@ function renderCard(entry){
     peindreTemoinComparaison(temoinCompare, entry, ownedHere);
     card.appendChild(temoinCompare);
     card.classList.add('en-comparaison');
-  }
-
-  // En vue shiny, un Pokémon shiny-locké est signalé et sa case désactivée :
-  // aucun chromatique légitime n'existe, la cocher n'aurait pas de sens.
-  const locked = isShinyLocked(entry);
-  if(locked && shinyView){
-    card.classList.add('shiny-locked');
-    const lock = document.createElement('span');
-    lock.className = 'card-lock';
-    lock.textContent = '🔒';
-    lock.title = 'Shiny-locké : aucun chromatique légitime n\'existe pour ce Pokémon.';
-    lock.setAttribute('role', 'img');
-    lock.setAttribute('aria-label', lock.title);
-    spriteFrame.appendChild(lock);
   }
 
   const img = document.createElement('img');

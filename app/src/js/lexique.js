@@ -133,8 +133,8 @@ const LEXIQUE = [
       + 'certains jeux — sont programmés pour ne jamais sortir en chromatique. '
       + 'Les chasser est perdu d\'avance.',
     points: [
-      'L\'application les sort du dénominateur chromatique et refuse de les '
-        + 'cocher : sans ça, le compteur ne pourrait jamais atteindre son maximum.'
+      'L\'écran qui les recensait est en cours de refonte : la liste revient '
+        + 'bientôt, classée par jeu et par rencontre.'
     ],
     voir: ['chromatique']
   },
@@ -273,8 +273,7 @@ const LEXIQUE = [
     terme: 'Cadeau Mystère',
     court: 'Les distributions officielles',
     texte: 'Un Pokémon qui ne se rencontre nulle part et n\'arrive que par une '
-      + 'distribution — code sur Internet, boutique, évènement. La page '
-      + '« Cadeau Mystère » liste celles qu\'a eues la France, avec leurs dates.',
+      + 'distribution — code sur Internet, boutique, évènement.',
     points: [
       'Ce qui est passé ne revient pas : un fabuleux manqué ne s\'obtient plus '
         + 'que par échange.'

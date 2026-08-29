@@ -1571,142 +1571,9 @@ async function dessinerEvolution(entry, fiche){
   });
 }
 
-/**
- * Le bloc « Cadeau Mystère » : ni lieu ni rencontre, une distribution datée.
- *
- * Extrait parce qu'il sert à deux endroits — le fabuleux qui n'a aucun lieu, et
- * celui qui en a un quand même. Mew se rencontre sur l'Île lointaine d'Émeraude
- * et s'est pourtant distribué six fois en France : la seconde information ne
- * doit pas disparaître derrière la première.
- */
-function dessinerBlocCadeau(entry){
-  const cas = casObtention(entry);
-  const bloc = document.createElement('div');
-  bloc.className = 'obt-ligne cadeau-mystere';
 
-  const titre = document.createElement('div');
-  titre.className = 'obt-jeu';
-  titre.textContent = sourceEvenement(entry) || cas.titre;
-  bloc.appendChild(titre);
-
-  const texte = document.createElement('div');
-  texte.className = 'obt-lieu';
-  texte.textContent = cas.texte;
-  bloc.appendChild(texte);
-
-  const note = document.createElement('span');
-  note.className = 'obt-cat';
-  note.textContent = cas.note;
-  bloc.appendChild(note);
-
-  ficheObtention.appendChild(bloc);
-}
-
-/**
- * L'historique français d'une entrée, sous le bloc « Cadeau Mystère ».
- *
- * On ne montre QUE les distributions françaises (voir evenements.js) : lister
- * un évènement japonais donnerait l'illusion d'une piste à suivre, alors qu'il
- * n'a jamais rien changé pour personne ici.
- *
- * Aucune distribution recensée est une réponse à part entière, et non un
- * silence : Marshadow n'est jamais passé par la France, et c'est précisément ce
- * qu'un dresseur a besoin de savoir avant de le chercher.
- */
-function dessinerDistributionsFr(entry){
-  const dist = distributionsFr(entry);
-
-  if(!dist.length){
-    // Les fabuleux qui s'obtiennent autrement (Phione, Meltan, Pecharunt…) ont
-    // déjà tout dit dans le bloc du dessus : inutile d'annoncer un manque.
-    if(FABULEUX_A_PART[entry.speciesId]) return;
-    const rien = document.createElement('div');
-    rien.className = 'obt-ligne sans-distribution';
-    const t = document.createElement('div');
-    t.className = 'obt-jeu';
-    t.textContent = 'Aucune distribution française recensée';
-    const s = document.createElement('div');
-    s.className = 'obt-lieu';
-    s.textContent = 'Il a pu être distribué ailleurs dans le monde : dans ce '
-      + 'cas, il ne s\'obtient ici que par échange.';
-    rien.appendChild(t); rien.appendChild(s);
-    ficheObtention.appendChild(rien);
-    return;
-  }
-
-  const titre = document.createElement('div');
-  titre.className = 'obt-jeu-titre';
-  titre.textContent = 'Distributions françaises';
-  ficheObtention.appendChild(titre);
-
-  // La plus récente en tête : c'est celle dont on se souvient, et la seule qui
-  // puisse encore être ouverte.
-  const triees = dist.slice().sort(function(a, b){
-    if(a.jamais !== b.jamais) return a.jamais ? 1 : -1;
-    if(a.permanent !== b.permanent) return a.permanent ? -1 : 1;
-    return (b.annee || 0) - (a.annee || 0);
-  });
-
-  triees.forEach(function(d){
-    const ligne = document.createElement('div');
-    ligne.className = 'obt-ligne distribution'
-      + (d.permanent ? ' permanente' : '') + (d.jamais ? ' jamais' : '');
-
-    const nom = document.createElement('div');
-    nom.className = 'obt-jeu';
-    nom.textContent = d.ev + (d.chromatique ? ' ✨' : '');
-    ligne.appendChild(nom);
-
-    const quand = document.createElement('div');
-    quand.className = 'obt-lieu';
-    quand.textContent = d.quand + ' · ' + d.jeux;
-    ligne.appendChild(quand);
-
-    if(d.ou){
-      const ou = document.createElement('div');
-      ou.className = 'obt-lieu obt-precision';
-      ou.textContent = d.ou;
-      ligne.appendChild(ou);
-    }
-
-    // À quelle CONDITION, quand elle n'est pas une date. « Tant que le
-    // périphérique est vendu » ne rentre pas dans `quand`, et sans cette ligne
-    // un « encore ouvert » sans échéance laisse croire à un simple téléchargement.
-    if(d.condition){
-      const c = document.createElement('div');
-      c.className = 'obt-lieu obt-condition';
-      c.textContent = d.condition;
-      ligne.appendChild(c);
-    }
-
-    const voie = document.createElement('span');
-    voie.className = 'obt-cat';
-    voie.textContent = libelleVoie(d.voie);
-    voie.title = (VOIES[d.voie] || {}).long || '';
-    ligne.appendChild(voie);
-
-    if(d.permanent){
-      const badge = document.createElement('span');
-      badge.className = 'obt-badge';
-      badge.textContent = 'toujours ouvert';
-      ligne.appendChild(badge);
-    }
-
-    ficheObtention.appendChild(ligne);
-  });
-}
 
 function dessinerObtention(entry, fiche){
-  // Une forme évènementielle ne vient d'aucun lieu et d'aucune évolution. La
-  // fiche proposait pourtant de faire évoluer un Pichu pour obtenir un Pikachu
-  // à casquette : elle héritait des données de l'espèce, qui ne disent rien de
-  // la forme. On trie donc ce cas avant de regarder quoi que ce soit d'autre.
-  if(entry && sourceEvenement(entry)){
-    ficheObtention.innerHTML = '';
-    dessinerBlocCadeau(entry);
-    dessinerDistributionsFr(entry);
-    return;
-  }
 
   if(!fiche){ messageVide(ficheObtention, 'Non renseigné pour ce Pokémon.'); return; }
 
@@ -1770,15 +1637,6 @@ function dessinerObtention(entry, fiche){
       return;
     }
 
-    // Un fabuleux n'a pas de lieu parce qu'il n'en a jamais eu : il se
-    // distribue par le Cadeau Mystère, lors d'évènements datés. Le ranger avec
-    // les « lieux non documentés » laissait croire à un trou dans les données.
-    if(entry && FABULEUX.has(entry.speciesId)){
-      ficheObtention.innerHTML = '';
-      dessinerBlocCadeau(entry);
-      dessinerDistributionsFr(entry);
-      return;
-    }
 
     messageVide(ficheObtention, jeu
       ? 'Aucun lieu connu dans ' + jeu.title + '. Ce Pokémon s\'y obtient par '
@@ -1880,14 +1738,6 @@ function dessinerObtention(entry, fiche){
 
   dessinerRaccourcis(ficheObtentionNav, sections, ficheObtention);
 
-  // Un fabuleux peut avoir un lieu sans que ce soit par là qu'on l'obtienne
-  // vraiment : Mew se rencontre sur l'Île lointaine, dans un seul jeu, après
-  // un ticket lui-même distribué. Son historique s'ajoute donc aux lieux au
-  // lieu de les remplacer — sans quoi il n'apparaissait jamais.
-  if(entry && FABULEUX.has(entry.speciesId)){
-    dessinerBlocCadeau(entry);
-    dessinerDistributionsFr(entry);
-  }
 }
 
 // ---- Attaques apprises ------------------------------------------------------

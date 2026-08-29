@@ -391,7 +391,7 @@ function showPage(name){
   if(name === 'outils') name = 'strategie';
 
   if(name === 'dresseurs' || name === 'profil' || name === 'chasse'
-     || name === 'cadeaux' || name === 'strategie' || name === 'reproduction'
+     || name === 'strategie' || name === 'reproduction'
      || name === 'transferts' || name === 'amis' || name === 'lieux'
      || name === 'parametres'){
     currentPage = name;
@@ -404,7 +404,6 @@ function showPage(name){
     if(pageProfilEl) pageProfilEl.classList.toggle('active', name === 'profil');
     if(pageParametresEl) pageParametresEl.classList.toggle('active', name === 'parametres');
     if(pageChasseEl) pageChasseEl.classList.toggle('active', name === 'chasse');
-    if(pageCadeauxEl) pageCadeauxEl.classList.toggle('active', name === 'cadeaux');
     if(pageStrategieEl) pageStrategieEl.classList.toggle('active', name === 'strategie');
     if(pageReproductionEl) pageReproductionEl.classList.toggle('active', name === 'reproduction');
     if(pageTransfertsEl) pageTransfertsEl.classList.toggle('active', name === 'transferts');
@@ -420,9 +419,6 @@ function showPage(name){
     if(name === 'profil' && typeof chargerProfil === 'function') chargerProfil();
     if(name === 'parametres' && typeof chargerParametres === 'function') chargerParametres();
     if(name === 'chasse' && typeof dessinerChasses === 'function') dessinerChasses();
-    // La page se redessine à chaque ouverture : elle lit la collection HOME,
-    // qui a pu changer entre-temps.
-    if(name === 'cadeaux' && typeof dessinerCadeaux === 'function') dessinerCadeaux();
     if(name === 'strategie' && typeof dessinerStrategie === 'function') dessinerStrategie();
     if(name === 'reproduction' && typeof dessinerReproduction === 'function') dessinerReproduction();
     if(name === 'transferts' && typeof dessinerTransferts === 'function') dessinerTransferts();
@@ -690,11 +686,6 @@ function renderHomeGens(total, home){
 // Quelle forme la vue courante édite-t-elle ?
 function activeSet(){ return shinyView ? shinySet : caughtSet; }
 function otherSet(){ return shinyView ? caughtSet : shinySet; }
-
-// Un Pokémon sans chromatique légitime. Les formes suivent leur espèce.
-function isShinyLocked(entry){
-  return SHINY_LOCKED.has(entry.speciesId);
-}
 
 
 // ---- Le programme du soir ----------------------------------------------------

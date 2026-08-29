@@ -26,7 +26,6 @@ const PRESENCE_ECRANS = {
   jeux:         'Choisit un Pokédex',
   dresseurs:    'Cherche un dresseur',
   chasse:       'À la chasse aux chromatiques',
-  cadeaux:      'Consulte les Cadeaux Mystère',
   strategie:    'Prépare une équipe',
   reproduction: 'Consulte la reproduction',
   profil:       'Sur son profil',

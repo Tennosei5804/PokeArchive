@@ -324,18 +324,17 @@ function dessinerPreviewImage(resolvedSrc){
 
 function dessinerPreviewEtats(){
   previewStates.innerHTML = '';
-  const locked = isShinyLocked(previewEntry);
   const modeApercu = infoMode(modeCourant());
   [
-    { cle:'normal', label:'⬤ Normal', on: caughtSet.has(previewEntry.name), gold:false, off:false },
-    { cle:'shiny',  label:'✨ Shiny',  on: shinySet.has(previewEntry.name),  gold:true,  off:locked }
+    { cle:'normal', label:'⬤ Normal', on: caughtSet.has(previewEntry.name), gold:false },
+    { cle:'shiny',  label:'✨ Shiny',  on: shinySet.has(previewEntry.name),  gold:true }
   ].forEach(function(s){
     const el = document.createElement('button');
     el.type = 'button';
     const actif = (s.cle === 'shiny') === previewShiny;
     el.className = 'etat' + (s.on ? ' on' : '') + (s.gold ? ' or' : '')
-      + (s.off && !s.on ? ' verrouille' : '') + (actif ? ' actif' : '');
-    el.textContent = s.off && !s.on ? '🔒 Shiny-locké' : (s.label + (s.on ? ' ✓' : ''));
+      + (actif ? ' actif' : '');
+    el.textContent = s.label + (s.on ? ' ✓' : '');
     // La coche dit « je l'ai » ; ce que « avoir » veut dire dépend de l'aventure.
     el.title = 'Afficher la forme ' + (s.cle === 'shiny' ? 'chromatique' : 'normale')
       + (s.on ? '  ·  ' + modeApercu.verbe : '');
@@ -501,8 +500,8 @@ function allerBoite(n){
  * Une boîte à l'écran.
  *
  * Les cartes sont exactement celles de la grille : renderCard() sait déjà
- * cocher, dessiner la pastille d'obtention, le témoin de l'autre forme et le
- * verrou des shiny-lockés. Réécrire une carte de boîte aurait fait deux
+ * cocher, dessiner la pastille d'obtention et le témoin de l'autre forme.
+ * Réécrire une carte de boîte aurait fait deux
  * cartes à tenir d'accord, et elles auraient divergé — c'est arrivé à chaque
  * fois que ce projet a recopié un rendu.
  */
