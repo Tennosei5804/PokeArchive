@@ -18,6 +18,29 @@
 // chromatique ne doit pas publier son salon. Le canvas ne recopie que les
 // pixels — l'EXIF ne survit pas. Le serveur le revérifie de son côté, parce
 // qu'un client modifié n'est pas obligé de passer par ici.
+//
+// UN PNG RESTE UN PNG. Tout convertir en JPEG était un choix par défaut, pas
+// une décision : le JPEG écrase une photo de téléphone sans qu'on le voie, mais
+// il abîme visiblement une capture d'écran — le texte d'une boîte, le liseré
+// d'un chromatique, les aplats d'une interface s'y couvrent d'artefacts, et
+// c'est justement ce qu'on venait montrer.
+//
+// La règle tient en une phrase : **le format de la source est conservé**, tant
+// que le fichier reste sous PHOTO_PNG_MAX. Au-delà on repasse en JPEG, parce
+// qu'un PNG de plusieurs mégaoctets mangerait le quota pour une différence que
+// personne ne voit sur une photographie.
+//
+// J'AVAIS D'ABORD ÉCRIT « on garde le plus petit des deux », en supposant qu'un
+// aplat donnerait un PNG plus léger. Mesuré : sur une image de 1600 px réduite
+// depuis 2400, le PNG fait 31 ko contre 14 pour le JPEG — le redimensionnement
+// lisse les bords et ruine la compression sans perte. La règle par la taille
+// aurait donc reconverti en JPEG presque toutes les captures, c'est-à-dire
+// exactement ce qu'on voulait éviter.
+
+// Au-delà, on repasse en JPEG. Une capture de Switch réduite à 1600 px tient
+// largement dessous ; ce plafond n'arrête qu'une image que le JPEG servirait
+// tout aussi bien.
+const PHOTO_PNG_MAX = 1024 * 1024;
 
 const PHOTO_COTE_MAX = 1600;
 const PHOTO_QUALITE = 0.82;
@@ -70,12 +93,28 @@ function redessinerPhoto(fichier){
         ctx.fillRect(0, 0, l, h);
         ctx.drawImage(img, 0, 0, l, h);
 
-        toile.toBlob(function(blob){
-          if(!blob) return rejeter(new Error('Réencodage impossible.'));
-          blob.arrayBuffer().then(function(tampon){
-            resoudre({ octets: Array.from(new Uint8Array(tampon)), largeur: l, hauteur: h });
-          }, rejeter);
-        }, 'image/jpeg', PHOTO_QUALITE);
+        const encoder = function(mime, qualite){
+          return new Promise(function(r){ toile.toBlob(r, mime, qualite); });
+        };
+        const rendre = function(blob){
+          return blob.arrayBuffer().then(function(tampon){
+            return { octets: Array.from(new Uint8Array(tampon)),
+                     mime: blob.type, largeur: l, hauteur: h };
+          });
+        };
+
+        // Le PNG d'abord si la source en était un, et on ne repasse en JPEG
+        // que s'il dépasse le plafond.
+        const versPng = (fichier.type === 'image/png');
+        (versPng ? encoder('image/png') : Promise.resolve(null))
+          .then(function(png){
+            if(png && png.size <= PHOTO_PNG_MAX) return rendre(png);
+            return encoder('image/jpeg', PHOTO_QUALITE).then(function(jpeg){
+              if(!jpeg) return Promise.reject(new Error('Réencodage impossible.'));
+              return rendre(jpeg);
+            });
+          })
+          .then(resoudre, rejeter);
       };
       img.src = lecteur.result;
     };
@@ -105,7 +144,7 @@ async function envoyerPhoto(sujet, fichier, apres, genre){
     const r = await invoke('image_envoyer', {
       profil: profilCourant.id,
       sujet: genre || 'chasse',
-      mime: 'image/jpeg',
+      mime: redessinee.mime,
       octets: redessinee.octets,
     });
     // L'ancienne, s'il y en avait une, part maintenant : le ménage du serveur

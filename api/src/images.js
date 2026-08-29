@@ -148,11 +148,13 @@ const PIXELS_MAX = 40_000_000;   // de quoi loger du 6000 × 6000
  *
  * APP0 est conservé : c'est l'en-tête JFIF, qui décrit l'image elle-même.
  *
- * PNG et WebP passent tels quels : l'application les réencode en JPEG avant
- * l'envoi, et un client qui contournerait ce chemin n'atteindrait de toute
- * façon que ses propres photos.
+ * Le PNG a son propre nettoyage, juste en dessous : il porte lui aussi de quoi
+ * en dire trop — `eXIf` depuis 2017, et les blocs de texte `tEXt`, `iTXt`,
+ * `zTXt` où certains logiciels écrivent le nom de la machine ou du fichier
+ * d'origine. Le WebP passe tel quel : l'application n'en produit pas.
  */
 function sansMetadonnees(buf, mime) {
+  if (mime === 'image/png') return pngSansMetadonnees(buf);
   if (mime !== 'image/jpeg') return buf;
   const morceaux = [buf.subarray(0, 2)];       // SOI
   let i = 2;
@@ -169,6 +171,40 @@ function sansMetadonnees(buf, mime) {
   }
   // En-tête inattendu : on rend l'original plutôt qu'un fichier tronqué.
   return Buffer.concat(morceaux).length > 4 && i >= buf.length ? Buffer.concat(morceaux) : buf;
+}
+
+/**
+ * Retire les blocs facultatifs d'un PNG.
+ *
+ * UN PNG EST UNE SUITE DE BLOCS, chacun précédé de sa longueur et de son nom.
+ * On recopie ceux dont l'image a besoin pour s'afficher et l'on saute tout le
+ * reste — ce qui écarte `eXIf`, `tEXt`, `iTXt`, `zTXt` sans avoir à les
+ * énumérer, et couvrira du même coup ceux qui n'existent pas encore.
+ *
+ * La liste blanche est courte parce qu'elle peut l'être : IHDR décrit l'image,
+ * PLTE sa palette, tRNS sa transparence, IDAT ses pixels, IEND la fin. Une
+ * image rendue sans les autres est identique à l'œil.
+ */
+const PNG_BLOCS_GARDES = new Set(['IHDR', 'PLTE', 'tRNS', 'IDAT', 'IEND']);
+
+function pngSansMetadonnees(buf) {
+  // La signature, huit octets, puis les blocs.
+  if (buf.length < 8) return buf;
+  const morceaux = [buf.subarray(0, 8)];
+  let i = 8;
+  while (i + 8 <= buf.length) {
+    const taille = buf.readUInt32BE(i);
+    const nom = buf.toString('ascii', i + 4, i + 8);
+    const entier = 12 + taille;                  // longueur + nom + données + CRC
+    if (taille > buf.length || i + entier > buf.length) return buf;   // fichier tronqué
+    if (PNG_BLOCS_GARDES.has(nom)) morceaux.push(buf.subarray(i, i + entier));
+    i += entier;
+    if (nom === 'IEND') break;
+  }
+  const propre = Buffer.concat(morceaux);
+  // Un PNG sans pixels n'en est plus un : au moindre doute, on rend l'original
+  // plutôt qu'un fichier que personne ne saura ouvrir.
+  return propre.length > 8 ? propre : buf;
 }
 
 // --- Le quota ----------------------------------------------------------------

@@ -1174,19 +1174,29 @@ verifier('Les photos',
     // megaoctets ; l'envoyer telle quelle remplirait le disque du serveur pour
     // une vignette de cent pixels. Et c'est le REDESSIN qui efface l'EXIF au
     // passage : s'il saute, la position GPS part avec l'image.
-    const fichier = await photoTemoin(2400, 1350);
+    const fichier = await photoTemoin(2400, 1350);   // un PNG, comme une capture
     const r = await redessinerPhoto(fichier);
     if(Math.max(r.largeur, r.hauteur) !== PHOTO_COTE_MAX){
       return 'échec : ' + r.largeur + ' x ' + r.hauteur + ', borne a ' + PHOTO_COTE_MAX;
     }
     // Le rapport doit tenir : 2400/1350 vaut 16/9, donc 1600 x 900.
     if(r.hauteur !== 900) return 'échec : rapport perdu, hauteur ' + r.hauteur;
-    // Et le resultat doit etre un JPEG, pas le PNG d'origine : les deux
-    // premiers octets d'un JPEG sont FF D8.
-    if(r.octets[0] !== 0xFF || r.octets[1] !== 0xD8){
-      return 'échec : ce qui part n est pas un JPEG';
+    // LE FORMAT DE LA SOURCE EST CONSERVE. Convertir une capture d'ecran en
+    // JPEG y couvre d'artefacts le texte et les liserés qu'on venait montrer.
+    // Le temoin est un PNG : il doit ressortir en PNG.
+    const jpeg = r.octets[0] === 0xFF && r.octets[1] === 0xD8;
+    const png = r.octets[0] === 0x89 && r.octets[1] === 0x50
+             && r.octets[2] === 0x4E && r.octets[3] === 0x47;
+    if(!jpeg && !png) return 'échec : ce qui part n est ni un JPEG ni un PNG';
+    if(r.mime !== (jpeg ? 'image/jpeg' : 'image/png')){
+      return 'échec : le type annonce (' + r.mime + ') ne correspond pas aux octets';
     }
-    return '2400x1350 devenu ' + r.largeur + 'x' + r.hauteur + ', ' + r.octets.length + ' octets en JPEG';
+    if(!png) return 'échec : un PNG en entree doit rester un PNG';
+    if(r.octets.length > PHOTO_PNG_MAX){
+      return 'échec : ' + r.octets.length + ' octets, au-dela du plafond';
+    }
+    return '2400x1350 devenu ' + r.largeur + 'x' + r.hauteur + ', '
+           + r.octets.length + ' octets, PNG conserve';
   });
 
 verifier('Les photos',
