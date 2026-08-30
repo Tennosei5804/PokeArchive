@@ -20,6 +20,37 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.33.0', date: '2026-08-30',
+    titre: 'Une personne, une conversation',
+    points: [
+      '**💬 « Messages » est dans le menu, sous ton pseudo**, avec une pastille '
+      + 'qui dit combien t’attendent. Ce n’est pas la même chose que la cloche : '
+      + 'elle annonce ce qui vient d’arriver et s’éteint dès qu’on l’ouvre, la '
+      + 'pastille dit ce qui attend encore une lecture.',
+      '**Les messages d’un échange et les messages tout court sont réunis.** Tu '
+      + 'avais deux boîtes pour la même personne, dont l’une ne s’ouvrait qu’en '
+      + 'passant par la fiche d’un troc — et rien ne disait qu’elle existait. '
+      + 'Chaque message venu d’un échange indique de quel échange il parle.',
+      '**🎴 Tu peux joindre un Pokémon à un message.** Le bouton ➕ ouvre une '
+      + 'recherche par nom **et par génération** ; chez l’autre, ça arrive comme '
+      + 'une carte cliquable qui ouvre la fiche de l’espèce. On l’écrivait à la '
+      + 'main jusqu’ici — sans image, sans lien, et avec les fautes de frappe de '
+      + 'chacun. Un Pokémon seul est un message : pas besoin d’écrire « tiens ».',
+      '**Cliquer une notification ouvre la conversation**, au lieu de te déposer '
+      + 'sur la page des amis en te laissant chercher qui t’a écrit.',
+      '**Tes amis sont proposés dès l’ouverture**, sans rien taper. Et taper '
+      + '« Ja » sort Jack **même s’il s’est retiré du classement** : la recherche '
+      + 'de dresseurs ne voit que les comptes visibles, tes amis oui.',
+      '**🤝 Un bouton « Proposer un échange » dans la conversation.** Il ouvre la '
+      + 'comparaison de vos deux Pokédex, là où se compose une proposition.',
+      '**Un échange refusé reste lisible.** On n’y écrit plus, on peut encore '
+      + 'relire ce qui s’y est dit.',
+      '**🩹 Une conversation ne se fige plus au deux-centième message.** Passé '
+      + 'ce cap, elle affichait éternellement le début et les nouveaux messages '
+      + 'n’apparaissaient jamais.',
+    ],
+  },
+  {
     version: '0.32.0', date: '2026-08-30',
     titre: 'Écrire à quelqu’un, offrir un Pokémon, calculer ses chances',
     points: [
