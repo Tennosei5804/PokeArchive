@@ -192,8 +192,14 @@ const REPONSES = {
                                    deMoi: DIRECTS[DIRECTS.length - 1].deMoi,
                                    quand:'', nonLus:0 }]
                               : [] }),
+  // Un message d'echange au milieu des directs : c'est tout l'objet de la
+  // fusion, et l'ecran doit le distinguer par son sujet.
   messages_avec:   (a) => ({ avec:{ pseudo:(a&&a.pseudo)||'Ondine', avatar:null, discordId:'2' },
-                             messages: DIRECTS.map(m => ({ ...m })) }),
+                             messages: [
+                               { id:0, texte:'d’accord pour demain ?', quand:'', deMoi:false,
+                                 echange:{ id:1, dex:'rby', etat:'accepte',
+                                           jeDonne:'machop', jeRecois:'abra', don:false } },
+                               ...DIRECTS.map(m => ({ ...m, echange:null })) ] }),
   messages_ecrire: (a) => { const texte = (a&&a.texte)||'';
                             // Le meme filtre qu'au serveur, en beaucoup plus
                             // simple : le banc n'eprouve pas le filtre ici, il

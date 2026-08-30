@@ -1821,9 +1821,17 @@ verifier('Messagerie',
     if(msgFil.hidden) return 'échec : le fil reste caché';
     if(!msgRetour || msgRetour.hidden) return 'échec : pas de retour vers la liste';
 
+    // UNE PERSONNE, UNE CONVERSATION : le fil porte aussi les messages des
+    // échanges avec elle, et chacun dit de quel échange il parle.
+    if(!msgFil.querySelector('.msg-sujet')){
+      return 'échec : un message d’échange ne dit pas de quel échange il parle';
+    }
+    if(msgEchange.hidden) return 'échec : pas de bouton pour proposer un échange';
+
+    const avant = msgFil.querySelectorAll('.discussion-bulle').length;
     msgTexte.value = 'Salut ! Tu aurais un Abra ?';
     await msgEnvoyerTexte();
-    if(msgFil.querySelectorAll('.discussion-bulle').length !== 1){
+    if(msgFil.querySelectorAll('.discussion-bulle').length !== avant + 1){
       return 'échec : le message envoyé n’apparaît pas dans le fil';
     }
     if(msgTexte.value !== '') return 'échec : le champ n’est pas vidé après envoi';

@@ -359,7 +359,12 @@ export async function messages(dresseurId, id) {
        FROM pa_messages m
        JOIN pa_dresseurs d ON d.id = m.auteur_id
       WHERE m.echange_id = ?
-      ORDER BY m.id ASC LIMIT ${MESSAGES_PAGE}`, [e.id]);
+      ORDER BY m.id DESC LIMIT ${MESSAGES_PAGE}`, [e.id]);
+
+  // DESC PUIS RETOURNÉ : c'est la FIN d'une conversation qu'on veut voir, pas
+  // son début. Trié ASC avec une limite, l'écran se figeait sur les deux cents
+  // premiers messages et les nouveaux n'apparaissaient jamais.
+  lignes.reverse();
 
   return {
     echange: vueEchange({

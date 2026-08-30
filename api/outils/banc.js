@@ -405,14 +405,23 @@ async function tout(ids) {
       const chezLui = await conversations(deux);
       const fil = chezLui.conversations.find((c) => c.pseudo === 'BancUn');
       if (!fil) return 'échec : la conversation n’apparaît pas chez le destinataire';
-      if (fil.nonLus !== 1) return `échec : ${fil.nonLus} non lus, un attendu`;
+      // AU MOINS UN, ET NON EXACTEMENT UN. Depuis que les messages d'échange
+      // vivent dans la même conversation, ce compte dépend aussi de ce que le
+      // décor a posé — l'exiger à l'unité faisait échouer cette vérification
+      // pour une raison étrangère à ce qu'elle éprouve.
+      if (fil.nonLus < 1) return `échec : ${fil.nonLus} non lu, au moins un attendu`;
       if (fil.deMoi) return 'échec : son propre message lui est attribué';
 
       // LIRE MARQUE LU, sans second aller-retour : un écran ouvert EST la
       // lecture, et un appel séparé se perd un jour sur deux — fenêtre fermée
       // trop vite, réseau coupé.
       const vu = await conversation(deux, 'BancUn');
-      if (vu.messages.length !== 1) return `échec : ${vu.messages.length} message(s) lus`;
+      // ON CHERCHE LE MESSAGE, PAS UN COMPTE. La conversation contient
+      // désormais aussi les messages des échanges avec cette personne : compter
+      // les lignes reviendrait à compter le décor.
+      const mien = vu.messages.find((m) => /Abra en trop/.test(m.texte));
+      if (!mien) return 'échec : le message écrit ne se relit pas dans le fil';
+      if (mien.deMoi) return 'échec : le message de l’autre est attribué au lecteur';
       const apres = await conversations(deux);
       const relu = apres.conversations.find((c) => c.pseudo === 'BancUn');
       if (relu.nonLus !== 0) return 'échec : la lecture ne marque pas lu';
@@ -549,6 +558,80 @@ async function tout(ids) {
       }
 
       return 'personne refuse, amis lit le lien dans le bon sens, tous accepte';
+    });
+
+  await verifier(
+    'Une personne, une conversation : les messages d’échange y sont aussi',
+    async () => {
+      // CE QUE ÇA CORRIGE. Les messages d'un échange vivaient dans un fil à
+      // part, qui ne s'ouvrait qu'en passant par la fiche du troc. On avait
+      // donc DEUX boîtes pour le même interlocuteur, et rien ne signalait
+      // l'existence de la seconde.
+      //
+      // Le piège technique : les deux sortes de lignes ne désignent pas l'autre
+      // personne de la même façon. Un message direct la nomme dans
+      // `destinataire_id` ; un message d'échange ne la nomme pas du tout — il
+      // faut passer par l'échange pour savoir qui sont les deux parties.
+      const e = await proposer(un, {
+        pseudo: 'BancDeux', dex: 'rby', offert: 'abra', demande: 'machoc',
+        mot: null,
+      });
+      await ecrireMessage(un, e.id, 'd’accord pour demain ?');
+      await ecrireA(un, 'BancDeux', 'et sinon, ça va ?');
+
+      const fil = await conversation(deux, 'BancUn');
+      const dEchange = fil.messages.filter((m) => m.echange);
+      const directs = fil.messages.filter((m) => !m.echange);
+      if (!dEchange.length) return 'échec : le message d’échange manque au fil';
+      if (!directs.length) return 'échec : le message direct manque au fil';
+
+      // CHAQUE MESSAGE D'ÉCHANGE DIT DE QUEL ÉCHANGE IL PARLE, et dans le sens
+      // de celui qui lit : BancDeux REÇOIT abra, il ne le donne pas.
+      const m = dEchange.find((x) => x.texte === 'd’accord pour demain ?');
+      if (!m) return 'échec : le message d’échange n’est pas celui attendu';
+      if (m.echange.id !== e.id) return 'échec : le message pointe le mauvais échange';
+      if (m.echange.jeRecois !== 'abra') {
+        return `échec : sens retourné — BancDeux reçoit « ${m.echange.jeRecois} », abra attendu`;
+      }
+
+      // ET LA CONVERSATION EXISTE DANS LA LISTE, avec les deux sortes comptées.
+      const liste = await conversations(deux);
+      const avecLui = liste.conversations.find((c) => c.pseudo === 'BancUn');
+      if (!avecLui) return 'échec : la conversation n’apparaît pas dans la liste';
+
+      await annuler(un, e.id);
+      return `${dEchange.length} message(s) d’échange et ${directs.length} direct(s), `
+        + 'dans un seul fil et dans le bon sens';
+    });
+
+  await verifier(
+    'Lire la conversation marque lu des DEUX sortes de messages',
+    async () => {
+      // LE PIÈGE : la remise à zéro visait `destinataire_id`, qui est NUL sur un
+      // message d'échange. Sans la seconde branche, une conversation lue
+      // gardait des non-lus invisibles — la pastille ne redescendait jamais.
+      const e = await proposer(deux, {
+        pseudo: 'BancUn', dex: 'rby', offert: 'onix', demande: 'racaillou',
+        mot: null,
+      });
+      await ecrireMessage(deux, e.id, 'toujours partant ?');
+      await ecrireA(deux, 'BancUn', 'un mot direct aussi');
+
+      const avant = (await conversations(un)).conversations
+        .find((c) => c.pseudo === 'BancDeux');
+      if (!avant || avant.nonLus < 2) {
+        return `échec : ${avant ? avant.nonLus : 0} non lus, au moins deux attendus`;
+      }
+
+      await conversation(un, 'BancDeux');
+      const apres = (await conversations(un)).conversations
+        .find((c) => c.pseudo === 'BancDeux');
+      if (apres.nonLus !== 0) {
+        return `échec : ${apres.nonLus} non lu(s) après lecture`;
+      }
+
+      await annuler(deux, e.id);
+      return `${avant.nonLus} non lus des deux sortes, tous marqués lus en ouvrant`;
     });
 
   console.log('\nLes photos');

@@ -40,6 +40,7 @@ function messagerieDisponible(){
 const msgOverlay = document.getElementById('msgOverlay');
 const msgTitre = document.getElementById('msgTitre');
 const msgRetour = document.getElementById('msgRetour');
+const msgEchange = document.getElementById('msgEchange');
 const msgListe = document.getElementById('msgListe');
 const msgNouveau = document.getElementById('msgNouveau');
 const msgQ = document.getElementById('msgQ');
@@ -261,7 +262,54 @@ async function msgChercher(){
   if(!msgPropositions.children.length) msgFermerPropositions();
 }
 
+/**
+ * De quel échange parle ce message.
+ *
+ * On reprend `trocNom` et `trocPhrase` de troc.js quand ils sont là : ils
+ * traduisent les identifiants d'espèce dans la langue choisie, et un second
+ * jeu de règles aurait divergé. Sans eux — sur une page qui ne charge pas
+ * troc.js — on rend l'identifiant brut, qui reste lisible.
+ */
+function msgSujetEchange(e){
+  if(typeof trocPhrase === 'function') return trocPhrase(e);
+  if(e.don) return (e.jeRecois || e.jeDonne) + (e.jeRecois ? ', offert' : ', en cadeau');
+  return e.jeRecois + ' contre ' + e.jeDonne;
+}
+
 // ---- Le fil ------------------------------------------------------------------
+
+/**
+ * Proposer un échange à la personne avec qui l'on parle.
+ *
+ * ON NE REFAIT PAS DE COMPOSITEUR. Celui qui existe vit dans le panneau
+ * d'entraide, et il a besoin des deux dex pour dire qui peut donner quoi —
+ * c'est justement ce qui le rend utile. Le bouton ouvre donc la comparaison
+ * avec cette personne, qui EST le chemin vers ce compositeur.
+ *
+ * La fenêtre se ferme : la comparaison s'affiche derrière, et la garder ouverte
+ * la cacherait entièrement.
+ */
+async function msgProposerEchange(){
+  if(!msgAvec) return;
+  const qui = msgAvec;
+  msgEtat.textContent = 'Ouverture de la comparaison…';
+  try{
+    const r = await invoke('profils_de', { pseudo: qui });
+    const profils = (r && r.profils) || [];
+    // Celle qu'il met en avant, comme le classement : par défaut d'abord.
+    const profil = profils.find(function(p){ return p.par_defaut; }) || profils[0];
+    if(!profil){
+      msgEtat.textContent = qui + ' n’a aucune aventure publique à comparer.';
+      return;
+    }
+    fermerMessagerie();
+    if(typeof comparerAvec === 'function') await comparerAvec(qui, profil);
+    if(typeof ouvrirEchanges === 'function') ouvrirEchanges();
+  }catch(e){
+    if(String(e) === 'SESSION_INVALIDE'){ await perdreSession(); return; }
+    msgEtat.textContent = String(e);
+  }
+}
 
 function msgOuvrirFil(pseudo){
   msgAvec = pseudo;
@@ -289,6 +337,9 @@ function msgBasculer(){
   if(msgFil) msgFil.hidden = !fil;
   if(msgZone) msgZone.hidden = !fil;
   if(msgRetour) msgRetour.hidden = !fil;
+  // Le bouton n'a de sens que dans un fil : sur la liste, on ne sait pas encore
+  // à qui l'on proposerait quoi que ce soit.
+  if(msgEchange) msgEchange.hidden = !fil;
   if(msgTitre) msgTitre.textContent = fil ? msgAvec : 'Messages';
   if(msgEtat) msgEtat.textContent = '';
   msgFermerPropositions();
@@ -325,6 +376,18 @@ async function msgDessinerFil(discret){
     texte.className = 'discussion-texte';
     texte.textContent = m.texte;
     bulle.appendChild(qui);
+
+    // UN MESSAGE D'ÉCHANGE DIT DE QUEL ÉCHANGE IL PARLE. Sans cela, « d'accord
+    // pour demain » arrive au milieu d'une conversation sans qu'on sache de
+    // quel troc il s'agit — et deux échanges avec la même personne sont
+    // courants.
+    if(m.echange){
+      const sujet = document.createElement('span');
+      sujet.className = 'msg-sujet';
+      sujet.textContent = '🔁 ' + msgSujetEchange(m.echange);
+      bulle.appendChild(sujet);
+    }
+
     bulle.appendChild(texte);
     if(typeof dateLisible === 'function'){
       const quand = document.createElement('span');
@@ -384,6 +447,7 @@ function fermerMessagerie(){
 
 document.addEventListener('DOMContentLoaded', function(){
   if(msgRetour) msgRetour.addEventListener('click', msgRevenirListe);
+  if(msgEchange) msgEchange.addEventListener('click', msgProposerEchange);
   if(msgEnvoyer) msgEnvoyer.addEventListener('click', msgEnvoyerTexte);
   if(msgQ) msgQ.addEventListener('input', msgChercher);
   if(msgTexte){

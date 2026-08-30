@@ -271,7 +271,22 @@ function ligneTroc(e){
   // Refusé ou retiré, le bouton reste : la conversation est LISIBLE, elle
   // n'est plus ouverte. Le serveur refuse l'écriture, et l'écran le dira.
   {
-    const parler = boutonTroc('💬 Discuter', '', function(){ ouvrirDiscussion(e.id); });
+    // UNE PERSONNE, UNE CONVERSATION. Ce bouton ouvrait un fil propre à cet
+    // échange : on se retrouvait avec deux boîtes pour le même interlocuteur,
+    // dont l'une ne s'ouvrait qu'en passant par la fiche d'un troc — et rien ne
+    // disait qu'elle existait. Les messages d'un échange apparaissent désormais
+    // dans la conversation avec la personne, chacun portant l'échange dont il
+    // parle.
+    //
+    // Le repli sur l'ancienne fenêtre sert les pages qui n'ont pas la
+    // messagerie : le site n'a pas de compte, donc personne à qui écrire.
+    const parler = boutonTroc('💬 Discuter', '', function(){
+      if(typeof ouvrirMessagerie === 'function' && e.avec && e.avec.pseudo){
+        ouvrirMessagerie(e.avec.pseudo);
+      } else {
+        ouvrirDiscussion(e.id);
+      }
+    });
     if(e.messages){
       parler.textContent = '💬 Discuter (' + e.messages + ')';
       // Le TOTAL, pas les non lus : rien ici ne sait ce qu'on a déjà lu. C'est la

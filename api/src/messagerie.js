@@ -124,44 +124,89 @@ export async function ecrireA(dresseurId, pseudo, texte) {
 /**
  * Avec qui j'ai une conversation, et où elle en est.
  *
- * ON NE LISTE QUE LES MESSAGES DIRECTS. Les discussions d'échange ont déjà leur
- * écran, attachées à l'échange dont elles parlent — les mêler ici donnerait deux
- * entrées pour la même personne, dont l'une s'ouvrirait sur un échange.
+ * UNE PERSONNE, UNE CONVERSATION. Les messages d'un échange et les messages
+ * directs sont la même chose : on parle à quelqu'un. Les séparer donnait deux
+ * boîtes pour le même interlocuteur, dont l'une ne s'ouvrait qu'en passant par
+ * la fiche d'un échange — et rien ne disait qu'elle existait.
+ *
+ * D'OÙ L'UNION plutôt qu'une seule condition : les deux sortes de lignes ne
+ * désignent pas l'autre personne de la même façon. Un message direct la nomme
+ * dans `destinataire_id` ; un message d'échange ne la nomme pas du tout, il
+ * faut passer par l'échange pour savoir qui sont les deux parties. On ramène
+ * donc les deux à un même « autre_id » avant de grouper.
  */
 export async function conversations(dresseurId) {
+  const resumes = await lire(
+    `SELECT autre_id, MAX(id) AS dernier_id, SUM(non_lu) AS non_lus
+       FROM (
+         SELECT m.id,
+                IF(m.auteur_id = ?, m.destinataire_id, m.auteur_id) AS autre_id,
+                (m.auteur_id <> ? AND m.lu = 0) AS non_lu
+           FROM pa_messages m
+          WHERE m.destinataire_id IS NOT NULL
+            AND (m.auteur_id = ? OR m.destinataire_id = ?)
+         UNION ALL
+         SELECT m.id,
+                IF(e.demandeur_id = ?, e.receveur_id, e.demandeur_id) AS autre_id,
+                (m.auteur_id <> ? AND m.lu = 0) AS non_lu
+           FROM pa_messages m
+           JOIN pa_echanges e ON e.id = m.echange_id
+          WHERE m.echange_id IS NOT NULL
+            AND (e.demandeur_id = ? OR e.receveur_id = ?)
+       ) t
+      GROUP BY autre_id`,
+    [dresseurId, dresseurId, dresseurId, dresseurId,
+      dresseurId, dresseurId, dresseurId, dresseurId]);
+
+  if (!resumes.length) return { conversations: [] };
+
+  // Le dernier message et la personne, en une requête pour tout le monde plutôt
+  // qu'une par conversation.
+  const ids = resumes.map((r) => r.dernier_id);
   const lignes = await lire(
-    `SELECT d.pseudo, d.avatar, d.discord_id,
-            m.texte, m.cree_le, m.auteur_id,
-            (SELECT COUNT(*) FROM pa_messages x
-              WHERE x.destinataire_id = ? AND x.auteur_id = d.id AND x.lu = 0) AS non_lus
+    `SELECT m.id, m.texte, m.cree_le, m.auteur_id,
+            d.id AS autre_id, d.pseudo, d.avatar, d.discord_id
        FROM pa_messages m
-       JOIN pa_dresseurs d
-         ON d.id = IF(m.auteur_id = ?, m.destinataire_id, m.auteur_id)
-      WHERE m.destinataire_id IS NOT NULL
-        AND (m.auteur_id = ? OR m.destinataire_id = ?)
-        AND m.id = (
-          SELECT MAX(y.id) FROM pa_messages y
-           WHERE y.destinataire_id IS NOT NULL
-             AND ((y.auteur_id = m.auteur_id AND y.destinataire_id = m.destinataire_id)
-               OR (y.auteur_id = m.destinataire_id AND y.destinataire_id = m.auteur_id)))
-      ORDER BY m.id DESC`,
-    [dresseurId, dresseurId, dresseurId, dresseurId]);
+       JOIN pa_dresseurs d ON d.id = ?
+      WHERE m.id IN (${ids.map(() => '?').join(',')})`,
+    [dresseurId, ...ids]);
+  const parId = new Map(lignes.map((l) => [l.id, l]));
+
+  const gens = await lire(
+    `SELECT id, pseudo, avatar, discord_id FROM pa_dresseurs
+      WHERE id IN (${resumes.map(() => '?').join(',')})`,
+    resumes.map((r) => r.autre_id));
+  const parPersonne = new Map(gens.map((g) => [g.id, g]));
 
   return {
-    conversations: lignes.map((l) => ({
-      pseudo: l.pseudo,
-      avatar: l.avatar,
-      discordId: l.discord_id,
-      dernier: l.texte,
-      deMoi: l.auteur_id === dresseurId,
-      quand: l.cree_le,
-      nonLus: Number(l.non_lus) || 0,
-    })),
+    conversations: resumes
+      .map((r) => {
+        const m = parId.get(r.dernier_id);
+        const qui = parPersonne.get(Number(r.autre_id));
+        if (!m || !qui) return null;
+        return {
+          pseudo: qui.pseudo,
+          avatar: qui.avatar,
+          discordId: qui.discord_id,
+          dernier: m.texte,
+          deMoi: m.auteur_id === dresseurId,
+          quand: m.cree_le,
+          nonLus: Number(r.non_lus) || 0,
+          dernierId: r.dernier_id,
+        };
+      })
+      .filter(Boolean)
+      // La plus récente en tête : c'est là qu'il se passe quelque chose.
+      .sort((a, b) => b.dernierId - a.dernierId),
   };
 }
 
 /**
  * Une conversation, et sa lecture.
+ *
+ * ON Y TROUVE TOUT CE QU'ON S'EST DIT, messages d'échange compris. Chacun de
+ * ceux-là porte l'échange dont il parle — sans quoi « d'accord pour demain »
+ * arriverait sans qu'on sache de quel troc il s'agit.
  *
  * MARQUER LU EN LISANT, plutôt que par un appel séparé : un écran ouvert EST la
  * lecture, et un second aller-retour pour le dire se serait perdu un jour sur
@@ -170,18 +215,40 @@ export async function conversations(dresseurId) {
 export async function conversation(dresseurId, pseudo) {
   const autre = await dresseurParPseudo(pseudo);
   const lignes = await lire(
-    `SELECT m.id, m.texte, m.cree_le, m.auteur_id
+    `SELECT m.id, m.texte, m.cree_le, m.auteur_id, m.echange_id,
+            e.offert, e.demande, e.dex, e.etat, e.demandeur_id
        FROM pa_messages m
-      WHERE m.destinataire_id IS NOT NULL
-        AND ((m.auteur_id = ? AND m.destinataire_id = ?)
-          OR (m.auteur_id = ? AND m.destinataire_id = ?))
-      ORDER BY m.id ASC
+       LEFT JOIN pa_echanges e ON e.id = m.echange_id
+      WHERE (
+              m.destinataire_id IS NOT NULL
+              AND ((m.auteur_id = ? AND m.destinataire_id = ?)
+                OR (m.auteur_id = ? AND m.destinataire_id = ?))
+            )
+         OR (
+              m.echange_id IS NOT NULL
+              AND ((e.demandeur_id = ? AND e.receveur_id = ?)
+                OR (e.demandeur_id = ? AND e.receveur_id = ?))
+            )
+      ORDER BY m.id DESC
       LIMIT ${CONVERSATION_PAGE}`,
-    [dresseurId, autre.id, autre.id, dresseurId]);
+    [dresseurId, autre.id, autre.id, dresseurId,
+      dresseurId, autre.id, autre.id, dresseurId]);
+
+  // DESC PUIS RETOURNÉ : c'est la FIN d'une conversation qu'on veut voir, pas
+  // son début. Trié ASC avec une limite, la fenêtre se figeait sur les deux
+  // cents premiers messages et les nouveaux n'apparaissaient jamais.
+  lignes.reverse();
 
   await ecrire(
-    `UPDATE pa_messages SET lu = 1
-      WHERE destinataire_id = ? AND auteur_id = ? AND lu = 0`, [dresseurId, autre.id]);
+    `UPDATE pa_messages m
+       LEFT JOIN pa_echanges e ON e.id = m.echange_id
+        SET m.lu = 1
+      WHERE m.lu = 0 AND m.auteur_id = ?
+        AND (m.destinataire_id = ?
+          OR (m.echange_id IS NOT NULL
+              AND ((e.demandeur_id = ? AND e.receveur_id = ?)
+                OR (e.demandeur_id = ? AND e.receveur_id = ?))))`,
+    [autre.id, dresseurId, dresseurId, autre.id, autre.id, dresseurId]);
 
   return {
     avec: { pseudo: autre.pseudo, avatar: autre.avatar, discordId: autre.discord_id },
@@ -190,6 +257,16 @@ export async function conversation(dresseurId, pseudo) {
       texte: m.texte,
       quand: m.cree_le,
       deMoi: m.auteur_id === dresseurId,
+      // L'échange dont ce message parle, quand il en vient d'un. Les deux noms
+      // sont remis dans le sens de CELUI QUI LIT, comme partout ailleurs.
+      echange: m.echange_id ? {
+        id: m.echange_id,
+        dex: m.dex,
+        etat: m.etat,
+        jeDonne: m.demandeur_id === dresseurId ? m.offert : m.demande,
+        jeRecois: m.demandeur_id === dresseurId ? m.demande : m.offert,
+        don: !m.demande,
+      } : null,
     })),
   };
 }

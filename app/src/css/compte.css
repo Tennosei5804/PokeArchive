@@ -2178,3 +2178,19 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   font-family:var(--font-body); font-size:13.5px;
 }
 #echangeQ:focus{ outline:none; border-color:var(--dex-red); }
+
+/* L'en-tete de la messagerie tient trois choses : le retour, le nom, et la
+   proposition d'echange. Le nom pousse le bouton a droite plutot qu'une marge
+   fixe — un pseudo court ne doit pas laisser un trou au milieu. */
+.msg-entete .modal-title{ flex:1 1 auto; min-width:0; }
+.msg-echange{ flex-shrink:0; padding:5px 11px; font-size:11.5px; white-space:nowrap; }
+
+/* De quel echange parle ce message. Au-dessus du texte et non a cote : une
+   bulle est etroite, et la phrase « Abra contre Machopeur » y tiendrait mal en
+   partageant la ligne. */
+.msg-sujet{
+  font-family:var(--font-data); font-size:10px;
+  color:var(--gold-deep); opacity:.85;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;
+}
+.discussion-bulle.de-moi .msg-sujet{ color:var(--gold); }
