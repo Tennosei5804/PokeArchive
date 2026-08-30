@@ -31,12 +31,17 @@ const GARDE_MAX = 200;
  * l'action. Si l'écriture échoue, l'échange a tout de même eu lieu et doit être
  * rendu au joueur — le perdre pour une ligne d'annonce serait absurde.
  */
-export async function notifier(dresseurId, { genre, echangeId = null, titre, detail = null }) {
+export async function notifier(
+  dresseurId,
+  { genre, echangeId = null, deId = null, titre, detail = null },
+) {
   try {
     await ecrire(
-      `INSERT INTO pa_notifications (dresseur_id, genre, echange_id, titre, detail, cree_le)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [dresseurId, genre, echangeId, borne(titre, 200), borne(detail, 400), horodatage()]);
+      `INSERT INTO pa_notifications
+         (dresseur_id, genre, echange_id, de_id, titre, detail, cree_le)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [dresseurId, genre, echangeId, deId,
+        borne(titre, 200), borne(detail, 400), horodatage()]);
     await elaguer(dresseurId);
   } catch (e) {
     // Volontairement muet côté joueur, bavard côté serveur.
@@ -78,9 +83,11 @@ async function elaguer(dresseurId) {
 export async function mesNotifications(dresseurId) {
   const lignes = await lire(
     `SELECT n.id, n.genre, n.echange_id, n.titre, n.detail, n.lu, n.cree_le,
-            e.etat AS echange_etat, e.dex, e.offert, e.demande, e.demandeur_id
+            e.etat AS echange_etat, e.dex, e.offert, e.demande, e.demandeur_id,
+            d.pseudo AS de_pseudo
        FROM pa_notifications n
        LEFT JOIN pa_echanges e ON e.id = n.echange_id
+       LEFT JOIN pa_dresseurs d ON d.id = n.de_id
       WHERE n.dresseur_id = ?
       ORDER BY n.id DESC LIMIT ${PAGE}`, [dresseurId]);
   return {
@@ -92,7 +99,8 @@ export async function mesNotifications(dresseurId) {
 function enClair(l, moi) {
   const jeSuisDemandeur = l.demandeur_id === moi;
   return {
-    id: l.id, genre: l.genre, echange: l.echange_id, titre: l.titre,
+    id: l.id, genre: l.genre, echange: l.echange_id, de: l.de_pseudo || null,
+    titre: l.titre,
     detail: l.detail, lu: l.lu === 1, quand: l.cree_le,
     etat: l.echange_etat || null,
     dex: l.dex || null,

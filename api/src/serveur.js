@@ -407,7 +407,8 @@ app.get('/api/messages/:pseudo', route(async (req, res) => {
 
 app.post('/api/messages/:pseudo', route(async (req, res) => {
   const d = await exiger(req, res); if (!d) return;
-  res.json(await messagerie.ecrireA(d.id, req.params.pseudo, req.body?.texte));
+  res.json(await messagerie.ecrireA(
+    d.id, req.params.pseudo, req.body?.texte, req.body?.espece));
 }));
 
 // --- Les amis ---------------------------------------------------------------
@@ -545,11 +546,15 @@ app.get('/api/dresseurs/:pseudo/photos', route(async (req, res) => {
 // differents, l'un deduit, l'autre ecrit — mais elles voyagent ensemble.
 app.get('/api/veille', route(async (req, res) => {
   const d = await exiger(req, res); if (!d) return;
-  const [nouveautes, avis] = await Promise.all([
+  const [nouveautes, avis, messages] = await Promise.all([
     amis.nouveautes(d.id),
     notifications.mesNotifications(d.id),
+    // DANS LA MEME REQUETE. Une pastille de messages non lus meritait un
+    // aller-retour de plus toutes les deux minutes ; elle n'en meritait pas un
+    // a elle seule, et la veille passait deja par la.
+    messagerie.nonLus(d.id),
   ]);
-  res.json({ amis: nouveautes, notifications: avis });
+  res.json({ amis: nouveautes, notifications: avis, messagesNonLus: messages });
 }));
 
 // --- Les notifications ------------------------------------------------------

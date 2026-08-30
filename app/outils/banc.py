@@ -199,15 +199,21 @@ const REPONSES = {
                                { id:0, texte:'d’accord pour demain ?', quand:'', deMoi:false,
                                  echange:{ id:1, dex:'rby', etat:'accepte',
                                            jeDonne:'machop', jeRecois:'abra', don:false } },
-                               ...DIRECTS.map(m => ({ ...m, echange:null })) ] }),
+                               ...DIRECTS.map(m => ({ espece:null, ...m, echange:null })) ] }),
   messages_ecrire: (a) => { const texte = (a&&a.texte)||'';
+                            const espece = (a&&a.espece)||null;
                             // Le meme filtre qu'au serveur, en beaucoup plus
                             // simple : le banc n'eprouve pas le filtre ici, il
                             // eprouve que l'ecran affiche le refus.
                             if(/sale con/.test(texte)) throw new Error('Ton message ne passe pas. Reformule-le.');
-                            DIRECTS.push({ id: DIRECTS.length + 1, texte, quand:'', deMoi:true });
+                            DIRECTS.push({ id: DIRECTS.length + 1, texte, espece,
+                                           quand:'', deMoi:true });
                             return { id: DIRECTS.length, quand:'' }; },
 
+  veille:          () => ({ amis:{ annonces:[] },
+                            notifications:{ notifications: NOTIFS.map(n => ({ ...n })),
+                              nonLues: NOTIFS.filter(n => !n.lu).length },
+                            messagesNonLus: 3 }),
   notifications:   () => ({ notifications: NOTIFS.map(n => ({ ...n })),
                             nonLues: NOTIFS.filter(n => !n.lu).length }),
   notifications_lues: () => { NOTIFS.forEach(n => { n.lu = true; }); return { ok:true, nonLues:0 }; },

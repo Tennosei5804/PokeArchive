@@ -212,7 +212,7 @@ async function veiller(){
     return;                          // hors ligne : on se tait, on réessaiera
   }
   await verifierNouveautes(r.amis);
-  if(typeof recevoirVeille === 'function') recevoirVeille(r.notifications);
+  if(typeof recevoirVeille === 'function') recevoirVeille(r.notifications, r.messagesNonLus);
 }
 
 function lancerSondageAmis(){

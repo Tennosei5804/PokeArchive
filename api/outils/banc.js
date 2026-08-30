@@ -26,7 +26,8 @@ import { suivre, quiA, nouveautes } from '../src/amis.js';
 import { proposer, repondre, annuler, mesEchanges, messages, ecrireMessage }
   from '../src/echanges.js';
 import * as images from '../src/images.js';
-import { ecrireA, conversations, conversation } from '../src/messagerie.js';
+import { ecrireA, conversations, conversation, nonLus } from '../src/messagerie.js';
+import { mesNotifications } from '../src/notifications.js';
 import { motInterdit, injurieuxDansPhrase } from '../src/pseudos-interdits.js';
 
 // La plage 991… — voisine de celle de peupler.js, et distincte pour que les
@@ -632,6 +633,67 @@ async function tout(ids) {
 
       await annuler(deux, e.id);
       return `${avant.nonLus} non lus des deux sortes, tous marqués lus en ouvrant`;
+    });
+
+  await verifier(
+    'Un Pokémon voyage dans un message, et la notification sait d’où elle vient',
+    async () => {
+      // CE QUE ÇA REMPLACE : on l'écrivait à la main, donc sans image, sans lien
+      // vers la fiche, et avec les fautes de frappe de chacun.
+      //
+      // L'IDENTIFIANT VOYAGE, PAS LE NOM. « mr-mime » et jamais « M. Mime » : la
+      // langue est un réglage de celui qui LIT. Un message écrit en français
+      // doit se lire en anglais chez qui a choisi l'anglais — garder le nom
+      // affiché figerait la langue de l'expéditeur dans la base.
+      const r = await ecrireA(un, 'BancDeux', 'il te manque, non ?', 'mr-mime');
+      if (!r?.id) return 'échec : le message avec Pokémon n’est pas parti';
+
+      const fil = await conversation(deux, 'BancUn');
+      const carte = fil.messages.find((m) => m.espece === 'mr-mime');
+      if (!carte) return 'échec : l’espèce ne revient pas avec le message';
+
+      // UN POKÉMON SEUL EST UN MESSAGE : exiger du texte à côté obligerait à
+      // écrire « tiens » sous chaque carte, ce que personne ne fait deux fois.
+      const seul = await ecrireA(un, 'BancDeux', '', 'pikachu');
+      if (!seul?.id) return 'échec : un Pokémon sans texte est refusé';
+
+      // Ce qui n'a pas la forme d'un identifiant est refusé : sinon la pièce
+      // jointe devient un second champ de texte, sans longueur ni filtre.
+      try {
+        await ecrireA(un, 'BancDeux', 'tiens', 'M. Mime <script>');
+        return 'échec : une espèce mal formée est acceptée';
+      } catch (e) {
+        if (!/n’est pas reconnu/.test(e.message)) {
+          return `échec : refusé pour une autre raison — ${e.message}`;
+        }
+      }
+
+      // LA NOTIFICATION PORTE LE PSEUDO DE QUI ÉCRIT. Sans lui, cliquer dessus
+      // retombait sur la page des amis : le titre disait bien « BancUn t'a
+      // écrit », mais un titre est du texte, et le découper pour en tirer un
+      // pseudo casserait à la première reformulation.
+      const avis = await mesNotifications(deux);
+      const sien = avis.notifications.find((n) => n.genre === 'message' && n.de);
+      if (!sien) return 'échec : aucune notification de message ne dit de qui elle vient';
+      if (sien.de !== 'BancUn') return `échec : notification attribuée à ${sien.de}`;
+
+      return 'espèce transmise par identifiant, Pokémon seul accepté, '
+        + 'forme invalide refusée, notification signée';
+    });
+
+  await verifier(
+    'Le compte de non lus voyage avec la veille',
+    async () => {
+      // IL MÉRITAIT UN ALLER-RETOUR TOUTES LES DEUX MINUTES, PAS UN À LUI SEUL.
+      // La pastille du menu se nourrit de ce chiffre ; sans lui elle resterait
+      // muette, ou coûterait une requête de plus à chaque battement.
+      const avant = await nonLus(deux);
+      if (avant < 1) return `échec : ${avant} non lu, au moins un attendu ici`;
+
+      await conversation(deux, 'BancUn');
+      const apres = await nonLus(deux);
+      if (apres !== 0) return `échec : ${apres} non lu(s) après lecture`;
+      return `${avant} en attente, zéro après lecture`;
     });
 
   console.log('\nLes photos');

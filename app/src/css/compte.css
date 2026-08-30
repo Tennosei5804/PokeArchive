@@ -2194,3 +2194,69 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;
 }
 .discussion-bulle.de-moi .msg-sujet{ color:var(--gold); }
+
+/* La pastille de messages en attente, dans le menu du compte.
+   Posée en absolu et centrée verticalement : une entrée de menu porte un titre
+   et un sous-titre, donc deux lignes de hauteur inegale — l'aligner dans le
+   flux la faisait descendre avec le sous-titre. */
+/* Augmente la regle de la ligne 246 plutot que de la reecrire : la pastille
+   est le seul enfant a positionner, et deplacer le reste pour elle exposerait
+   tout le menu a une regression. */
+.compte-item{ position:relative; }
+.compte-item-pastille{
+  position:absolute; right:12px; top:50%; transform:translateY(-50%);
+  min-width:19px; height:19px; padding:0 5px;
+  display:grid; place-items:center; border-radius:999px;
+  background:var(--dex-red); color:#fff;
+  font-family:var(--font-data); font-size:10.5px;
+}
+
+/* ---- Joindre un Pokémon à un message ----------------------------------------
+   Le joint et sa recherche vivent AU-DESSUS du champ, pas dedans : on doit voir
+   ce qu'on s'apprête à envoyer avant de l'envoyer, et pouvoir le retirer. */
+.msg-joindre{ flex-shrink:0; padding:9px 12px; font-size:14px; line-height:1; }
+
+.msg-jointe{
+  display:flex; align-items:center; gap:9px; margin-bottom:8px;
+  padding:6px 10px; border-radius:9px;
+  background:var(--screen); border:1px solid var(--gold);
+  font-family:var(--font-body); font-size:12.5px; color:var(--ink);
+}
+.msg-jointe img{ width:30px; height:30px; object-fit:contain; flex-shrink:0; }
+.msg-jointe span{ flex:1 1 auto; min-width:0; }
+.msg-jointe button{
+  flex-shrink:0; border:0; background:none; cursor:pointer;
+  color:var(--ink-soft); font-size:17px; line-height:1; padding:0 3px;
+}
+.msg-jointe button:hover{ color:var(--danger); }
+
+.msg-poke{ margin-bottom:8px; }
+#msgPokeQ{
+  width:100%; padding:8px 11px; border-radius:8px;
+  border:1px solid var(--card-border); background:var(--screen); color:var(--ink);
+  font-family:var(--font-body); font-size:13px;
+}
+#msgPokeQ:focus{ outline:none; border-color:var(--dex-red); }
+.msg-poke-liste{ display:flex; flex-direction:column; gap:3px; margin-top:6px;
+  max-height:150px; overflow-y:auto; }
+.msg-poke-ligne{
+  display:flex; align-items:center; gap:8px; text-align:left;
+  padding:5px 9px; border-radius:8px; cursor:pointer;
+  background:var(--screen); border:1px solid var(--card-border);
+  font-family:var(--font-body); font-size:12.5px; color:var(--ink);
+}
+.msg-poke-ligne:hover{ border-color:var(--gold); }
+.msg-poke-ligne img{ width:26px; height:26px; object-fit:contain; flex-shrink:0; }
+
+/* La carte, dans la bulle. Cliquable — elle mène à la fiche de l'espèce, ce qui
+   est la raison d'être de la pièce jointe : on parle d'un Pokémon, l'autre doit
+   pouvoir le regarder sans le rechercher. */
+.msg-carte{
+  display:flex; align-items:center; gap:9px; width:100%; text-align:left;
+  margin:2px 0 5px; padding:5px 9px; border-radius:9px; cursor:pointer;
+  background:var(--card); border:1px solid var(--card-border);
+  font-family:var(--font-body); font-size:12.5px; color:var(--ink);
+}
+.msg-carte:hover{ border-color:var(--gold); }
+.msg-carte:disabled{ cursor:default; opacity:.7; }
+.msg-carte img{ width:34px; height:34px; object-fit:contain; flex-shrink:0; }

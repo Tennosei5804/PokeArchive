@@ -276,6 +276,126 @@ function msgSujetEchange(e){
   return e.jeRecois + ' contre ' + e.jeDonne;
 }
 
+// ---- Joindre un Pokémon ------------------------------------------------------
+//
+// CE QUE ÇA REMPLACE : on l'écrivait à la main. Donc sans image, sans lien vers
+// la fiche, et avec les fautes de frappe de chacun — « Insecateur », « scyther »,
+// « l'insecte vert ». Or c'est précisément ce dont les gens parlent ici.
+//
+// L'IDENTIFIANT VOYAGE, PAS LE NOM. Le serveur garde « mr-mime », jamais
+// « M. Mime » : la langue est un réglage de celui qui LIT, et un message écrit
+// en français doit se lire en anglais chez qui a choisi l'anglais.
+
+const msgJoindre = document.getElementById('msgJoindre');
+const msgPoke = document.getElementById('msgPoke');
+const msgPokeQ = document.getElementById('msgPokeQ');
+const msgPokeListe = document.getElementById('msgPokeListe');
+const msgJointe = document.getElementById('msgJointe');
+const msgJointeImg = document.getElementById('msgJointeImg');
+const msgJointeNom = document.getElementById('msgJointeNom');
+const msgJointeOter = document.getElementById('msgJointeOter');
+
+// L'espèce attachée au prochain message, ou null.
+let msgEspece = null;
+
+/** L'entrée du Pokédex portant ce nom, ou rien. */
+function msgEntree(nom){
+  if(typeof allEntries === 'undefined') return null;
+  return allEntries.find(function(e){ return e.name === nom; }) || null;
+}
+
+/**
+ * Une image pour la carte.
+ *
+ * On ne rejoue pas la chaîne de replis du Pokédex — cinq étapes, faites pour
+ * une grille de mille vignettes. Ici il y en a une par message : le rendu
+ * distant suffit, avec l'artwork officiel derrière lui.
+ */
+function msgImageEspece(img, entree){
+  if(!entree) return;
+  img.src = pokeosHomeUrl(entree.id, false);
+  img.addEventListener('error', function(){
+    if(img.dataset.repli) return;
+    img.dataset.repli = '1';
+    img.src = officialArtworkUrl(entree.id, false);
+  });
+}
+
+function msgFermerPoke(){
+  if(msgPoke) msgPoke.hidden = true;
+  if(msgPokeQ) msgPokeQ.value = '';
+  if(msgPokeListe) msgPokeListe.innerHTML = '';
+}
+
+/** Montre — ou retire — le Pokémon joint, au-dessus du champ. */
+function msgMajJointe(){
+  if(!msgJointe) return;
+  const e = msgEspece ? msgEntree(msgEspece) : null;
+  msgJointe.hidden = !e;
+  if(!e) return;
+  msgJointeNom.textContent = nomAffiche(e);
+  msgImageEspece(msgJointeImg, e);
+}
+
+function msgChercherPoke(){
+  if(!msgPokeListe || !msgPokeQ) return;
+  const q = (msgPokeQ.value || '').trim().toLowerCase();
+  msgPokeListe.innerHTML = '';
+  if(q.length < 2 || typeof allEntries === 'undefined') return;
+
+  // SUR LE NOM AFFICHÉ, comme partout ailleurs : on cherche « Insécateur »,
+  // pas « scyther ».
+  allEntries
+    .filter(function(e){ return nomAffiche(e).toLowerCase().indexOf(q) !== -1; })
+    .slice(0, 8)
+    .forEach(function(e){
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'msg-poke-ligne';
+      const img = document.createElement('img');
+      img.alt = '';
+      msgImageEspece(img, e);
+      const nom = document.createElement('span');
+      nom.textContent = nomAffiche(e);
+      b.appendChild(img);
+      b.appendChild(nom);
+      b.addEventListener('click', function(){
+        msgEspece = e.name;
+        msgFermerPoke();
+        msgMajJointe();
+        if(msgTexte) msgTexte.focus();
+      });
+      msgPokeListe.appendChild(b);
+    });
+}
+
+/** La carte d'un Pokémon, dans une bulle. Elle mène à sa fiche. */
+function msgCarteEspece(nom){
+  const e = msgEntree(nom);
+  const carte = document.createElement('button');
+  carte.type = 'button';
+  carte.className = 'msg-carte';
+
+  const img = document.createElement('img');
+  img.alt = '';
+  msgImageEspece(img, e);
+  carte.appendChild(img);
+
+  const texte = document.createElement('span');
+  // UN POKÉMON QUE CETTE VERSION NE CONNAÎT PAS reste lisible : on montre son
+  // identifiant plutôt qu'une carte vide. Cela arrive à qui reçoit un message
+  // d'une version plus récente que la sienne.
+  texte.textContent = e ? nomAffiche(e) : nom;
+  carte.appendChild(texte);
+
+  if(e && typeof openPreview === 'function'){
+    carte.addEventListener('click', function(){ openPreview(e, null); });
+  } else {
+    carte.disabled = true;
+  }
+  return carte;
+}
+
 // ---- Le fil ------------------------------------------------------------------
 
 /**
@@ -313,6 +433,11 @@ async function msgProposerEchange(){
 
 function msgOuvrirFil(pseudo){
   msgAvec = pseudo;
+  // CE QU'ON ALLAIT JOINDRE APPARTIENT À LA CONVERSATION QU'ON QUITTE. Le
+  // garder enverrait l'Abra préparé pour Jack à la figure d'Ondine.
+  msgEspece = null;
+  msgMajJointe();
+  msgFermerPoke();
   msgBasculer();
   msgDessinerFil();
   msgSonder();
@@ -381,6 +506,10 @@ async function msgDessinerFil(discret){
     // pour demain » arrive au milieu d'une conversation sans qu'on sache de
     // quel troc il s'agit — et deux échanges avec la même personne sont
     // courants.
+    // La carte AVANT le texte : « il te manque, non ? » n'a de sens qu'une fois
+    // qu'on sait de qui l'on parle.
+    if(m.espece) bulle.appendChild(msgCarteEspece(m.espece));
+
     if(m.echange){
       const sujet = document.createElement('span');
       sujet.className = 'msg-sujet';
@@ -388,7 +517,9 @@ async function msgDessinerFil(discret){
       bulle.appendChild(sujet);
     }
 
-    bulle.appendChild(texte);
+    // Un Pokémon seul EST un message : on n'ajoute pas de paragraphe vide,
+    // qui laisserait une ligne blanche sous la carte.
+    if(m.texte) bulle.appendChild(texte);
     if(typeof dateLisible === 'function'){
       const quand = document.createElement('span');
       quand.className = 'discussion-quand';
@@ -404,15 +535,18 @@ async function msgDessinerFil(discret){
 async function msgEnvoyerTexte(){
   if(!msgTexte || !msgAvec) return;
   const texte = (msgTexte.value || '').trim();
-  if(!texte) return;
+  if(!texte && !msgEspece) return;
 
   msgEnvoyer.disabled = true;
   msgEtat.textContent = '';
   try{
-    await invoke('messages_ecrire', { pseudo: msgAvec, texte: texte });
+    await invoke('messages_ecrire',
+      { pseudo: msgAvec, texte: texte, espece: msgEspece });
     // On vide APRÈS l'envoi réussi. Vider avant perdrait le texte au moindre
     // refus — et le filtre en refuse, c'est son travail.
     msgTexte.value = '';
+    msgEspece = null;
+    msgMajJointe();
     await msgDessinerFil();
   }catch(e){
     if(String(e) === 'SESSION_INVALIDE'){ await perdreSession(); return; }
@@ -439,15 +573,61 @@ function ouvrirMessagerie(pseudo){
 
 function fermerMessagerie(){
   if(msgOverlay) msgOverlay.style.display = 'none';
+  // La pastille compte ce qu'on n'a pas lu. Sortir d'une conversation qu'on
+  // vient d'ouvrir doit l'éteindre tout de suite, sans attendre les deux
+  // minutes de la veille — sinon elle annonce des messages déjà lus.
+  if(msgAvec) majPastilleMessages(0);
   // LE SONDAGE S'ARRÊTE AVEC LA FENÊTRE, et c'est tout le marché : la cadence
   // rapide ne coûte que pendant qu'on parle.
   msgArreterSondage();
   msgAvec = null;
 }
 
+/**
+ * Combien de messages attendent, dit hors de la fenêtre.
+ *
+ * LA CLOCHE ET CETTE PASTILLE NE DISENT PAS LA MÊME CHOSE. La cloche annonce
+ * ce qui vient d'ARRIVER et s'éteint dès qu'on l'a ouverte ; la pastille dit ce
+ * qui attend encore une lecture. On peut avoir vu passer la cloche sans avoir
+ * ouvert la conversation — c'est même le cas courant.
+ *
+ * Le compte vient de la veille commune, dans la même requête que le reste : il
+ * méritait un aller-retour toutes les deux minutes, pas un à lui seul.
+ */
+function majPastilleMessages(combien){
+  if(!messagesPastille) return;
+  const n = Number(combien) || 0;
+  messagesPastille.hidden = n === 0;
+  messagesPastille.textContent = n > 9 ? '9+' : String(n);
+}
+
 document.addEventListener('DOMContentLoaded', function(){
+  if(menuMessages){
+    // Cachée sur le site, comme les autres portes de la messagerie : il n'y a
+    // personne à qui écrire quand il n'y a pas de compte.
+    menuMessages.hidden = !messagerieDisponible();
+    menuMessages.addEventListener('click', function(){
+      if(typeof fermerCompteMenu === 'function') fermerCompteMenu();
+      ouvrirMessagerie();
+    });
+  }
   if(msgRetour) msgRetour.addEventListener('click', msgRevenirListe);
   if(msgEchange) msgEchange.addEventListener('click', msgProposerEchange);
+  if(msgJoindre){
+    msgJoindre.addEventListener('click', function(){
+      if(!msgPoke) return;
+      msgPoke.hidden = !msgPoke.hidden;
+      if(!msgPoke.hidden) msgPokeQ.focus();
+      else msgFermerPoke();
+    });
+  }
+  if(msgPokeQ) msgPokeQ.addEventListener('input', msgChercherPoke);
+  if(msgJointeOter){
+    msgJointeOter.addEventListener('click', function(){
+      msgEspece = null;
+      msgMajJointe();
+    });
+  }
   if(msgEnvoyer) msgEnvoyer.addEventListener('click', msgEnvoyerTexte);
   if(msgQ) msgQ.addEventListener('input', msgChercher);
   if(msgTexte){

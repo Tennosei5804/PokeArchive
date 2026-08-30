@@ -129,7 +129,19 @@ function dessinerCloche(){
  */
 function allerVersNotif(n){
   fermerCloche();
+
+  // UN MESSAGE OUVRE LA CONVERSATION. C'est ce qu'on venait faire en cliquant,
+  // et cela ne dépend plus d'un échange : la notification porte désormais le
+  // pseudo de qui a écrit, donc on sait où aller même quand il n'y a aucun troc
+  // derrière. Auparavant, un message direct retombait sur la page des amis.
+  if(n.genre === 'message' && n.de && typeof ouvrirMessagerie === 'function'){
+    ouvrirMessagerie(n.de);
+    return;
+  }
+
   if(!n.echange){ showPage('amis'); return; }
+  // Un échange dont la discussion est ouverte : on va à la conversation de la
+  // personne, où ses messages vivent maintenant.
   if(n.genre === 'message' && (n.etat === 'accepte' || n.etat === 'fait')){
     ouvrirDiscussion(n.echange);
     return;
@@ -248,8 +260,9 @@ async function marquerCloche(){
  * minutes pour une seule cadence. C'est amis.js qui appelle désormais, une fois,
  * et qui distribue — voir veiller().
  */
-function recevoirVeille(notifications){
+function recevoirVeille(notifications, messagesNonLus){
   verifierNotifs(false, notifications);
+  if(typeof majPastilleMessages === 'function') majPastilleMessages(messagesNonLus);
 }
 
 function arreterSondageNotifs(){

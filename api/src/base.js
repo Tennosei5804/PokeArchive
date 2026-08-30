@@ -199,6 +199,7 @@ const TABLES = [
      destinataire_id BIGINT      NULL,
      auteur_id      BIGINT       NOT NULL,
      texte          VARCHAR(1000) NOT NULL,
+     espece         VARCHAR(64)  NULL,
      lu             TINYINT(1)   NOT NULL DEFAULT 0,
      cree_le        VARCHAR(64)  NOT NULL,
      CONSTRAINT fk_pa_messages_echange FOREIGN KEY (echange_id)
@@ -218,6 +219,7 @@ const TABLES = [
      dresseur_id BIGINT       NOT NULL,
      genre       VARCHAR(24)  NOT NULL,
      echange_id  BIGINT       NULL,
+     de_id       BIGINT       NULL,
      titre       VARCHAR(200) NOT NULL,
      detail      VARCHAR(400) NULL,
      lu          TINYINT(1)   NOT NULL DEFAULT 0,
@@ -225,7 +227,9 @@ const TABLES = [
      CONSTRAINT fk_pa_notifications_dresseur FOREIGN KEY (dresseur_id)
        REFERENCES pa_dresseurs(id) ON DELETE CASCADE,
      CONSTRAINT fk_pa_notifications_echange FOREIGN KEY (echange_id)
-       REFERENCES pa_echanges(id) ON DELETE CASCADE
+       REFERENCES pa_echanges(id) ON DELETE CASCADE,
+     CONSTRAINT fk_pa_notifications_de FOREIGN KEY (de_id)
+       REFERENCES pa_dresseurs(id) ON DELETE CASCADE
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 
   // Les photos de chasse : la fiche seulement. Le fichier vit sur le disque,
@@ -406,6 +410,8 @@ export async function creerSchema(journal = () => {}) {
   await migrerEchangesOuverts(journal);
   await migrerMessagesDirects(journal);
   await migrerQuiPeutEcrire(journal);
+  await migrerAuteurNotification(journal);
+  await migrerEspeceMessage(journal);
   await migrerNomDiscord(journal);
   await migrerNotesProfil(journal);
 }
@@ -540,6 +546,41 @@ async function migrerQuiPeutEcrire(journal) {
   await base().query(
     "ALTER TABLE pa_dresseurs ADD COLUMN messages_de VARCHAR(16) NOT NULL DEFAULT 'tous'");
   journal('schema : colonne pa_dresseurs.messages_de ajoutee');
+}
+
+async function migrerAuteurNotification(journal) {
+  const deja = await une(
+    `SELECT COUNT(*) AS n FROM information_schema.columns
+      WHERE table_schema = DATABASE() AND table_name = 'pa_notifications'
+        AND column_name = 'de_id'`);
+  if (deja?.n) return;
+  // DE QUI VIENT CETTE NOTIFICATION. Le titre le disait deja — « Jack t'a
+  // ecrit » — mais un titre est du texte : le decouper pour en tirer un pseudo
+  // casserait a la premiere reformulation. Cliquer la notification doit ouvrir
+  // LA conversation, ce qui demande de savoir avec qui.
+  await base().query(
+    'ALTER TABLE pa_notifications ADD COLUMN de_id BIGINT NULL AFTER echange_id');
+  await base().query(
+    `ALTER TABLE pa_notifications ADD CONSTRAINT fk_pa_notifications_de
+       FOREIGN KEY (de_id) REFERENCES pa_dresseurs(id) ON DELETE CASCADE`);
+  journal('schema : colonne pa_notifications.de_id ajoutee');
+}
+
+async function migrerEspeceMessage(journal) {
+  const deja = await une(
+    `SELECT COUNT(*) AS n FROM information_schema.columns
+      WHERE table_schema = DATABASE() AND table_name = 'pa_messages'
+        AND column_name = 'espece'`);
+  if (deja?.n) return;
+  // UN POKEMON DANS LA CONVERSATION. C'est de cela qu'on parle ici, et jusqu'a
+  // present on l'ecrivait a la main — donc sans image, sans lien vers la fiche,
+  // et avec les fautes de frappe de chacun.
+  //
+  // On garde l'IDENTIFIANT d'espece (« mr-mime »), jamais le nom affiche : la
+  // langue est un reglage de celui qui lit, et un message ecrit en francais
+  // doit se lire en anglais chez qui a choisi l'anglais.
+  await base().query('ALTER TABLE pa_messages ADD COLUMN espece VARCHAR(64) NULL');
+  journal('schema : colonne pa_messages.espece ajoutee');
 }
 
 async function migrerIdSession(journal) {

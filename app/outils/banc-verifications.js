@@ -1942,3 +1942,54 @@ verifier('Messagerie',
     fermerMessagerie();
     return 'amis d’emblée, « Ja » sort Jack même absent de la recherche';
   });
+
+verifier('Messagerie',
+  'Un Pokémon se joint au message, et la pastille dit ce qui attend',
+  async function(){
+    // CE QUE ÇA REMPLACE : on l'écrivait à la main. Sans image, sans lien vers
+    // la fiche, avec les fautes de frappe de chacun — et c'est précisément ce
+    // dont les gens parlent ici.
+    if(typeof msgCarteEspece !== 'function') return 'échec : pièce jointe absente';
+
+    ouvrirMessagerie('Ondine');
+    await new Promise(function(r){ setTimeout(r, 120); });
+
+    // Joindre passe par la recherche, sur le NOM AFFICHÉ : on cherche
+    // « Insécateur », pas « scyther ».
+    msgPoke.hidden = false;
+    msgPokeQ.value = nomAffiche(allEntries[0]).slice(0, 4);
+    msgChercherPoke();
+    const lignes = msgPokeListe.querySelectorAll('.msg-poke-ligne');
+    if(!lignes.length) return 'échec : la recherche de Pokémon ne rend rien';
+    lignes[0].click();
+
+    if(!msgEspece) return 'échec : le Pokémon choisi n’est pas retenu';
+    if(msgJointe.hidden) return 'échec : le Pokémon joint ne se voit pas avant l’envoi';
+
+    const avant = msgFil.querySelectorAll('.discussion-bulle').length;
+    msgTexte.value = '';
+    // UN POKÉMON SEUL EST UN MESSAGE : sans texte à côté.
+    await msgEnvoyerTexte();
+    if(msgFil.querySelectorAll('.discussion-bulle').length !== avant + 1){
+      return 'échec : un Pokémon sans texte n’est pas envoyé';
+    }
+    if(!msgFil.querySelector('.msg-carte')){
+      return 'échec : le Pokémon reçu ne s’affiche pas en carte';
+    }
+    // ON OUBLIE CE QU'ON VIENT D'ENVOYER : le garder joindrait le même Pokémon
+    // au message suivant, sans que rien ne l'ait demandé.
+    if(msgEspece !== null) return 'échec : la pièce jointe survit à l’envoi';
+    if(!msgJointe.hidden) return 'échec : le bandeau de pièce jointe reste affiché';
+
+    // La pastille du menu, nourrie par la veille commune.
+    majPastilleMessages(3);
+    if(messagesPastille.hidden) return 'échec : la pastille ne s’allume pas';
+    if(messagesPastille.textContent !== '3'){
+      return 'échec : la pastille annonce « ' + messagesPastille.textContent +' »';
+    }
+    majPastilleMessages(0);
+    if(!messagesPastille.hidden) return 'échec : la pastille reste allumée à zéro';
+
+    fermerMessagerie();
+    return 'joint, envoyé seul, affiché en carte, oublié après coup, pastille juste';
+  });

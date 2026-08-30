@@ -52,7 +52,24 @@ async function dresseurParPseudo(pseudo) {
  * LES TROIS REFUS, DANS CET ORDRE — du plus catégorique au plus circonstanciel,
  * pour que le message d'erreur soit toujours le plus explicatif des trois.
  */
-export async function ecrireA(dresseurId, pseudo, texte) {
+/**
+ * L'identifiant d'espèce attaché à un message, ou rien.
+ *
+ * MÊME FORME QUE PARTOUT : minuscules et tirets, comme l'application les écrit.
+ * On ne vérifie pas que l'espèce EXISTE — le serveur n'a pas le Pokédex, il est
+ * embarqué dans l'application — mais on refuse tout ce qui n'a pas la forme
+ * d'un identifiant, ce qui suffit à écarter du texte déguisé en pièce jointe.
+ */
+function especeAttachee(v) {
+  const s = String(v || '').trim().toLowerCase();
+  if (!s) return null;
+  if (s.length > 64 || !/^[a-z0-9-]+$/.test(s)) {
+    throw new ErreurCompte('Ce Pokémon n’est pas reconnu.', 400);
+  }
+  return s;
+}
+
+export async function ecrireA(dresseurId, pseudo, texte, espece = null) {
   const autre = await dresseurParPseudo(pseudo);
   if (autre.id === dresseurId) {
     throw new ErreurCompte('Tu ne peux pas t’écrire à toi-même.', 400);
@@ -79,8 +96,11 @@ export async function ecrireA(dresseurId, pseudo, texte) {
     }
   }
 
+  const attachee = especeAttachee(espece);
   const t = String(texte || '').trim().slice(0, MESSAGE_MAX);
-  if (!t) throw new ErreurCompte('Le message est vide.', 400);
+  // UN POKEMON SEUL EST UN MESSAGE. Exiger du texte à côté obligerait à écrire
+  // « tiens » sous chaque carte, ce que personne ne fait deux fois.
+  if (!t && !attachee) throw new ErreurCompte('Le message est vide.', 400);
 
   // 2. Le filtre. Sans nommer le mot fautif : le dire, c'est apprendre quoi
   //    contourner.
@@ -106,16 +126,21 @@ export async function ecrireA(dresseurId, pseudo, texte) {
 
   const quand = horodatage();
   const r = await ecrire(
-    `INSERT INTO pa_messages (destinataire_id, auteur_id, texte, lu, cree_le)
-     VALUES (?, ?, ?, 0, ?)`, [autre.id, dresseurId, t, quand]);
+    `INSERT INTO pa_messages (destinataire_id, auteur_id, texte, espece, lu, cree_le)
+     VALUES (?, ?, ?, ?, 0, ?)`, [autre.id, dresseurId, t, attachee, quand]);
 
   const moi = await une('SELECT pseudo FROM pa_dresseurs WHERE id = ?', [dresseurId]);
   await notifier(autre.id, {
     genre: 'message',
+    // Pour que cliquer la notification ouvre LA conversation, et non la page
+    // des amis faute de savoir avec qui.
+    deId: dresseurId,
     titre: `${moi.pseudo} t’a écrit`,
     // Le début du message : savoir qu'on a reçu quelque chose sans savoir quoi
     // n'aide pas à décider s'il faut ouvrir maintenant.
-    detail: t.length > 120 ? `${t.slice(0, 117)}…` : t,
+    // Une carte sans un mot n'a pas de détail à montrer : on dit ce qui arrive
+    // plutôt que d'annoncer un message vide.
+    detail: t ? (t.length > 120 ? `${t.slice(0, 117)}…` : t) : 'Un Pokémon',
   });
 
   return { id: r.insertId, quand };
@@ -215,7 +240,7 @@ export async function conversations(dresseurId) {
 export async function conversation(dresseurId, pseudo) {
   const autre = await dresseurParPseudo(pseudo);
   const lignes = await lire(
-    `SELECT m.id, m.texte, m.cree_le, m.auteur_id, m.echange_id,
+    `SELECT m.id, m.texte, m.espece, m.cree_le, m.auteur_id, m.echange_id,
             e.offert, e.demande, e.dex, e.etat, e.demandeur_id
        FROM pa_messages m
        LEFT JOIN pa_echanges e ON e.id = m.echange_id
@@ -255,6 +280,7 @@ export async function conversation(dresseurId, pseudo) {
     messages: lignes.map((m) => ({
       id: m.id,
       texte: m.texte,
+      espece: m.espece || null,
       quand: m.cree_le,
       deMoi: m.auteur_id === dresseurId,
       // L'échange dont ce message parle, quand il en vient d'un. Les deux noms

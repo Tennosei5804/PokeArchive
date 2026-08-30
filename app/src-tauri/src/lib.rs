@@ -805,6 +805,8 @@ async fn messages_ecrire(
     etat: State<'_, Etat>,
     pseudo: String,
     texte: String,
+    // Un Pokemon joint au message. Facultatif : la plupart n'en portent pas.
+    espece: Option<String>,
 ) -> Result<serde_json::Value, String> {
     let jeton = etat.jeton()?;
     let chemin = format!("/api/messages/{}", urlencode(&pseudo));
@@ -812,7 +814,7 @@ async fn messages_ecrire(
         reqwest::Method::POST,
         &chemin,
         &jeton,
-        Some(serde_json::json!({ "texte": texte })),
+        Some(serde_json::json!({ "texte": texte, "espece": espece })),
     )
     .await
 }
