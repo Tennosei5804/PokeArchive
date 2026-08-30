@@ -20,6 +20,30 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.31.0', date: '2026-08-30',
+    titre: 'La fiche d’un Pokémon remarche',
+    points: [
+      '**🩹 À corriger d’urgence si tu es en 0.30.0.** Dans cette version, '
+      + 'cliquer un Pokémon ouvrait une fiche vide — ni statistiques, ni lieux, ni '
+      + 'attaques, ni œufs. Deux morceaux de code portaient le même nom, et le '
+      + 'second annulait tout le fichier de la fiche. C’est réparé, et une '
+      + 'vérification empêche désormais qu’un fichier meure en silence.',
+      '**🎴 Chaque distribution a sa carte.** Clique une ligne du Cadeau '
+      + 'Mystère : tu y trouves ce que tu recevais vraiment — Dresseur d’Origine et '
+      + 'son numéro, niveau, Ball avec son image, nature, talent, objet tenu, '
+      + 'ruban, et les quatre attaques sous la puce de leur type. Celles qui '
+      + 'n’existaient que dans cet évènement ressortent en doré.',
+      '**Le nom anglais de chaque évènement** est là aussi : « Mewtwo Printemps '
+      + '2012 » s’appelait *February 2012 Mewtwo* outre-Atlantique, et c’est sous ce '
+      + 'nom-là qu’on le retrouve dans la plupart des discussions.',
+      '**🔍 Quatre cent trente-trois distributions sur 552 sont détaillées** '
+      + '— contre deux cent soixante-trois avant. Les autres restent vides : la '
+      + 'carte le dit plutôt que de te donner les valeurs d’un évènement voisin. '
+      + 'Un Phanpy s’affichait d’ailleurs en type Plante avec les attaques d’un '
+      + 'Germignon ; il est redevenu Sol.',
+    ],
+  },
+  {
     version: '0.30.0', date: '2026-08-30',
     titre: 'Cinq cent cinquante-deux distributions',
     points: [
