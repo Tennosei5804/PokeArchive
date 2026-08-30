@@ -20,6 +20,45 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.32.0', date: '2026-08-30',
+    titre: 'Écrire à quelqu’un, offrir un Pokémon, calculer ses chances',
+    points: [
+      '**✉️ Une vraie messagerie.** Bouton *Envoyer un message* sur la page des '
+      + 'amis, et à côté de chaque comparaison. Jusqu’ici, pour demander « tu '
+      + 'aurais un Abra ? », il fallait d’abord composer une proposition '
+      + 'd’échange — donc décider quoi donner et quoi demander avant même '
+      + 'd’avoir pu poser la question.',
+      '**🎁 Offrir sans rien demander.** Choisis un Pokémon dans la colonne de '
+      + 'droite et laisse celle de gauche vide : le bouton devient *Offrir ce '
+      + 'Pokémon*. La colonne de droite liste justement ce qui manque à l’autre.',
+      '**🧮 Un calculateur de taux chromatique**, dans l’écran de chasse. Choisis '
+      + 'ton jeu, ta méthode, coche tes bonus : il donne le taux, **le calcul '
+      + 'écrit terme à terme**, et le nombre de rencontres pour 50, 90 et 99 %. '
+      + 'Une mégapparition avec Charme Chroma et page de Pokédex complète, dans '
+      + 'Légendes Arceus : 1 + 25 + 3 + 3 = 32 tirages, soit 1 sur 128 — et une '
+      + 'chance sur deux au bout de 89 rencontres, pas 64.',
+      '**🔒 Tu choisis qui peut t’écrire** : tout le monde, seulement les '
+      + 'dresseurs que tu suis, ou personne. Réglage séparé de celui des '
+      + 'échanges — on peut vouloir rester joignable pour échanger tout en '
+      + 'fermant la conversation aux inconnus.',
+      '**🚪 Et qui peut te proposer un échange**, dans les réglages également. '
+      + 'Fermer ta porte ne touche à rien de ce qui est en cours : les '
+      + 'propositions reçues et les discussions continuent leur vie.',
+      '**🔎 Une recherche dans les colonnes d’entraide.** Elles s’arrêtaient à '
+      + '« et 40 de plus », et ce qu’on cherchait y était souvent.',
+      '**Les insultes déguisées sont refusées** dans les noms d’aventure comme '
+      + 'dans les messages, y compris écrites à l’oreille pour contourner le '
+      + 'filtre. Au passage, deux pseudos parfaitement innocents étaient refusés '
+      + 'à tort — « Team X » et « Sacha x Ondine » — et ne le sont plus.',
+      '**Sans compte, l’application se lit et ne s’écrit pas.** Avant, on '
+      + 'pouvait cocher des cases sans être connecté : rien n’était enregistré, '
+      + 'et rien ne le disait. Tout disparaissait au rechargement suivant.',
+      '**La discussion d’un échange s’ouvre dès la proposition**, sans attendre '
+      + 'qu’il soit accepté. Et un échange refusé reste **lisible** — on n’y '
+      + 'écrit plus, on peut encore le relire.',
+    ],
+  },
+  {
     version: '0.31.0', date: '2026-08-30',
     titre: 'La fiche d’un Pokémon remarche',
     points: [
