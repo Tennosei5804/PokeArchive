@@ -131,6 +131,7 @@ const amisNotif = document.getElementById('amisNotif');
 const visibleDresseurs = document.getElementById('visibleDresseurs');
 const visibleEtat = document.getElementById('visibleEtat');
 const trocContre = document.getElementById('trocContre');
+const msgPokeGen = document.getElementById('msgPokeGen');
 const menuMessages = document.getElementById('menuMessages');
 const messagesPastille = document.getElementById('messagesPastille');
 const messagesDe = document.getElementById('messagesDe');

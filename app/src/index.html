@@ -1339,8 +1339,11 @@
       <button type="button" id="msgJointeOter" title="Retirer">×</button>
     </div>
     <div class="msg-poke" id="msgPoke" hidden>
-      <input type="search" id="msgPokeQ" autocomplete="off"
-             placeholder="Quel Pokémon ?" aria-label="Chercher un Pokémon">
+      <div class="msg-poke-haut">
+        <input type="search" id="msgPokeQ" autocomplete="off"
+               placeholder="Quel Pokémon ?" aria-label="Chercher un Pokémon">
+        <select id="msgPokeGen" aria-label="Génération"></select>
+      </div>
       <div class="msg-poke-liste" id="msgPokeListe"></div>
     </div>
 

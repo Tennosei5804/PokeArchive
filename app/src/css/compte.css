@@ -2231,8 +2231,12 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 .msg-jointe button:hover{ color:var(--danger); }
 
 .msg-poke{ margin-bottom:8px; }
-#msgPokeQ{
-  width:100%; padding:8px 11px; border-radius:8px;
+/* Le nom prend la place, la generation prend ce qu'il lui faut : un nom de
+   Pokemon est long, « Generation 5 — Unys » a une largeur connue. */
+.msg-poke-haut{ display:flex; gap:6px; align-items:center; }
+.msg-poke-haut #msgPokeQ{ flex:1 1 auto; min-width:0; }
+.msg-poke-haut select{ flex:0 0 auto; max-width:46%; }
+#msgPokeQ{ padding:8px 11px; border-radius:8px;
   border:1px solid var(--card-border); background:var(--screen); color:var(--ink);
   font-family:var(--font-body); font-size:13px;
 }

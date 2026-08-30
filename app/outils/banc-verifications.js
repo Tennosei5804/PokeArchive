@@ -1957,6 +1957,31 @@ verifier('Messagerie',
     // Joindre passe par la recherche, sur le NOM AFFICHÉ : on cherche
     // « Insécateur », pas « scyther ».
     msgPoke.hidden = false;
+    msgRemplirGenerations();
+    if(msgPokeGen.options.length !== GEN_RANGES.length + 1){
+      return 'échec : ' + msgPokeGen.options.length + ' entrées de génération, '
+        + (GEN_RANGES.length + 1) + ' attendues';
+    }
+
+    // UNE GÉNÉRATION SEULE SUFFIT À PARCOURIR. Le minimum de deux lettres
+    // existe parce qu'une seule rend la liste trop large ; une génération la
+    // borne déjà, et exiger un nom en plus interdirait de simplement regarder
+    // ce qu'elle contient — ce pour quoi on ouvre ce menu.
+    msgPokeQ.value = '';
+    msgPokeGen.value = '5';
+    msgChercherPoke();
+    const gen5 = msgPokeListe.querySelectorAll('.msg-poke-ligne');
+    if(!gen5.length) return 'échec : une génération seule ne montre rien';
+
+    // Et elle borne vraiment : le premier résultat doit en être.
+    const premier = allEntries.find(function(e){
+      return nomAffiche(e) === gen5[0].textContent;
+    });
+    if(!premier || premier.gen !== 5){
+      return 'échec : la génération ne borne pas la liste — ' + gen5[0].textContent;
+    }
+
+    msgPokeGen.value = '';
     msgPokeQ.value = nomAffiche(allEntries[0]).slice(0, 4);
     msgChercherPoke();
     const lignes = msgPokeListe.querySelectorAll('.msg-poke-ligne');

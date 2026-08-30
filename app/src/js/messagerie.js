@@ -324,6 +324,9 @@ function msgImageEspece(img, entree){
 function msgFermerPoke(){
   if(msgPoke) msgPoke.hidden = true;
   if(msgPokeQ) msgPokeQ.value = '';
+  // La génération aussi : la garder ferait rouvrir le menu sur une liste déjà
+  // restreinte, sans qu'on se souvienne l'avoir demandé.
+  if(msgPokeGen) msgPokeGen.value = '';
   if(msgPokeListe) msgPokeListe.innerHTML = '';
 }
 
@@ -337,16 +340,48 @@ function msgMajJointe(){
   msgImageEspece(msgJointeImg, e);
 }
 
+/**
+ * Le menu des générations, rempli une fois.
+ *
+ * DEPUIS GEN_RANGES, jamais retapé : les noms — « Génération 5 — Unys » — y
+ * sont déjà, et trois autres fichiers s'en servent. Une seconde liste écrite à
+ * la main divergerait à la dixième génération.
+ */
+function msgRemplirGenerations(){
+  if(!msgPokeGen || msgPokeGen.options.length) return;
+  if(typeof GEN_RANGES === 'undefined') return;
+  const toutes = document.createElement('option');
+  toutes.value = '';
+  toutes.textContent = 'Toutes les générations';
+  msgPokeGen.appendChild(toutes);
+  GEN_RANGES.forEach(function(g){
+    const o = document.createElement('option');
+    o.value = String(g.gen);
+    o.textContent = g.name;
+    msgPokeGen.appendChild(o);
+  });
+}
+
 function msgChercherPoke(){
   if(!msgPokeListe || !msgPokeQ) return;
   const q = (msgPokeQ.value || '').trim().toLowerCase();
+  const gen = msgPokeGen ? msgPokeGen.value : '';
   msgPokeListe.innerHTML = '';
-  if(q.length < 2 || typeof allEntries === 'undefined') return;
+  if(typeof allEntries === 'undefined') return;
+
+  // DEUX LETTRES, SAUF SI UNE GÉNÉRATION EST CHOISIE. Le minimum existe parce
+  // qu'une seule lettre rend une liste trop large pour aider. Une génération la
+  // borne déjà : exiger un nom en plus interdirait de PARCOURIR, qui est
+  // justement ce pour quoi on ouvre ce menu.
+  if(q.length < 2 && !gen) return;
 
   // SUR LE NOM AFFICHÉ, comme partout ailleurs : on cherche « Insécateur »,
   // pas « scyther ».
   allEntries
-    .filter(function(e){ return nomAffiche(e).toLowerCase().indexOf(q) !== -1; })
+    .filter(function(e){
+      if(gen && String(e.gen) !== gen) return false;
+      return !q || nomAffiche(e).toLowerCase().indexOf(q) !== -1;
+    })
     .slice(0, 8)
     .forEach(function(e){
       const b = document.createElement('button');
@@ -617,11 +652,12 @@ document.addEventListener('DOMContentLoaded', function(){
     msgJoindre.addEventListener('click', function(){
       if(!msgPoke) return;
       msgPoke.hidden = !msgPoke.hidden;
-      if(!msgPoke.hidden) msgPokeQ.focus();
+      if(!msgPoke.hidden){ msgRemplirGenerations(); msgPokeQ.focus(); }
       else msgFermerPoke();
     });
   }
   if(msgPokeQ) msgPokeQ.addEventListener('input', msgChercherPoke);
+  if(msgPokeGen) msgPokeGen.addEventListener('change', msgChercherPoke);
   if(msgJointeOter){
     msgJointeOter.addEventListener('click', function(){
       msgEspece = null;
