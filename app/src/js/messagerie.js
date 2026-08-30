@@ -54,6 +54,20 @@ const msgEtat = document.getElementById('msgEtat');
 let msgAvec = null;
 let msgMinuteur = null;
 
+// Les gens qu'on suit, relus à chaque ouverture de la fenêtre.
+//
+// POURQUOI LES GARDER ICI PLUTÔT QUE DE CHERCHER À CHAQUE FRAPPE. Deux raisons,
+// et la seconde est la vraie :
+//
+//   ils s'affichent AVANT qu'on ait tapé quoi que ce soit — écrire à un ami est
+//   le cas courant, et le faire chercher son propre ami est absurde ;
+//
+//   LA RECHERCHE DE DRESSEURS NE VOIT QUE LES COMPTES VISIBLES. `visible = 0`
+//   retire du classement ET de la recherche : un ami qui s'en est retiré serait
+//   introuvable, alors qu'on le suit. On filtre donc aussi cette liste-ci, qui
+//   ne dépend d'aucun réglage de visibilité.
+let msgMesAmis = [];
+
 // Cinq secondes : assez pour qu'une réponse arrive « pendant » qu'on parle,
 // assez peu pour que douze conversations simultanées ne pèsent rien.
 const MSG_CADENCE = 5000;
@@ -148,48 +162,103 @@ function msgFermerPropositions(){
   if(msgPropositions) msgPropositions.innerHTML = '';
 }
 
+/** Charge une fois la liste des gens qu'on suit. */
+async function msgChargerAmis(){
+  try{
+    const r = await invoke('amis');
+    msgMesAmis = r.amis || [];
+  }catch(e){
+    // Hors ligne : le champ reste utilisable, la recherche prendra le relais.
+    msgMesAmis = [];
+  }
+}
+
+/** Une ligne cliquable, pour un ami comme pour un résultat de recherche. */
+function msgProposition(pseudo, discordId, avatar, note){
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'amis-proposition';
+  if(typeof avatarDiscord === 'function'){
+    const img = document.createElement('img');
+    img.alt = '';
+    img.src = avatarDiscord(discordId, avatar, 32);
+    b.appendChild(img);
+  }
+  const nom = document.createElement('span');
+  nom.className = 'proposition-nom';
+  nom.textContent = pseudo;
+  b.appendChild(nom);
+  if(note){
+    const etat = document.createElement('em');
+    etat.className = 'proposition-etat';
+    etat.textContent = note;
+    b.appendChild(etat);
+  }
+  b.addEventListener('click', function(){
+    msgQ.value = '';
+    msgFermerPropositions();
+    msgOuvrirFil(pseudo);
+  });
+  return b;
+}
+
+function msgMoiMeme(){
+  return (typeof dresseurCourant !== 'undefined' && dresseurCourant)
+    ? dresseurCourant.pseudo.toLowerCase() : null;
+}
+
 async function msgChercher(){
   if(!msgPropositions || !msgQ) return;
   const q = (msgQ.value || '').trim();
+  const moi = msgMoiMeme();
+
+  // --- Champ vide : les amis, sans rien demander au serveur -----------------
+  if(!q){
+    msgPropositions.innerHTML = '';
+    msgMesAmis.slice(0, 8).forEach(function(a){
+      msgPropositions.appendChild(
+        msgProposition(a.pseudo, a.discord_id, a.avatar, 'ami'));
+    });
+    return;
+  }
   if(q.length < 2){ msgFermerPropositions(); return; }
+
+  // --- Deux lettres ou plus : les amis QUI CORRESPONDENT, puis le reste -----
+  //
+  // Les amis d'abord et sans aller-retour : ce sont eux qu'on cherche neuf fois
+  // sur dix, et ils sortent avant même que le serveur ait répondu.
+  const bas = q.toLowerCase();
+  const amis = msgMesAmis.filter(function(a){
+    return a.pseudo.toLowerCase().indexOf(bas) !== -1;
+  }).slice(0, 6);
+
+  msgPropositions.innerHTML = '';
+  const dejaVus = {};
+  amis.forEach(function(a){
+    dejaVus[a.pseudo.toLowerCase()] = true;
+    msgPropositions.appendChild(
+      msgProposition(a.pseudo, a.discord_id, a.avatar, 'ami'));
+  });
 
   let r;
   try{ r = await invoke('dresseurs', { recherche: q }); }
-  catch(e){ msgFermerPropositions(); return; }
+  catch(e){ return; }              // les amis restent affichés
   // La frappe a pu continuer pendant l'aller-retour : une réponse en retard ne
   // doit pas écraser ce qu'on est en train d'écrire.
   if((msgQ.value || '').trim() !== q) return;
 
-  const moi = (typeof dresseurCourant !== 'undefined' && dresseurCourant)
-    ? dresseurCourant.pseudo.toLowerCase() : null;
-  const vus = (r.dresseurs || [])
-    .filter(function(d){ return d.pseudo.toLowerCase() !== moi; })
-    .slice(0, 6);
-
-  msgPropositions.innerHTML = '';
-  if(!vus.length){ msgFermerPropositions(); return; }
-
-  vus.forEach(function(d){
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'amis-proposition';
-    if(typeof avatarDiscord === 'function'){
-      const img = document.createElement('img');
-      img.alt = '';
-      img.src = avatarDiscord(d.discord_id, d.avatar, 32);
-      b.appendChild(img);
-    }
-    const nom = document.createElement('span');
-    nom.className = 'proposition-nom';
-    nom.textContent = d.pseudo;
-    b.appendChild(nom);
-    b.addEventListener('click', function(){
-      msgQ.value = '';
-      msgFermerPropositions();
-      msgOuvrirFil(d.pseudo);
+  (r.dresseurs || [])
+    .filter(function(d){
+      const p = d.pseudo.toLowerCase();
+      return p !== moi && !dejaVus[p];
+    })
+    .slice(0, 6)
+    .forEach(function(d){
+      msgPropositions.appendChild(
+        msgProposition(d.pseudo, d.discord_id, d.avatar, d.discord_nom || ''));
     });
-    msgPropositions.appendChild(b);
-  });
+
+  if(!msgPropositions.children.length) msgFermerPropositions();
 }
 
 // ---- Le fil ------------------------------------------------------------------
@@ -206,6 +275,9 @@ function msgRevenirListe(){
   msgAvec = null;
   msgBasculer();
   msgDessinerListe();
+  // Les amis se réaffichent en revenant : le champ est vide, donc la liste
+  // reprend sa place de proposition par défaut.
+  msgChercher();
   msgSonder();
 }
 
@@ -294,6 +366,10 @@ function ouvrirMessagerie(pseudo){
   if(!msgOverlay || !messagerieDisponible()) return;
   if(!exigeCompte('écrire à quelqu’un')) return;
   msgOverlay.style.display = 'flex';
+  // Relue à chaque ouverture : on a pu suivre quelqu'un depuis la dernière fois.
+  msgChargerAmis().then(function(){
+    if(!msgAvec) msgChercher();
+  });
   if(pseudo) msgOuvrirFil(pseudo);
   else msgRevenirListe();
 }

@@ -98,8 +98,22 @@ const REPONSES = {
   lire_dex:        () => ({ ...dexDe(MOI), profilId:1 }),
   ecrire_dex:      () => ({ profilId:1, captures:MOI.captures.length, shiny:MOI.shiny.length }),
   historique:      () => ({ lignes:[], reste:false, total:0, encore:false }),
-  dresseurs:       () => ({ dresseurs:[{ pseudo:'Amie_Test', discord_id:'2', avatar:null,
-                              profil:'Aventure 1', captures:4, shiny:1 }] }),
+  // La recherche NE VOIT QUE LES COMPTES VISIBLES, comme le vrai service :
+  // « Jack » n'y figure pas alors qu'on le suit. C'est exactement le cas que la
+  // messagerie doit rattraper en filtrant aussi la liste d'amis.
+  dresseurs:       (a) => { const q = ((a&&a.recherche)||'').toLowerCase();
+                            const tous = [{ pseudo:'Amie_Test', discord_id:'2', avatar:null,
+                              profil:'Aventure 1', captures:4, shiny:1 }];
+                            return { dresseurs: tous.filter(d => d.pseudo.toLowerCase().includes(q)) }; },
+  // Les gens qu'on suit. « Jack » sert l'exemple : taper « Ja » doit le sortir
+  // sans que le serveur ait son mot a dire.
+  amis:            () => ({ amis:[
+                              { pseudo:'Ondine', discord_id:'2', avatar:null, discord_nom:null,
+                                depuis:'', vu_jusqua:0, aventure:'Aventure 1',
+                                captures:3, shiny:0, maj_le:null },
+                              { pseudo:'Jack', discord_id:'3', avatar:null, discord_nom:null,
+                                depuis:'', vu_jusqua:0, aventure:'Aventure 1',
+                                captures:7, shiny:2, maj_le:null }] }),
   profils_de:      () => ({ dresseur:{ pseudo:'Amie_Test', discordId:'2', avatar:null },
                             profils:[{ id:9, nom:'Aventure 1', public:1, par_defaut:1,
                                        mode:'capture', captures:4, shiny:1 }] }),

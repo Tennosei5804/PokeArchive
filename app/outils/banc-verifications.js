@@ -1881,3 +1881,56 @@ verifier('Sans compte',
     await changerQuiPeutEcrire();
     return 'trois crans, et chacun dit ce qu’il change';
   });
+
+verifier('Messagerie',
+  'Les amis sont proposés d’emblée, et « Ja » sort Jack',
+  async function(){
+    // DEUX CHOSES QUE LA RECHERCHE SEULE NE FAIT PAS.
+    //
+    // Champ vide, on propose déjà : écrire à un ami est le cas courant, et lui
+    // faire chercher son propre ami est absurde.
+    //
+    // Et surtout : LA RECHERCHE DE DRESSEURS NE VOIT QUE LES COMPTES VISIBLES.
+    // `visible = 0` retire du classement ET de la recherche. Un ami qui s'en
+    // est retiré serait introuvable alors qu'on le suit — d'où le filtrage de
+    // la liste d'amis, qui ne dépend d'aucun réglage de visibilité. Le pont du
+    // banc reproduit ce cas : « Jack » est ami, et absent de la recherche.
+    if(typeof msgChercher !== 'function') return 'échec : messagerie absente';
+
+    ouvrirMessagerie();
+    await new Promise(function(r){ setTimeout(r, 120); });
+
+    const noms = function(){
+      return Array.prototype.map.call(
+        msgPropositions.querySelectorAll('.proposition-nom'),
+        function(n){ return n.textContent; });
+    };
+
+    msgQ.value = '';
+    await msgChercher();
+    const vide = noms();
+    if(vide.indexOf('Jack') === -1 || vide.indexOf('Ondine') === -1){
+      return 'échec : champ vide, les amis ne sont pas proposés — ' + vide.join(', ');
+    }
+
+    msgQ.value = 'Ja';
+    await msgChercher();
+    const ja = noms();
+    if(ja.indexOf('Jack') === -1){
+      return 'échec : « Ja » ne propose pas Jack — ' + (ja.join(', ') || 'rien');
+    }
+    if(ja.indexOf('Ondine') !== -1){
+      return 'échec : « Ja » propose Ondine, qui ne correspond pas';
+    }
+
+    // Un dresseur trouvé par la recherche et non ami doit sortir aussi.
+    msgQ.value = 'Amie';
+    await msgChercher();
+    if(noms().indexOf('Amie_Test') === -1){
+      return 'échec : la recherche de dresseurs ne remonte plus rien';
+    }
+
+    msgQ.value = '';
+    fermerMessagerie();
+    return 'amis d’emblée, « Ja » sort Jack même absent de la recherche';
+  });
