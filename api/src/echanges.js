@@ -418,6 +418,10 @@ export async function ecrireMessage(dresseurId, id, texte) {
   const moi = e.demandeur_id === dresseurId ? e.demandeur : e.receveur;
   await notifier(autre, {
     genre: 'message', echangeId: e.id,
+    // DE QUI, et non seulement DE QUEL ÉCHANGE. La cloche mène à la
+    // conversation de la personne : sans ce pseudo, elle retombait sur
+    // l'ancienne fenêtre de discussion, qui n'existe plus.
+    deId: dresseurId,
     titre: `${moi} t’a écrit`,
     // Le début du message dans la notification : savoir qu'on a reçu quelque
     // chose sans savoir quoi n'aide pas à décider s'il faut ouvrir maintenant.

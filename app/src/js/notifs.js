@@ -130,22 +130,23 @@ function dessinerCloche(){
 function allerVersNotif(n){
   fermerCloche();
 
-  // UN MESSAGE OUVRE LA CONVERSATION. C'est ce qu'on venait faire en cliquant,
-  // et cela ne dépend plus d'un échange : la notification porte désormais le
-  // pseudo de qui a écrit, donc on sait où aller même quand il n'y a aucun troc
-  // derrière. Auparavant, un message direct retombait sur la page des amis.
-  if(n.genre === 'message' && n.de && typeof ouvrirMessagerie === 'function'){
-    ouvrirMessagerie(n.de);
+  // UN MESSAGE OUVRE LA PAGE DES MESSAGES. Toujours, et sans fenêtre par-dessus.
+  //
+  // Il y avait trois chemins ici, dont un menait à l'ancienne fenêtre de
+  // discussion d'un échange — celle qui n'existe plus. Il n'en reste qu'un :
+  // la notification porte le pseudo de qui a écrit, message direct ou message
+  // d'échange, et l'on va à SA conversation.
+  //
+  // Sans pseudo — une notification d'avant cette version — on ouvre la page sur
+  // sa liste plutôt que d'échouer : la conversation y est, en tête.
+  if(n.genre === 'message' && typeof ouvrirMessagerie === 'function'){
+    ouvrirMessagerie(n.de || null);
     return;
   }
 
-  if(!n.echange){ showPage('amis'); return; }
-  // Un échange dont la discussion est ouverte : on va à la conversation de la
-  // personne, où ses messages vivent maintenant.
-  if(n.genre === 'message' && (n.etat === 'accepte' || n.etat === 'fait')){
-    ouvrirDiscussion(n.echange);
-    return;
-  }
+  // Une proposition mène à la page des amis, où elle est en tête de liste avec
+  // ses boutons : ouvrir une fenêtre « accepter / refuser » par-dessus
+  // empilerait deux couches pour une décision qui tient dans la liste.
   showPage('amis');
 }
 

@@ -281,11 +281,7 @@ function ligneTroc(e){
     // Le repli sur l'ancienne fenêtre sert les pages qui n'ont pas la
     // messagerie : le site n'a pas de compte, donc personne à qui écrire.
     const parler = boutonTroc('💬 Discuter', '', function(){
-      if(typeof ouvrirMessagerie === 'function' && e.avec && e.avec.pseudo){
-        ouvrirMessagerie(e.avec.pseudo);
-      } else {
-        ouvrirDiscussion(e.id);
-      }
+      if(e.avec && e.avec.pseudo) ouvrirMessagerie(e.avec.pseudo);
     });
     if(e.messages){
       parler.textContent = '💬 Discuter (' + e.messages + ')';
@@ -358,131 +354,13 @@ async function conclureTroc(id){
   chargerTroc();
 }
 
-// ---- La discussion ----------------------------------------------------------
-
-async function ouvrirDiscussion(id){
-  if(!discussionOverlay) return;
-  trocDiscussion = id;
-  discussionFil.innerHTML = '<div class="state-msg">Chargement…</div>';
-  discussionResume.textContent = '';
-  discussionEtat.textContent = '';
-  discussionTexte.value = '';
-  discussionOverlay.style.display = 'flex';
-  setTimeout(function(){ discussionTexte.focus(); }, 10);
-  await dessinerDiscussion();
-}
-
-async function dessinerDiscussion(){
-  if(trocDiscussion === null) return;
-  let r;
-  try{
-    r = await invoke('echange_messages', { id: trocDiscussion });
-  }catch(e){
-    if(String(e) === 'SESSION_INVALIDE'){ await perdreSession(); return; }
-    discussionFil.innerHTML = '<div class="state-msg">' + String(e) + '</div>';
-    return;
-  }
-
-  const e = r.echange;
-  discussionEyebrow.textContent = 'Échange avec ' + e.avec.pseudo;
-  discussionTitre.textContent = trocPhrase(e);
-  discussionResume.textContent = 'Sur ' + trocJeuNom(e.dex)
-    + '  ·  ' + (TROC_ETATS[e.etat] || { mot: e.etat }).mot;
-
-  // CLOS : LISIBLE, PAS OUVERT. Un échange refusé ou retiré garde sa
-  // conversation — « rien ne s'efface » — mais on n'y écrit plus. Laisser le
-  // champ actif ferait taper un message pour rien, et le refus n'arriverait
-  // qu'à l'envoi ; le dire à l'ouverture coûte une phrase et évite ça.
-  const ouvert = e.etat === 'propose' || e.etat === 'accepte' || e.etat === 'fait';
-  if(discussionTexte) discussionTexte.disabled = !ouvert;
-  if(discussionEnvoyer) discussionEnvoyer.disabled = !ouvert;
-  if(!ouvert){
-    discussionEtat.textContent = 'Cet échange est clos. Vous pouvez relire, plus écrire.';
-  }
-
-  discussionFil.innerHTML = '';
-  if(!r.messages.length){
-    discussionFil.innerHTML = '<div class="state-msg">Rien encore. '
-      + 'Dites-vous quand vous serez tous les deux en ligne.</div>';
-  }
-  r.messages.forEach(function(m){
-    const bulle = document.createElement('div');
-    bulle.className = 'discussion-bulle' + (m.deMoi ? ' de-moi' : '');
-    const qui = document.createElement('span');
-    qui.className = 'discussion-qui';
-    qui.textContent = m.deMoi ? 'Toi' : m.pseudo;
-    const texte = document.createElement('p');
-    texte.className = 'discussion-texte';
-    texte.textContent = m.texte;
-    bulle.appendChild(qui);
-    bulle.appendChild(texte);
-    if(typeof dateLisible === 'function'){
-      const quand = document.createElement('span');
-      quand.className = 'discussion-quand';
-      quand.textContent = dateLisible(m.quand);
-      bulle.appendChild(quand);
-    }
-    discussionFil.appendChild(bulle);
-  });
-  // Le dernier message est celui qu'on vient lire : la vue s'y pose.
-  discussionFil.scrollTop = discussionFil.scrollHeight;
-
-  // Un échange conclu se relit, mais ne se poursuit pas.
-  const clos = e.etat === 'fait';
-  discussionTexte.disabled = clos;
-  discussionEnvoyer.disabled = clos;
-  discussionTexte.placeholder = clos ? 'Cet échange est terminé.' : 'Écrire…';
-}
-
-async function envoyerMessage(){
-  if(!exigeCompte('écrire dans un échange')) return;
-  if(trocDiscussion === null) return;
-  const texte = discussionTexte.value.trim();
-  if(!texte) return;
-
-  discussionEnvoyer.disabled = true;
-  try{
-    await invoke('echange_ecrire', { id: trocDiscussion, texte: texte });
-    discussionTexte.value = '';
-    discussionEtat.textContent = '';
-    await dessinerDiscussion();
-  }catch(e){
-    if(String(e) === 'SESSION_INVALIDE'){ await perdreSession(); return; }
-    discussionEtat.textContent = String(e);
-  }finally{
-    discussionEnvoyer.disabled = false;
-  }
-}
-
-function fermerDiscussion(){
-  if(discussionOverlay) discussionOverlay.style.display = 'none';
-  trocDiscussion = null;
-  // La liste porte le nombre de messages : elle est fausse dès qu'on en a lu
-  // ou écrit un.
-  chargerTroc();
-}
-
-// ---- Le câblage -------------------------------------------------------------
-
-if(trocEnvoyer) trocEnvoyer.addEventListener('click', trocProposer);
-if(trocMot){
-  trocMot.addEventListener('keydown', function(e){
-    if(e.key === 'Enter' && !trocEnvoyer.disabled) trocProposer();
-  });
-}
-if(discussionEnvoyer) discussionEnvoyer.addEventListener('click', envoyerMessage);
-if(discussionTexte){
-  discussionTexte.addEventListener('keydown', function(e){
-    if(e.key === 'Enter') envoyerMessage();
-  });
-}
-if(discussionFermer) discussionFermer.addEventListener('click', fermerDiscussion);
-if(discussionOverlay){
-  discussionOverlay.addEventListener('click', function(e){
-    if(e.target === discussionOverlay) fermerDiscussion();
-  });
-}
-document.addEventListener('keydown', function(e){
-  if(e.key === 'Escape' && discussionOverlay
-     && discussionOverlay.style.display === 'flex') fermerDiscussion();
-});
+// ---- La discussion d'un échange ---------------------------------------------
+//
+// ELLE N'EXISTE PLUS ICI. C'était une fenêtre modale propre à UN échange : on
+// se retrouvait avec deux boîtes pour le même interlocuteur, dont l'une ne
+// s'ouvrait qu'en passant par la fiche d'un troc.
+//
+// Les messages d'un échange vivent désormais dans la conversation de la
+// personne — voir js/messagerie.js et api/src/messagerie.js. Le bouton
+// « Discuter » et la cloche y mènent tous les deux, et plus aucun chemin ne
+// rouvre une fenêtre par-dessus l'écran.

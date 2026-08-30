@@ -1286,29 +1286,6 @@
 <!-- La discussion d'un echange accepte. Elle n'existe pas ailleurs : on ne
      peut ecrire qu'a quelqu'un qui a dit oui a un echange avec soi. C'est ce
      qui empeche l'abonnement a sens unique de devenir une porte ouverte. -->
-<div class="modal-overlay" id="discussionOverlay" style="display:none;" role="dialog"
-     aria-modal="true" aria-labelledby="discussionTitre">
-  <div class="modal-card discussion-card">
-    <button class="fiche-fermer" id="discussionFermer" type="button" aria-label="Fermer">&#10005;</button>
-    <div class="modal-eyebrow" id="discussionEyebrow">&Eacute;change</div>
-    <h2 class="modal-title" id="discussionTitre">Discussion</h2>
-    <div class="discussion-resume" id="discussionResume"></div>
-    <div class="discussion-fil" id="discussionFil"></div>
-    <div class="discussion-ecrire">
-      <input type="text" id="discussionTexte" maxlength="1000" autocomplete="off"
-             placeholder="&Eacute;crire&hellip;">
-      <button class="toggle-btn primary" id="discussionEnvoyer" type="button">Envoyer</button>
-    </div>
-    <span class="profil-bloc-etat" id="discussionEtat"></span>
-  </div>
-</div>
-
-<!-- Le lexique. Une seule liste, deux portes : le bouton 📖 de l'en-tête, et
-     les pastilles « ? » que lexique.js pose sur tout élément portant
-     data-lexique. Voir js/lexique.js. -->
-
-<!-- La carte d'une distribution. Elle ne remplace pas la fiche de l'espèce :
-     elle décrit CE QU'ON A REÇU, pas ce qu'est le Pokémon. Voir js/cadeaux.js. -->
 <div class="modal-overlay" id="cadeauOverlay" style="display:none;" role="dialog"
      aria-modal="true" aria-labelledby="cadeauTitre">
   <div class="modal-card cadeau-carte">
