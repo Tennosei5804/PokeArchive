@@ -40,6 +40,7 @@ function messagerieDisponible(){
 const msgOverlay = document.getElementById('msgOverlay');
 const msgTitre = document.getElementById('msgTitre');
 const msgRetour = document.getElementById('msgRetour');
+const msgRien = document.getElementById('msgRien');
 const msgEchange = document.getElementById('msgEchange');
 const msgListe = document.getElementById('msgListe');
 const msgNouveau = document.getElementById('msgNouveau');
@@ -259,7 +260,39 @@ async function msgChercher(){
         msgProposition(d.pseudo, d.discord_id, d.avatar, d.discord_nom || ''));
     });
 
-  if(!msgPropositions.children.length) msgFermerPropositions();
+  // RIEN TROUVÉ N'EST PAS UNE IMPASSE.
+  //
+  // La recherche de dresseurs ne voit que les comptes VISIBLES — et la
+  // visibilité est éteinte au départ, délibérément. Quelqu'un qui ne s'est
+  // jamais montré au classement était donc introuvable ici, alors qu'on peut
+  // parfaitement lui écrire : `ecrireA` le cherche par son pseudo, sans
+  // regarder ce réglage.
+  //
+  // C'est d'ailleurs la règle que les Paramètres annoncent déjà : « même
+  // éteint, qui connaît ton pseudo exact peut voir tes aventures publiques ».
+  // On l'applique aux messages.
+  //
+  // Si personne ne porte ce nom, le fil le dira — « Ce dresseur n'existe
+  // pas. » — ce qui reste plus clair qu'une liste vide sans explication.
+  if(!msgPropositions.children.length){
+    const exact = document.createElement('button');
+    exact.type = 'button';
+    exact.className = 'amis-proposition msg-exact';
+    const nom = document.createElement('span');
+    nom.className = 'proposition-nom';
+    nom.textContent = 'Écrire à « ' + q + ' »';
+    exact.appendChild(nom);
+    const etat = document.createElement('em');
+    etat.className = 'proposition-etat';
+    etat.textContent = 'pseudo exact';
+    exact.appendChild(etat);
+    exact.addEventListener('click', function(){
+      msgQ.value = '';
+      msgFermerPropositions();
+      msgOuvrirFil(q);
+    });
+    msgPropositions.appendChild(exact);
+  }
 }
 
 /**
@@ -489,18 +522,31 @@ function msgRevenirListe(){
   msgSonder();
 }
 
-/** Montre l'un des deux états, cache l'autre. */
+/**
+ * Ouvrir un fil, ou revenir à rien.
+ *
+ * DEUX COLONNES QUI COHABITENT, et non deux états qui s'excluent. La liste
+ * reste à gauche pendant qu'on lit à droite : passer d'une conversation à
+ * l'autre ne demande plus d'aller-retour, ce qui était le défaut de la modale.
+ *
+ * `fil-ouvert` ne cache rien par lui-même — c'est la feuille de style qui
+ * décide, et seulement sous une certaine largeur, de laisser la place au fil.
+ * Le JavaScript n'a pas à connaître le point de bascule.
+ */
 function msgBasculer(){
   const fil = Boolean(msgAvec);
-  if(msgNouveau) msgNouveau.hidden = fil;
-  if(msgListe) msgListe.hidden = fil;
+  if(msgOverlay) msgOverlay.classList.toggle('fil-ouvert', fil);
+
+  if(msgRien) msgRien.hidden = fil;
   if(msgFil) msgFil.hidden = !fil;
   if(msgZone) msgZone.hidden = !fil;
   if(msgRetour) msgRetour.hidden = !fil;
-  // Le bouton n'a de sens que dans un fil : sur la liste, on ne sait pas encore
+  // Le bouton n'a de sens que dans un fil : sans interlocuteur, on ne sait pas
   // à qui l'on proposerait quoi que ce soit.
   if(msgEchange) msgEchange.hidden = !fil;
-  if(msgTitre) msgTitre.textContent = fil ? msgAvec : 'Messages';
+  // VIDE ET NON « MESSAGES » : le titre de la page le dit déjà, et l'écrire
+  // deux fois donnait deux « Messages » l'un sous l'autre.
+  if(msgTitre) msgTitre.textContent = fil ? msgAvec : '';
   if(msgEtat) msgEtat.textContent = '';
   msgFermerPropositions();
 }
@@ -594,10 +640,21 @@ async function msgEnvoyerTexte(){
 
 // ---- Ouvrir, fermer ----------------------------------------------------------
 
+/**
+ * Ouvrir l'écran des messages.
+ *
+ * UNE PAGE, PLUS UNE FENÊTRE. C'était une modale : trop étroite pour une liste
+ * de conversations et un fil, et surtout elle empruntait le menu déroulant de
+ * la page des amis — positionné en absolu, calé sur un bouton « Suivre » qui
+ * n'existe pas ici. Les propositions se dessinaient hors du cadre : présentes
+ * dans le document, invisibles à l'écran.
+ *
+ * Une page a la place, le défilement, et un onglet à elle dans la barre.
+ */
 function ouvrirMessagerie(pseudo){
   if(!msgOverlay || !messagerieDisponible()) return;
   if(!exigeCompte('écrire à quelqu’un')) return;
-  msgOverlay.style.display = 'flex';
+  if(typeof showPage === 'function') showPage('messages');
   // Relue à chaque ouverture : on a pu suivre quelqu'un depuis la dernière fois.
   msgChargerAmis().then(function(){
     if(!msgAvec) msgChercher();
@@ -606,8 +663,11 @@ function ouvrirMessagerie(pseudo){
   else msgRevenirListe();
 }
 
+/**
+ * Quitter l'écran des messages : appelée en changeant de page, et non par un
+ * bouton « Fermer ». Une page se quitte par la barre, comme toutes les autres.
+ */
 function fermerMessagerie(){
-  if(msgOverlay) msgOverlay.style.display = 'none';
   // La pastille compte ce qu'on n'a pas lu. Sortir d'une conversation qu'on
   // vient d'ouvrir doit l'éteindre tout de suite, sans attendre les deux
   // minutes de la veille — sinon elle annonce des messages déjà lus.
@@ -637,6 +697,10 @@ function majPastilleMessages(combien){
 }
 
 document.addEventListener('DOMContentLoaded', function(){
+  // L'onglet, comme le reste : absent du site, qui n'a pas de compte.
+  const onglet = document.querySelector('.page-tab[data-page="messages"]');
+  if(onglet) onglet.hidden = !messagerieDisponible();
+
   if(menuMessages){
     // Cachée sur le site, comme les autres portes de la messagerie : il n'y a
     // personne à qui écrire quand il n'y a pas de compte.
@@ -673,13 +737,6 @@ document.addEventListener('DOMContentLoaded', function(){
       if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); msgEnvoyerTexte(); }
     });
   }
-  const fermer = document.getElementById('msgFermer');
-  if(fermer) fermer.addEventListener('click', fermerMessagerie);
-  if(msgOverlay){
-    msgOverlay.addEventListener('click', function(e){
-      if(e.target === msgOverlay) fermerMessagerie();
-    });
-  }
   const bouton = document.getElementById('amisMessage');
   if(bouton){
     // Caché plutôt que désactivé : un bouton grisé promet quelque chose qui
@@ -690,10 +747,11 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
 document.addEventListener('keydown', function(e){
-  if(e.key === 'Escape' && msgOverlay && msgOverlay.style.display === 'flex'){
-    // Échap revient à la liste avant de fermer : on quitte une conversation
-    // plus souvent qu'on ne quitte la messagerie.
-    if(msgAvec) msgRevenirListe();
-    else fermerMessagerie();
+  // Échap revient à la LISTE, jamais à la page précédente : on quitte une
+  // conversation bien plus souvent qu'on ne quitte l'écran, et la barre de
+  // navigation est là pour l'autre geste.
+  if(e.key === 'Escape' && msgAvec
+     && typeof currentPage !== 'undefined' && currentPage === 'messages'){
+    msgRevenirListe();
   }
 });

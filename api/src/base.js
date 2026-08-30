@@ -412,6 +412,7 @@ export async function creerSchema(journal = () => {}) {
   await migrerQuiPeutEcrire(journal);
   await migrerAuteurNotification(journal);
   await migrerEspeceMessage(journal);
+  await migrerMotsEnMessages(journal);
   await migrerNomDiscord(journal);
   await migrerNotesProfil(journal);
 }
@@ -581,6 +582,34 @@ async function migrerEspeceMessage(journal) {
   // doit se lire en anglais chez qui a choisi l'anglais.
   await base().query('ALTER TABLE pa_messages ADD COLUMN espece VARCHAR(64) NULL');
   journal('schema : colonne pa_messages.espece ajoutee');
+}
+
+async function migrerMotsEnMessages(journal) {
+  // LE MOT D'UNE PROPOSITION EST UN MESSAGE, et il ne l'etait pas. Il vivait
+  // dans la seule colonne `pa_echanges.mot`, que la conversation ne lit pas :
+  // on recevait « salut, ca t'interesse ? » avec sa notification, on ouvrait
+  // les Messages, et l'on y trouvait « Aucune conversation ».
+  //
+  // Corriger le code ne suffit pas : les echanges DEJA proposes garderaient
+  // leur mot invisible. On les rattrape une fois.
+  //
+  // IDEMPOTENT PAR LA REQUETE, pas par un drapeau : le NOT EXISTS ne recopie
+  // que ce qui n'a pas deja sa ligne. Relancer n'ajoute rien, et un echange
+  // dont on a efface le message ne le verrait pas revenir de force.
+  const r = await base().query(
+    `INSERT INTO pa_messages (echange_id, auteur_id, texte, lu, cree_le)
+     SELECT e.id, e.demandeur_id, e.mot, 1, e.cree_le
+       FROM pa_echanges e
+      WHERE e.mot IS NOT NULL AND e.mot <> ''
+        AND NOT EXISTS (
+          SELECT 1 FROM pa_messages m
+           WHERE m.echange_id = e.id AND m.texte = e.mot)`);
+
+  // LUS, ET NON PAS NEUFS. Les marquer non lus ferait sonner la cloche pour des
+  // propositions vieilles de plusieurs semaines, chez tout le monde a la fois,
+  // le jour du deploiement.
+  const combien = (r && r[0] && r[0].affectedRows) || 0;
+  if (combien) journal(`schema : ${combien} mot(s) de proposition repris en messages`);
 }
 
 async function migrerIdSession(journal) {

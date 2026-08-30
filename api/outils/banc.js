@@ -696,6 +696,58 @@ async function tout(ids) {
       return `${avant} en attente, zéro après lecture`;
     });
 
+  await verifier(
+    'Le mot d’une proposition arrive dans la conversation',
+    async () => {
+      // LE DÉFAUT, VU À L'ÉCRAN. Le mot vivait dans la seule colonne
+      // `pa_echanges.mot`, que la conversation ne lit pas — elle lit
+      // `pa_messages`. On recevait « salut, ça t'intéresse ? » avec sa
+      // notification, on ouvrait les Messages, et l'on y trouvait « Aucune
+      // conversation ». La première chose qu'on écrit était la seule à ne pas
+      // arriver.
+      // ON FAIT DE LA PLACE D'ABORD. Trois propositions en attente chez la même
+      // personne est la limite, et les vérifications qui précèdent l'ont
+      // consommée : sans ce ménage, celle-ci échoue pour une raison étrangère à
+      // ce qu'elle éprouve. C'est arrivé, exactement ainsi.
+      const enAttente = await mesEchanges(un);
+      for (const x of enAttente.echanges) {
+        if (x.etat === 'propose' && x.sens === 'propose') await annuler(un, x.id);
+      }
+
+      const e = await proposer(un, {
+        pseudo: 'BancDeux', dex: 'rby', offert: 'nosferapti', demande: 'nosferalto',
+        mot: 'salut, ça t’intéresse ?',
+      });
+
+      const fil = await conversation(deux, 'BancUn');
+      const dit = fil.messages.find((m) => m.texte === 'salut, ça t’intéresse ?');
+      if (!dit) return 'échec : le mot de la proposition n’arrive pas dans la conversation';
+      if (!dit.echange || dit.echange.id !== e.id) {
+        return 'échec : le mot n’est pas rattaché à son échange';
+      }
+      if (dit.deMoi) return 'échec : le mot est attribué à celui qui le reçoit';
+
+      // ET LA CONVERSATION EXISTE : c'est tout le symptôme, « Aucune
+      // conversation » alors qu'on venait d'être sollicité.
+      const liste = await conversations(deux);
+      if (!liste.conversations.some((c) => c.pseudo === 'BancUn')) {
+        return 'échec : aucune conversation malgré une proposition reçue';
+      }
+
+      // UNE PROPOSITION SANS MOT N'EN INVENTE PAS UN.
+      const muette = await proposer(un, {
+        pseudo: 'BancDeux', dex: 'rby', offert: 'taupiqueur', demande: 'triopikeur',
+      });
+      const apres = await conversation(deux, 'BancUn');
+      if (apres.messages.some((m) => m.echange && m.echange.id === muette.id)) {
+        return 'échec : une proposition sans mot a créé un message';
+      }
+
+      await annuler(un, e.id);
+      await annuler(un, muette.id);
+      return 'le mot arrive, rattaché à son échange, et rien n’est inventé sans lui';
+    });
+
   console.log('\nLes photos');
 
   await verifier(

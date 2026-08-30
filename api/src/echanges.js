@@ -157,12 +157,29 @@ export async function proposer(dresseurId, { pseudo, dex, offert, demande, mot }
   }
 
   const quand = horodatage();
+  const motPropre = mot ? String(mot).slice(0, MOT_MAX) : null;
   const r = await ecrire(
     `INSERT INTO pa_echanges
        (demandeur_id, receveur_id, dex, offert, demande, etat, mot, cree_le, maj_le)
      VALUES (?, ?, ?, ?, ?, 'propose', ?, ?, ?)`,
-    [dresseurId, autre.id, jeu, donne, veut,
-      (mot ? String(mot).slice(0, MOT_MAX) : null), quand, quand]);
+    [dresseurId, autre.id, jeu, donne, veut, motPropre, quand, quand]);
+
+  // LE MOT EST UN MESSAGE, ET IL FAUT L'ÉCRIRE COMME TEL.
+  //
+  // Il vivait dans la seule colonne `mot`, que la conversation ne lit pas —
+  // elle lit `pa_messages`. Conséquence mesurée à l'écran : quelqu'un recevait
+  // « salut, ça t'intéresse ? » avec sa notification, ouvrait les Messages, et
+  // y trouvait « Aucune conversation ». La première chose qu'on écrit était la
+  // seule à ne pas arriver.
+  //
+  // On garde la colonne : la fiche de l'échange l'affiche, et les échanges déjà
+  // proposés la portent. Elle devient le résumé, la ligne de message devient la
+  // parole.
+  if (motPropre) {
+    await ecrire(
+      'INSERT INTO pa_messages (echange_id, auteur_id, texte, cree_le) VALUES (?, ?, ?, ?)',
+      [r.insertId, dresseurId, motPropre, quand]);
+  }
 
   const moi = await une('SELECT pseudo FROM pa_dresseurs WHERE id = ?', [dresseurId]);
   await notifier(autre.id, {

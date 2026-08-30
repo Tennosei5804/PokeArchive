@@ -2115,7 +2115,61 @@ html[data-theme="light"] body{ background:#e9e7e0; }
    LA FENETRE A UNE HAUTEUR FIXE, contrairement aux autres. Passer de la liste
    au fil changeait sa taille d'un coup, et le bouton « Fermer » sautait sous le
    curseur au moment ou l'on cliquait. */
-.msg-card{ min-height:min(72vh, 560px); display:flex; flex-direction:column; }
+/* LA MESSAGERIE EST UNE PAGE, plus une fenetre. Elle etait a l'etroit dans une
+   modale, et surtout elle empruntait le menu deroulant de la page des amis :
+   positionne en absolu, cale sur un bouton  Suivre  qui n existe pas ici. Les
+   propositions se dessinaient hors du cadre — presentes, invisibles. */
+.msg-page{
+  display:grid;
+  /* La colonne de gauche a une largeur A ELLE : un pseudo et un apercu tiennent
+     dans 260 px, et le fil merite tout le reste. */
+  grid-template-columns:260px 1fr;
+  gap:14px;
+  min-height:min(62vh, 520px);
+  align-items:stretch;
+}
+.msg-cote{
+  display:flex; flex-direction:column; gap:0; min-width:0;
+  padding-right:14px; border-right:1px solid var(--card-border);
+}
+.msg-vue{ display:flex; flex-direction:column; min-width:0; }
+
+/* Ce qu'on voit tant qu'aucune conversation n'est ouverte. Centre dans la
+   colonne plutot que colle en haut : un grand vide avec une phrase en haut a
+   gauche se lit comme un ecran casse. */
+.msg-rien{
+  flex:1 1 auto; display:grid; place-items:center; text-align:center;
+  padding:24px; color:var(--ink-soft);
+  font-family:var(--font-body); font-size:13px; line-height:1.6;
+}
+
+/* SOUS 760 px, UNE COLONNE A LA FOIS. Deux colonnes de 130 px ne servent
+   personne : on montre la liste, et le fil prend toute la place des qu'on en
+   ouvre un — d'ou la fleche de retour, qui ne sert que la. */
+@media (max-width:760px){
+  .msg-page{ grid-template-columns:1fr; }
+  .msg-cote{ padding-right:0; border-right:0; }
+  .msg-page.fil-ouvert .msg-cote{ display:none; }
+  .msg-page:not(.fil-ouvert) .msg-vue{ display:none; }
+}
+@media (min-width:761px){
+  /* La fleche ne sert a rien quand les deux colonnes sont la. */
+  .msg-retour{ display:none; }
+}
+
+/* Les propositions reprennent le FLUX. C est tout l interet de la page : elles
+   n ont plus a se poser par-dessus quoi que ce soit, donc plus rien a caler sur
+   la largeur d un bouton. */
+#msgPropositions{
+  position:static; right:auto; left:auto; top:auto;
+  box-shadow:none; background:transparent; border:0;
+  display:flex; flex-direction:column; gap:4px; margin-bottom:10px;
+}
+#msgPropositions:empty{ margin-bottom:0; }
+#msgPropositions .amis-proposition{
+  border:1px solid var(--card-border); border-radius:9px; background:var(--screen);
+}
+#msgPropositions .amis-proposition:hover{ border-color:var(--gold); }
 
 .msg-entete{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
 .msg-entete .modal-title{ margin:0; }
@@ -2130,7 +2184,15 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 }
 #msgQ:focus{ outline:none; border-color:var(--dex-red); }
 
-.msg-liste{ display:flex; flex-direction:column; gap:6px; flex:1 1 auto; overflow-y:auto; }
+.msg-liste{ display:flex; flex-direction:column; gap:6px; flex:1 1 auto;
+  overflow-y:auto; min-height:0; }
+/* Le nom de l interlocuteur, en tete de la colonne de droite. Il remplace le
+   second  Messages  qui doublait le titre de la page. */
+.msg-avec{
+  flex:1 1 auto; min-width:0; margin:0;
+  font-family:var(--font-display); font-size:13px; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
 .msg-conv{
   display:flex; align-items:center; gap:10px; text-align:left;
   padding:9px 11px; border-radius:10px; cursor:pointer;
@@ -2264,3 +2326,8 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 .msg-carte:hover{ border-color:var(--gold); }
 .msg-carte:disabled{ cursor:default; opacity:.7; }
 .msg-carte img{ width:34px; height:34px; object-fit:contain; flex-shrink:0; }
+
+/* « Écrire à « X » » quand la recherche ne trouve personne. Sans vignette — il
+   n'y a pas d'avatar pour quelqu'un qu'on n'a pas trouvé — donc un retrait à
+   gauche pour que le nom tombe où tombent les autres. */
+.msg-exact{ padding-left:14px; font-style:italic; }

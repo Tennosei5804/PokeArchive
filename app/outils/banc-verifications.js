@@ -1817,7 +1817,7 @@ verifier('Messagerie',
 
     ouvrirMessagerie('Ondine');
     await new Promise(function(r){ setTimeout(r, 60); });
-    if(msgOverlay.style.display !== 'flex') return 'échec : la fenêtre ne s’ouvre pas';
+    if(!pageMessagesEl.classList.contains('active')) return 'échec : la page ne s’ouvre pas';
     if(msgFil.hidden) return 'échec : le fil reste caché';
     if(!msgRetour || msgRetour.hidden) return 'échec : pas de retour vers la liste';
 
@@ -1852,8 +1852,11 @@ verifier('Messagerie',
     // aller-retour fait perdre le fil, au sens propre.
     msgRevenirListe();
     await new Promise(function(r){ setTimeout(r, 60); });
-    if(msgOverlay.style.display !== 'flex') return 'échec : le retour ferme la fenêtre';
-    if(!msgFil.hidden) return 'échec : le fil reste visible sur la liste';
+    if(!pageMessagesEl.classList.contains('active')) return 'échec : le retour quitte la page';
+    if(!msgFil.hidden) return 'échec : le fil reste visible sans conversation';
+    if(!msgRien || msgRien.hidden){
+      return 'échec : rien ne dit quoi faire quand aucune conversation n’est ouverte';
+    }
 
     fermerMessagerie();
     // Le sondage rapide s'arrête AVEC la fenêtre : c'est tout le marché qui
@@ -1908,10 +1911,19 @@ verifier('Messagerie',
     ouvrirMessagerie();
     await new Promise(function(r){ setTimeout(r, 120); });
 
+    // ON REGARDE L'ÉCRAN, PAS LE DOCUMENT. Cette vérification comptait les
+    // éléments présents, et elle était VERTE sur un écran cassé : les
+    // propositions héritaient d'un menu positionné en absolu, calé sur un
+    // bouton « Suivre » qui n'existe pas ici, et se dessinaient hors du cadre.
+    // Présentes, invisibles. Un contrôle qui ne mesure pas ce qu'on voit ne
+    // défend rien.
     const noms = function(){
-      return Array.prototype.map.call(
-        msgPropositions.querySelectorAll('.proposition-nom'),
-        function(n){ return n.textContent; });
+      return Array.prototype.filter
+        .call(msgPropositions.querySelectorAll('.proposition-nom'), function(n){
+          const r = n.getBoundingClientRect();
+          return r.width > 0 && r.height > 0;
+        })
+        .map(function(n){ return n.textContent; });
     };
 
     msgQ.value = '';
@@ -1938,9 +1950,26 @@ verifier('Messagerie',
       return 'échec : la recherche de dresseurs ne remonte plus rien';
     }
 
+    // RIEN TROUVÉ N'EST PAS UNE IMPASSE. La recherche de dresseurs ne voit que
+    // les comptes VISIBLES — et la visibilité est éteinte au départ. Quelqu'un
+    // qui ne s'est jamais montré au classement était donc introuvable ici,
+    // alors qu'on peut parfaitement lui écrire : le service le cherche par son
+    // pseudo, sans regarder ce réglage.
+    msgQ.value = 'Personne_De_Ce_Nom';
+    await msgChercher();
+    const secours = msgPropositions.querySelector('.msg-exact');
+    if(!secours) return 'échec : aucune issue quand la recherche ne trouve rien';
+    const vu = secours.getBoundingClientRect();
+    if(vu.width === 0 || vu.height === 0){
+      return 'échec : l’issue existe dans le document mais ne se voit pas';
+    }
+    if(secours.textContent.indexOf('Personne_De_Ce_Nom') === -1){
+      return 'échec : l’issue ne reprend pas le pseudo tapé';
+    }
+
     msgQ.value = '';
     fermerMessagerie();
-    return 'amis d’emblée, « Ja » sort Jack même absent de la recherche';
+    return 'amis d’emblée, « Ja » sort Jack, et le pseudo exact reste joignable';
   });
 
 verifier('Messagerie',
