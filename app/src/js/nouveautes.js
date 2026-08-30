@@ -20,6 +20,28 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.30.0', date: '2026-08-30',
+    titre: 'Cinq cent cinquante-deux distributions',
+    points: [
+      '**🎁 L’onglet Cadeau Mystère est de retour**, et il ne ressemble '
+      + 'pas à l’ancien. Cinq cent cinquante-deux distributions officielles, du '
+      + 'concours CoroCoro de 1996 aux codes d’aujourd’hui, avec pour chacune '
+      + 'l’évènement, la méthode, les jeux et la date.',
+      '**🔍 Quatre filtres qui se cumulent** : une recherche par nom, '
+      + 'numéro ou évènement — tape « Tanabata » ou « Yokohama » pour voir — puis '
+      + 'la génération, le jeu, et la rareté : normal, légendaire, fabuleux, ou '
+      + 'distribué en chromatique. Ils sont soixante-neuf dans ce dernier cas.',
+      '**Chaque ligne dit où elle a eu lieu.** Le relevé est mondial, et beaucoup '
+      + 'de ces distributions n’ont jamais touché l’Europe : la région est écrite '
+      + 'en rouge sur chaque carte, pour que l’écran ne te promette pas un '
+      + 'évènement auquel personne ici n’a eu accès.',
+      '**Le Pokédex retrouve son filtre Shiny-lock**, et ses filtres s’adaptent au '
+      + 'jeu ouvert : plus de « Gigamax » sur Jaune ni de « Formes de Hisui » sur '
+      + 'Rubis. Les menus déroulants ont tous le même rendu, et l’ascenseur aussi '
+      + '— il en existait six versions légèrement différentes.',
+    ],
+  },
+  {
     version: '0.29.0', date: '2026-08-29',
     titre: 'Quinze filtres que tu ne pouvais pas trouver',
     points: [
