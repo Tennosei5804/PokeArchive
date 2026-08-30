@@ -445,6 +445,17 @@ const MOTS_CLES_RECHERCHE = {
       if(!activeSet().has(e.name)) return false;
       return rangRarete(e) < 0.20;
     } },
+  // Il avait disparu avec l'ancienne table des verrous ; il revient sur la
+  // nouvelle. Le sens SUIT LE POKÉDEX OUVERT — voir verrouillePour() dans
+  // donnees-verrous.js, qui porte la raison de cette distinction.
+  verrouille: { libelle: '🔒 Shiny-lockés',
+    test: function(e){
+      if(typeof verrouillePour !== 'function') return false;
+      const dansUnJeu = typeof gameByKey !== 'undefined'
+        && typeof currentTab !== 'undefined' && gameByKey[currentTab];
+      return verrouillePour(e.speciesId, dansUnJeu ? currentTab : null);
+    } },
+  'shiny-lock': { alias: 'verrouille' },
 };
 
 // Les états. Ils parlent de la collection ouverte, comme le menu « Filtrer ».
@@ -484,7 +495,12 @@ let rechercheVeutTypes = false;
  * une entrée, et « mots » ce qui n'a rien de particulier et cherche un nom.
  */
 function analyserRecherche(brut){
-  const q = { numero: null, typeId: null, gen: null, tests: [], mots: [] };
+  // DEUX PANIERS, PAS UN SEUL. Ils étaient mélangés dans `tests`, et il fallait
+  // alors que TOUT passe : demander « fossile » et « légendaire » ne rendait
+  // rien, puisque aucun Pokémon n'est les deux. Les séparer permet de croiser
+  // les paniers sans croiser leur contenu — voir getFiltered().
+  const q = { numero: null, typeId: null, gen: null,
+              etats: [], categories: [], mots: [] };
   jetonsCompris = [];
   const morceaux = String(brut || '').trim().split(/\s+/).filter(Boolean);
 
@@ -520,11 +536,11 @@ function analyserRecherche(brut){
 
     // Un état de la collection.
     const etat = suivreAlias(ETATS_RECHERCHE, nu);
-    if(etat){ q.tests.push(etat.test); jetonsCompris.push(etat.libelle); return; }
+    if(etat){ q.etats.push(etat.test); jetonsCompris.push(etat.libelle); return; }
 
     // Un mot-clé.
     const cle = suivreAlias(MOTS_CLES_RECHERCHE, nu);
-    if(cle){ q.tests.push(cle.test); jetonsCompris.push(cle.libelle); return; }
+    if(cle){ q.categories.push(cle.test); jetonsCompris.push(cle.libelle); return; }
 
     // Rien de connu : c'est un morceau de nom.
     q.mots.push(nu);
@@ -604,11 +620,32 @@ function getFiltered(){
         if(nom.indexOf(requete.mots[i]) === -1) return false;
       }
     }
-    // Les jetons reconnus. Ils se cumulent entre eux et avec les menus.
+    // Les jetons reconnus. Ils se cumulent avec les menus.
     if(requete.typeId !== null && !entryHasType(entry, requete.typeId)) return false;
     if(requete.gen !== null && entry.gen !== requete.gen) return false;
-    for(let i = 0; i < requete.tests.length; i++){
-      if(!requete.tests[i](entry)) return false;
+
+    // PLUSIEURS FILTRES D'UNE MÊME FAMILLE S'ADDITIONNENT AU LIEU DE SE
+    // RESTREINDRE. « Fossiles » et « Légendaires » ensemble montrent les deux
+    // listes ; avant, la grille se vidait, puisque aucun Pokémon n'est les
+    // deux à la fois. Un filtre de plus doit montrer plus, pas moins.
+    //
+    // Les deux familles, elles, se croisent : « Manquants » + « Fossiles »
+    // veut dire « les fossiles qui me manquent », et c'est bien ce qu'on
+    // demande en cochant les deux. Tout mettre en OU aurait rendu la question
+    // impossible à poser.
+    if(requete.etats.length){
+      let un = false;
+      for(let i = 0; i < requete.etats.length && !un; i++){
+        if(requete.etats[i](entry)) un = true;
+      }
+      if(!un) return false;
+    }
+    if(requete.categories.length){
+      let une = false;
+      for(let i = 0; i < requete.categories.length && !une; i++){
+        if(requete.categories[i](entry)) une = true;
+      }
+      if(!une) return false;
     }
     if(typeMode !== 'all' && !entryHasType(entry, parseInt(typeMode, 10))) return false;
     // « Capturés » / « Manquants » parlent de la forme du mode actif.
@@ -839,28 +876,48 @@ function renderCard(entry){
   // à la chaîne habituelle, qui n'a pas changé d'un caractère.
   const epoque = spritesEpoque
     ? spriteEpoqueUrl(currentTab, showdownSlug, shinyView) : null;
+  // Le maillon local se saute quand la session a déjà prouvé qu'il ne donne
+  // rien : voir spritesLocauxPossibles() dans noyau.js.
+  const apresLocal = function(){
+    if(entry.spriteOnly){
+      img.dataset.stage = 'form';
+      img.src = showdownSpriteUrl(formCandidates[candidateIndex], shinyView);
+    } else {
+      img.dataset.stage = 'pokeos';
+      img.src = pokeosHomeUrl(entry.id, shinyView);
+    }
+  };
+
   if(epoque){
     img.src = epoque;
     img.dataset.stage = 'epoque';
-  } else {
+  } else if(spritesLocauxPossibles()){
     img.src = localSpriteUrl(entry.name, shinyView);
     img.dataset.stage = 'local';
+  } else {
+    apresLocal();
   }
+
+  // Un sprite local qui CHARGE se signale : c'est ce qui empêche d'abandonner
+  // le dossier de quelqu'un qui l'a vraiment rempli.
+  img.addEventListener('load', function(){
+    if(img.dataset.stage === 'local') noterSpriteLocal(true);
+  });
+
   img.addEventListener('error', function(){
     if(img.dataset.stage === 'epoque'){
-      img.dataset.stage = 'local';
-      img.src = localSpriteUrl(entry.name, shinyView);
+      if(spritesLocauxPossibles()){
+        img.dataset.stage = 'local';
+        img.src = localSpriteUrl(entry.name, shinyView);
+      } else {
+        apresLocal();
+      }
     } else if(img.dataset.stage === 'local'){
+      noterSpriteLocal(false);
       // Les formes cosmétiques et les variantes ♀ n'ont ni rendu PokeOS ni
       // artwork officiel (tous deux indexés par n° d'entrée) : seul Showdown
       // les distingue, on saute donc directement à lui.
-      if(entry.spriteOnly){
-        img.dataset.stage = 'form';
-        img.src = showdownSpriteUrl(formCandidates[candidateIndex], shinyView);
-        return;
-      }
-      img.dataset.stage = 'pokeos';
-      img.src = pokeosHomeUrl(entry.id, shinyView);
+      apresLocal();
     } else if(img.dataset.stage === 'form'){
       candidateIndex++;
       if(candidateIndex < formCandidates.length){

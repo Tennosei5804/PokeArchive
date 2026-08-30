@@ -841,7 +841,17 @@ verifier('La recherche',
     const q = analyserRecherche('feu gen3 manquants zzzz');
     if(q.typeId === null) return 'échec : « feu » n\'a pas été reconnu comme type';
     if(q.gen !== 3) return 'échec : « gen3 » n\'a pas été reconnu';
-    if(!q.tests.length) return 'échec : « manquants » n\'a pas été reconnu';
+    // `tests` a été scindé en `etats` (ta collection) et `categories` (le
+    // Pokédex lui-même). Les deux tableaux portent des PRÉDICATS, pas des
+    // objets — un JSON.stringify les affiche `null`, ce qui n'est pas un signe
+    // de panne. On vérifie les longueurs, et LA SCISSION elle-même : ranger un
+    // état parmi les catégories casserait filtres.js sans rien lever, puisqu'il
+    // résout ses pastilles contre les deux tables.
+    if(!q.etats.length) return 'échec : « manquants » n\'a pas été reconnu';
+    if(q.categories.length) return 'échec : un état a été rangé en catégorie';
+    const c = analyserRecherche('fossile');
+    if(!c.categories.length) return 'échec : « fossile » n\'a pas été reconnu';
+    if(c.etats.length) return 'échec : une catégorie a été rangée en état';
     if(q.mots.indexOf('zzzz') === -1) return 'échec : un mot inconnu a été avalé';
     // Et les accents : personne ne les tape dans un champ de recherche.
     const r = analyserRecherche('Ptéra');
@@ -1232,177 +1242,6 @@ verifier('Les photos',
            + img.getAttribute('src').slice(0, 22) + '...';
   });
 
-verifier('Shiny-lock',
-  'Le catalogue liste exactement les trois tables',
-  async function(){
-    // Le bug qu'elle arrête : la première version demandait que la liste
-    // « affiche quelque chose », et passait sur mille vingt-cinq lignes — le
-    // Pokédex entier, parce que Rouge et Bleu comptaient comme un verrou par
-    // espèce. Un compte exact ne se laisse pas berner.
-    if(typeof ouvrirVerrous !== 'function') return 'échec : ouvrirVerrous absente';
-    await ouvrirVerrous();
-    const lignes = verrousListe.querySelectorAll('.verrou-ligne').length;
-    fermerVerrous();
-    const attendu = new Set(VERROUS_PAR_JEU.map(function(v){ return v.espece; }));
-    SHINY_LOCKED.forEach(function(id){ attendu.add(id); });
-    TAUX_PLEIN_SEUL.forEach(function(id){ attendu.add(id); });
-    if(lignes !== attendu.size){
-      return 'échec : ' + lignes + ' lignes pour ' + attendu.size + ' espèces attendues';
-    }
-    return lignes + ' espèces (' + SHINY_LOCKED.size + ' partout, '
-      + TAUX_PLEIN_SEUL.size + ' hors taux plein, le reste par rencontre)';
-  });
-
-verifier('Shiny-lock',
-  'Les trois tables ne se recouvrent jamais',
-  function(){
-    // Elles disent trois choses incompatibles : « nulle part », « pas au taux
-    // plein », « pas par cette rencontre ». Une espèce dans deux d'entre elles,
-    // c'est une contradiction que l'écran trancherait en silence, par l'ordre
-    // des if — et Solgaleo a vécu dans la mauvaise jusqu'au relevé Pokébip.
-    const doubles = [];
-    TAUX_PLEIN_SEUL.forEach(function(id){ if(SHINY_LOCKED.has(id)) doubles.push(id); });
-    VERROUS_PAR_JEU.forEach(function(v){
-      if(SHINY_LOCKED.has(v.espece) || TAUX_PLEIN_SEUL.has(v.espece)) doubles.push(v.espece);
-    });
-    if(doubles.length) return 'échec : #' + doubles.join(', #') + ' dans deux tables';
-    return SHINY_LOCKED.size + ' + ' + TAUX_PLEIN_SEUL.size + ' + '
-      + VERROUS_PAR_JEU.length + ', sans recouvrement';
-  });
-
-verifier('Shiny-lock',
-  'Toutes les clés de jeu citées existent',
-  function(){
-    // Des dizaines de clés tapées à la main dans les deux tables par jeu. Une
-    // faute de frappe — 'swhs' — ne casse rien : elle rend la ligne invisible,
-    // pour toujours, sans un mot.
-    const connues = new Set(GAMES.map(function(g){ return g.key; }));
-    const fautes = [];
-    let n = 0;
-    VERROUS_PAR_JEU.forEach(function(v){
-      v.jeux.forEach(function(c){ n++; if(!connues.has(c)) fautes.push(c + ' (#' + v.espece + ')'); });
-    });
-    REGLES_VERROU.forEach(function(r){
-      r.jeux.forEach(function(c){ n++; if(!connues.has(c)) fautes.push(c + ' (règle)'); });
-    });
-    if(fautes.length) return 'échec : ' + fautes.join(', ');
-    return n + ' clés de jeu, toutes connues de GAMES';
-  });
-
-verifier('Shiny-lock',
-  'Seul « verrouillé partout » annonce une impasse',
-  async function(){
-    // Le bug qu'elle arrête : verrouiller la RENCONTRE fermait le JEU. Le
-    // Roucool scripté de la Route 2 est verrouillé sur X et Y ; les Roucool
-    // sauvages du même jeu ne le sont pas. L'écran annonçait pourtant « — »,
-    // c'est-à-dire « on ne sait pas où », sur des espèces très courantes.
-    if(typeof verrousTous !== 'function') return 'échec : verrousTous absente';
-    if(typeof chargerLieux === 'function' && typeof DONNEES_LIEUX === 'undefined'){
-      try{ await chargerLieux(); }catch(e){ return 'ignoré : relevé illisible'; }
-    }
-    const tous = verrousTous();
-    const muets = [];
-    tous.forEach(function(v){
-      if(v.genre !== 'partout' && !v.ouverts.length) muets.push(v.entry.speciesId);
-    });
-    if(muets.length) return 'échec : ' + muets.length + ' sans destination, dont #' + muets[0];
-    return tous.filter(function(v){ return v.genre !== 'partout'; }).length
-      + ' espèces non définitives, toutes avec une destination';
-  });
-
-verifier('Shiny-lock',
-  'Aucun jeu proposé où l\'espèce n\'apparaît pas',
-  async function(){
-    // « Chassable sur Rouge/Bleu » pour un Pokémon de Galar serait faux deux fois,
-    // et c'est la seule affirmation que cet écran avance de lui-même.
-    if(typeof verrousTous !== 'function') return 'échec : verrousTous absente';
-    if(typeof chargerLieux === 'function' && typeof DONNEES_LIEUX === 'undefined'){
-      try{ await chargerLieux(); }catch(e){ return 'ignoré : relevé illisible'; }
-    }
-    let controles = 0;
-    const faux = [];
-    verrousTous().forEach(function(v){
-      v.ouverts.forEach(function(g){
-        controles++;
-        if(SANS_CHROMATIQUES.indexOf(g.key) !== -1
-           || !verrouEspecePresente(v.entry.speciesId, g.key)){
-          faux.push('#' + v.entry.speciesId + ' sur ' + g.key);
-        }
-      });
-    });
-    if(faux.length) return 'échec : ' + faux.length + ', dont ' + faux[0];
-    return controles + ' destinations, toutes vérifiées au relevé';
-  });
-
-verifier('Shiny-lock',
-  'Filtrer par jeu ne montre que des espèces qui y figurent',
-  async function(){
-    // Le bug qu'elle arrête : le filtre laissait passer les « verrouillés partout »
-    // sans vérifier leur présence. Rouge/Bleu annonçait vingt-huit espèces, dont
-    // Victini et Keldeo — absents d'un jeu de vingt ans leur aîné.
-    if(typeof ouvrirVerrous !== 'function') return 'échec : ouvrirVerrous absente';
-    await ouvrirVerrous();
-    const faux = [];
-    let controles = 0;
-    for(const cle of ['rby', 'xy', 'swsh', 'sv', 'pla']){
-      verrouJeu.value = cle;
-      dessinerVerrous();
-      verrousListe.querySelectorAll('.verrou-no').forEach(function(n){
-        const id = parseInt(n.textContent.replace('#', ''), 10);
-        controles++;
-        if(!verrouEspecePresente(id, cle)) faux.push('#' + id + ' sur ' + cle);
-      });
-    }
-    verrouJeu.value = 'tous';
-    dessinerVerrous();
-    fermerVerrous();
-    if(faux.length) return 'échec : ' + faux.length + ' absent(s), dont ' + faux[0];
-    return controles + ' lignes sur cinq jeux, toutes présentes au relevé';
-  });
-
-verifier('Shiny-lock',
-  'Les cadeaux mystères restent hors de la vue par défaut',
-  async function(){
-    // Cent cinquante-quatre distributions ajoutées d'office noieraient les
-    // soixante-dix-neuf verrous, qui sont la raison d'être de l'écran. Elles
-    // n'apparaissent qu'avec un jeu choisi ou un nom tapé. La règle est facile
-    // à casser d'une ligne, et le symptôme — « l'écran est devenu illisible » —
-    // ne pointerait vers rien.
-    if(typeof ouvrirVerrous !== 'function') return 'échec : ouvrirVerrous absente';
-    await ouvrirVerrous();
-    const parDefaut = verrousListe.querySelectorAll('.verrou-cadeau').length;
-    verrouJeu.value = 'gsc';
-    dessinerVerrous();
-    const surUnJeu = verrousListe.querySelectorAll('.verrou-cadeau').length;
-    verrouJeu.value = 'tous';
-    verrouQ.value = 'ronflex';
-    dessinerVerrous();
-    const surUnNom = verrousListe.querySelectorAll('.verrou-cadeau').length;
-    verrouQ.value = '';
-    dessinerVerrous();
-    fermerVerrous();
-    if(parDefaut) return 'échec : ' + parDefaut + ' cadeau(x) dans la vue par défaut';
-    if(!surUnJeu) return 'échec : aucun cadeau sur Or / Argent, qui en compte pourtant';
-    if(!surUnNom) return 'échec : la recherche « ronflex » n\'en trouve aucun';
-    return 'aucun par défaut, ' + surUnJeu + ' sur Or / Argent, ' + surUnNom + ' par le nom';
-  });
-
-verifier('Shiny-lock',
-  'Les cadeaux ne contredisent aucun verrou',
-  function(){
-    // Une espèce à la fois « verrouillée partout » et « distribuée chromatique »
-    // serait une contradiction pure : l'écran afficherait les deux lignes, l'une
-    // sous l'autre, sans trancher. Les deux pages de la source doivent s'accorder.
-    const cadeaux = new Set();
-    CADEAUX_SHASSABLES.forEach(function(g){
-      g.especes.forEach(function(id){ cadeaux.add(id); });
-    });
-    const conflits = [];
-    cadeaux.forEach(function(id){ if(SHINY_LOCKED.has(id)) conflits.push(id); });
-    if(conflits.length) return 'échec : #' + conflits.join(', #') + ' verrouillé(s) ET distribué(s)';
-    return cadeaux.size + ' distributions, aucune en conflit avec les verrous';
-  });
-
 verifier('Filtres visibles',
   'Une pastille fait exactement ce que ferait la frappe',
   function(){
@@ -1449,68 +1288,257 @@ verifier('Filtres visibles',
     return vus.size + ' filtres distincts sur ' + total + ' mots reconnus';
   });
 
-verifier('Cadeau Mystère',
-  'Toutes les clés de jeu de « où ouvrir » existent',
+verifier('Verrous chromatiques',
+  'L’écran dessine toutes les lignes de la table',
   function(){
-    // Treize lignes, vingt-cinq clés tapées à la main. Une faute de frappe ne
-    // casse rien : elle fait disparaître la ligne en silence, et personne ne
-    // saura jamais où ouvrir le menu sur ce jeu-là.
-    if(typeof OUVRIR_CADEAU === 'undefined') return 'échec : OUVRIR_CADEAU absente';
+    // Le bug qu'elle arrête : une entrée qui se perd entre la table et l'écran.
+    // Elle ne casse rien — elle disparaît, et personne ne sait qu'elle manquait.
+    // Le compte attendu vient des groupes, pas de VERROUS : un verrou qui vaut
+    // pour deux jeux s'affiche deux fois, et c'est voulu.
+    if(typeof dessinerVerrousPage !== 'function') return 'échec : verrous.js absent';
+    verrouJeuActif = '';
+    if(verrousQ) verrousQ.value = '';
+    dessinerVerrousPage();
+    const dessinees = verrousListe.querySelectorAll('.verrou-ligne').length;
+    let attendues = 0;
+    verrousGroupes().forEach(function(g){ attendues += g.lot.length; });
+    if(dessinees !== attendues){
+      return 'échec : ' + dessinees + ' lignes dessinées pour ' + attendues + ' attendues';
+    }
+    return dessinees + ' lignes sur ' + verrousGroupes().length + ' groupes';
+  });
+
+verifier('Verrous chromatiques',
+  'Toutes les clés de jeu citées existent',
+  function(){
+    // Une faute de frappe dans une clé ne lève rien : la ligne cesse simplement
+    // d'appartenir à un groupe et n'est plus jamais affichée. C'est le défaut le
+    // moins visible de toute la table.
+    if(typeof VERROUS === 'undefined') return 'échec : donnees-verrous.js absent';
     const connues = new Set(GAMES.map(function(g){ return g.key; }));
     const fautes = [];
     let n = 0;
-    OUVRIR_CADEAU.forEach(function(r){
-      r.jeux.forEach(function(c){ n++; if(!connues.has(c)) fautes.push(c); });
-    });
-    if(fautes.length) return 'échec : ' + fautes.join(', ');
-    return n + ' clés sur ' + OUVRIR_CADEAU.length + ' lignes, toutes connues de GAMES';
-  });
-
-verifier('Cadeau Mystère',
-  'Chaque jeu à Cadeau Mystère dit où l’ouvrir',
-  function(){
-    // Le trou qu'elle guette : un jeu ajouté à GAMES sans sa ligne ici. La page
-    // resterait juste, et muette précisément sur le jeu le plus récent — celui
-    // pour lequel on cherche l'information.
-    //
-    // Rouge, Bleu et Jaune sont écartés : le Cadeau Mystère n'existait pas.
-    // HOME et les jeux hors série non plus : ils n'ont pas ce menu.
-    if(typeof OUVRIR_CADEAU === 'undefined') return 'échec : OUVRIR_CADEAU absente';
-    const SANS_CADEAU = ['rby', 'jaune', 'home', 'go', 'cobblemon'];
-    const couverts = new Set();
-    OUVRIR_CADEAU.forEach(function(r){
-      r.jeux.forEach(function(c){ couverts.add(c); });
-    });
-    const oublies = GAMES.filter(function(g){
-      return SANS_CADEAU.indexOf(g.key) === -1 && !couverts.has(g.key);
-    }).map(function(g){ return g.key; });
-    if(oublies.length) return 'échec : ' + oublies.join(', ') + ' sans ligne';
-    return couverts.size + ' jeux couverts, aucun oubli';
-  });
-
-verifier('Cadeau Mystère',
-  'Ce qui est annoncé ouvert porte de quoi le croire',
-  function(){
-    // Le défaut qu'elle arrête : Mew par Poké Ball Plus était encore obtenable
-    // et n'était pas marqué — le filtre « encore obtenables » cachait donc le
-    // seul fabuleux qu'on puisse encore aller chercher en magasin.
-    //
-    // Une distribution permanente doit dire pourquoi elle l'est : soit son
-    // `quand` porte la permanence, soit une `condition` la remplace. Sans l'un
-    // des deux, « encore ouvert » est une affirmation sans pièce jointe.
-    if(typeof DISTRIBUTIONS_FR === 'undefined') return 'échec : DISTRIBUTIONS_FR absente';
-    const muettes = [];
-    let n = 0;
-    Object.keys(DISTRIBUTIONS_FR).forEach(function(id){
-      DISTRIBUTIONS_FR[id].forEach(function(d){
-        if(!d.permanent) return;
+    VERROUS.forEach(function(v){
+      (v.jeux || []).forEach(function(c){
         n++;
-        const dit = /permanence|sans date de fin|une fois/i.test(d.quand || '');
-        if(!dit && !d.condition) muettes.push('#' + id + ' ' + d.ev);
+        if(!connues.has(c)) fautes.push(c + ' (#' + v.espece + ')');
       });
     });
-    if(muettes.length) return 'échec : ' + muettes.join(', ');
-    return n + ' distributions encore ouvertes, toutes justifiées';
+    REGLES_VERROU.forEach(function(r){
+      (r.jeux || []).forEach(function(c){ n++; if(!connues.has(c)) fautes.push(c + ' (règle)'); });
+    });
+    if(fautes.length) return 'échec : ' + fautes.join(', ');
+    return n + ' clés de jeu, toutes connues de GAMES';
+  });
+
+verifier('Verrous chromatiques',
+  'Chaque espèce citée existe dans la réserve',
+  function(){
+    // Un numéro national faux affiche « N° 0999 » sans vignette, au milieu de
+    // lignes correctes. La table affirme que les numéros sont résolus contre la
+    // réserve embarquée : cette vérification est ce qui rend la phrase vraie.
+    if(typeof VERROUS === 'undefined') return 'échec : donnees-verrous.js absent';
+    if(typeof allEntries === 'undefined' || !allEntries.length){
+      return 'ignoré : la réserve n’est pas chargée';
+    }
+    const perdus = [];
+    VERROUS.forEach(function(v){
+      if(!verrouEntree(v.espece)) perdus.push(v.espece);
+    });
+    if(perdus.length) return 'échec : #' + perdus.join(', #') + ' introuvable(s)';
+    return VERROUS.length + ' verrous, toutes les espèces résolues';
+  });
+
+verifier('Verrous chromatiques',
+  'Chaque portée est connue de PORTEES',
+  function(){
+    // verrouLigne() fait « PORTEES[v.portee] || PORTEES.jeu ». Une portée mal
+    // orthographiée retombe donc silencieusement sur « verrouillé ici » — et un
+    // verrou qui vaut PARTOUT s'annoncerait comme local. C'est la pire erreur
+    // que cet écran puisse commettre : elle envoie chasser dans le vide.
+    if(typeof VERROUS === 'undefined') return 'échec : donnees-verrous.js absent';
+    const connues = Object.keys(PORTEES);
+    const fautes = [];
+    VERROUS.forEach(function(v){
+      if(connues.indexOf(v.portee) === -1) fautes.push('#' + v.espece + ' : ' + v.portee);
+    });
+    if(fautes.length) return 'échec : ' + fautes.join(', ');
+    const compte = {};
+    VERROUS.forEach(function(v){ compte[v.portee] = (compte[v.portee] || 0) + 1; });
+    return connues.map(function(p){ return (compte[p] || 0) + ' ' + p; }).join(', ');
+  });
+
+verifier('Verrous chromatiques',
+  'Chaque ligne déclare une source qui existe',
+  function(){
+    // Le schéma l'exige : « Toute ligne en a une ». Sans elle, impossible de
+    // savoir plus tard ce qui a été recoupé à la source et ce qui a été repris
+    // tel quel — et c'est justement la distinction que VERROUS_A_VERIFIER note.
+    if(typeof VERROUS === 'undefined') return 'échec : donnees-verrous.js absent';
+    const sources = Object.keys(SOURCES_VERROUS);
+    const orphelines = [];
+    VERROUS.concat(REGLES_VERROU).forEach(function(v){
+      if(!v.source || sources.indexOf(v.source) === -1){
+        orphelines.push('#' + (v.espece || 'règle') + ' : ' + (v.source || 'aucune'));
+      }
+    });
+    if(orphelines.length) return 'échec : ' + orphelines.join(', ');
+    return (VERROUS.length + REGLES_VERROU.length) + ' lignes, '
+      + sources.length + ' sources déclarées';
+  });
+
+verifier('Verrous chromatiques',
+  'Aucun verrou ne se perd entre la table et les groupes',
+  function(){
+    // Le pendant de la vérification des clés, pris par l'autre bout : on part de
+    // la table et on demande où chaque ligne a atterri. Une entrée sans jeu doit
+    // tomber dans le groupe « par distribution » ; aucune ne doit tomber nulle
+    // part.
+    if(typeof verrousGroupes !== 'function') return 'échec : verrous.js absent';
+    const places = new Set();
+    verrousGroupes().forEach(function(g){
+      g.lot.forEach(function(v){ places.add(v); });
+    });
+    const perdus = VERROUS.filter(function(v){ return !places.has(v); });
+    if(perdus.length){
+      return 'échec : ' + perdus.length + ' verrou(s) hors groupe, dont #' + perdus[0].espece;
+    }
+    const horsJeu = VERROUS.filter(function(v){ return !v.jeux || !v.jeux.length; }).length;
+    return VERROUS.length + ' verrous placés, dont ' + horsJeu + ' par distribution';
+  });
+
+verifier('Verrous chromatiques',
+  'La recherche trouve par nom, par rencontre et par numéro',
+  function(){
+    // Trois entrées dans le même champ, et rien ne le dit à l'écran. Si l'une
+    // des trois cesse de fonctionner, on croit simplement que la ligne n'existe
+    // pas — et on va chasser ce qui est verrouillé.
+    if(typeof verrouCorrespond !== 'function') return 'échec : verrous.js absent';
+    const v = VERROUS[0];
+    if(!v) return 'ignoré : table vide';
+    const e = verrouEntree(v.espece);
+    if(!e) return 'ignoré : espèce non résolue';
+    const nom = (typeof nomAffiche === 'function' ? nomAffiche(e) : e.display);
+    const essais = [
+      ['nom', nom],
+      ['numéro', String(v.espece)],
+      ['rencontre', v.rencontre.split(' ').slice(0, 3).join(' ')]
+    ];
+    const rates = essais.filter(function(x){ return !verrouCorrespond(v, x[1]); })
+                        .map(function(x){ return x[0]; });
+    if(rates.length) return 'échec : ' + rates.join(', ') + ' ne trouve(nt) pas';
+    // Et le contraire : un mot absent ne doit rien ramener.
+    if(verrouCorrespond(v, 'zzzznexistepas')) return 'échec : un mot absent correspond quand même';
+    return 'nom, numéro et rencontre trouvent ; un mot absent ne trouve rien';
+  });
+
+verifier('Verrous chromatiques',
+  'Le filtre Shiny-lock ne condamne une espèce qu’au national',
+  function(){
+    // LA NUANCE QUE CE FILTRE DOIT PORTER, et qui a coûté toute une table.
+    // Dans le Pokédex d'un jeu, « verrouillé » veut dire « une rencontre d'ici
+    // l'est ». Au national, aucun jeu n'est ouvert : seul « partout » se
+    // soutient. Confondre les deux ferait apparaître Roucool parmi les
+    // condamnés — à cause du scripté de la Route 2 de X et Y — alors qu'il se
+    // chasse dans presque tous les jeux où il figure.
+    if(typeof verrouillePour !== 'function') return 'échec : verrouillePour absente';
+
+    // Une espèce verrouillée sur une seule rencontre, et une verrouillée partout.
+    const surUnJeu = VERROUS.find(function(v){
+      return v.portee === 'jeu' && v.jeux && v.jeux.length;
+    });
+    const partout = VERROUS.find(function(v){ return v.portee === 'partout'; });
+    if(!surUnJeu || !partout) return 'ignoré : la table ne couvre pas les deux cas';
+
+    const cle = surUnJeu.jeux[0];
+    if(!verrouillePour(surUnJeu.espece, cle)){
+      return 'échec : #' + surUnJeu.espece + ' non vu comme verrouillé sur ' + cle;
+    }
+    if(verrouillePour(surUnJeu.espece, null)){
+      return 'échec : #' + surUnJeu.espece + ' condamné au national pour une seule rencontre';
+    }
+    if(!verrouillePour(partout.espece, null)){
+      return 'échec : #' + partout.espece + ' verrouillé partout, absent au national';
+    }
+    // Et le mot-clé de la recherche doit exister, sinon la pastille disparaît.
+    if(typeof MOTS_CLES_RECHERCHE === 'undefined' || !MOTS_CLES_RECHERCHE.verrouille){
+      return 'échec : le mot-clé « verrouille » a disparu de la recherche';
+    }
+    return '#' + surUnJeu.espece + ' verrouillé sur ' + cle + ' et libre au national, #'
+      + partout.espece + ' condamné partout';
+  });
+
+verifier('Cadeau Mystère',
+  'La réserve générée se relie entièrement à l’application',
+  function(){
+    // donnees-cadeaux.js est PRODUIT par outils/relever-cadeaux.py, et l'outil
+    // refuse déjà un libellé de version qu'il ne sait pas relier. Ce qu'il ne
+    // peut pas voir, c'est une clé de GAMES renommée APRÈS la génération : le
+    // fichier resterait valide et ses distributions deviendraient introuvables
+    // au filtre, sans rien casser.
+    if(typeof CADEAUX === 'undefined') return 'échec : donnees-cadeaux.js absent';
+    const connues = new Set(GAMES.map(function(g){ return g.key; }));
+    const fautes = new Set();
+    let n = 0;
+    CADEAUX.forEach(function(x){
+      x[3].forEach(function(k){ n++; if(!connues.has(k)) fautes.add(k); });
+    });
+    if(fautes.size) return 'échec : ' + Array.from(fautes).join(', ');
+    // Et les index de textes, qui rendraient « undefined » à l'écran.
+    const hors = CADEAUX.filter(function(x){
+      return [x[7], x[8], x[10]].some(function(i){
+        return i >= CADEAUX_TEXTES.length;
+      });
+    });
+    if(hors.length) return 'échec : ' + hors.length + ' index de texte hors table';
+    return CADEAUX.length + ' distributions, ' + n + ' références de jeu, toutes reliées';
+  });
+
+verifier('Cadeau Mystère',
+  'Chaque distribution nomme une espèce que la réserve connaît',
+  function(){
+    // Une espèce non résolue vaut 0 : ni vignette, ni numéro. L'outil le dit à
+    // la génération, mais personne ne relit une sortie de script des semaines
+    // plus tard — onze noms étaient tombés sur « Miaouss de Galar », que la
+    // réserve écrit « Miaouss (Galar) ».
+    if(typeof CADEAUX === 'undefined') return 'échec : donnees-cadeaux.js absent';
+    if(typeof allEntries === 'undefined' || !allEntries.length){
+      return 'ignoré : la réserve n’est pas chargée';
+    }
+    const connues = new Set(allEntries.map(function(e){ return e.speciesId; }));
+    const perdus = CADEAUX.filter(function(x){ return !x[1] || !connues.has(x[1]); });
+    if(perdus.length){
+      return 'échec : ' + perdus.length + ' non résolue(s), dont « ' + perdus[0][0] + ' »';
+    }
+    return CADEAUX.length + ' distributions, toutes rattachées à une espèce';
+  });
+
+verifier('Cadeau Mystère',
+  'Les trois raretés partagent le relevé sans trou ni recouvrement',
+  function(){
+    // Normal, Légendaire et Fabuleux sont EXCLUSIVES : leur somme doit faire le
+    // total. Un quatrième cas apparu à la source — une catégorie non prévue —
+    // tomberait silencieusement dans « normal » par le défaut de l'outil, et le
+    // compte le dirait avant que la liste ne mente.
+    if(typeof CADEAUX === 'undefined') return 'échec : donnees-cadeaux.js absent';
+    if(typeof cadeauxFiltres !== 'function') return 'échec : cadeaux.js absent';
+    const par = {};
+    CADEAUX.forEach(function(x){
+      const c = CADEAUX_CATEGORIES[x[4]];
+      par[c] = (par[c] || 0) + 1;
+    });
+    const somme = CADEAUX_CATEGORIES.reduce(function(a, c){ return a + (par[c] || 0); }, 0);
+    if(somme !== CADEAUX.length){
+      return 'échec : ' + somme + ' classées pour ' + CADEAUX.length + ' distributions';
+    }
+    // Et « chromatique », qui n'est pas une catégorie mais un état de la
+    // distribution : il doit croiser les trois autres, pas s'y substituer.
+    const chroma = CADEAUX.filter(function(x){
+      return CADEAUX_CHROMA[x[5]] === 'shiny_garanti';
+    }).length;
+    if(!chroma) return 'échec : aucune distribution chromatique garantie';
+    return CADEAUX_CATEGORIES.map(function(c){ return (par[c] || 0) + ' ' + c; }).join(', ')
+      + '  ·  ' + chroma + ' en chromatique garanti';
   });
 
 // ---------------------------------------------------------------------------

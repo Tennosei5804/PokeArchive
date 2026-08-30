@@ -348,7 +348,7 @@ const FABULEUX = new Set([
       key: 'frlg',
       tab: '🔥 Rouge Feu / Vert Feuille',
       title: 'Pokémon Rouge Feu / Vert Feuille',
-      machine: 'Game Boy Advance',
+      machine: 'Game Boy Advance / Switch',
       visuels: ['rouge-feu-vert-feuille'],
       versions: ['firered', 'leafgreen'],
       region: null, mega: false, gmax: false,

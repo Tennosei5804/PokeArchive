@@ -95,8 +95,7 @@
         <button class="page-tab" type="button" data-page="dresseurs">👥 Dresseurs</button>
         <button class="page-tab" type="button" data-page="amis">📣 Amis</button>
         <button class="page-tab" type="button" data-page="chasse">✨ Chasse</button>
-        <!-- RETIRÉ POUR LE MOMENT, comme l'overlay OBS plus bas : l'écran et
-             ses données restent en place, seule la porte d'entrée est fermée.
+        <button class="page-tab" type="button" data-page="cadeaux">🎁 Cadeau Mystère</button>
         <!-- UN SEUL onglet pour trois écrans. À dix entrées la barre débordait
              sur deux rangées, et c'est déjà ce qui avait fait sortir les jeux
              de la nav. Stratégie, Reproduction et Transferts répondent à la
@@ -369,6 +368,10 @@
 
         <div class="chasse-depart">
           <button class="toggle-btn primary" id="chasseNouvelle" type="button">✨ Créer une chasse</button>
+          <!-- Le catalogue des verrous. À côté de la création, parce que la
+               question se pose là : avant de lancer trois mille rencontres. -->
+          <button class="toggle-btn" id="verrousBtn" type="button"
+                  title="Les Pokémon dont la forme chromatique ne s'obtient pas — nulle part, ou pas par cette rencontre.">🔒 Shiny-lock</button>
           <!-- L'overlay OBS. Masqué sur le site : un navigateur ne peut pas
                ouvrir d'écoute locale. Voir overlay.rs et chasse.js. -->
           <button class="toggle-btn" id="overlayBtn" type="button" hidden
@@ -388,6 +391,71 @@
         <div class="chasse-tableau" id="chasseTableau" hidden></div>
       </section>
 
+
+      <!-- Les distributions officielles. Voir js/cadeaux.js, et la réserve
+           js/donnees-cadeaux.js que produit outils/relever-cadeaux.py. -->
+      <section class="page" id="page-cadeaux">
+        <div class="home-hero">
+          <div class="home-eyebrow">Distributions</div>
+          <h2 class="home-title">Cadeau Mystère</h2>
+          <p class="home-sous">Ce qui a été distribué officiellement, des
+            cartouches échangées en 1996 aux codes d'aujourd'hui. Le relevé est
+            <strong>mondial</strong>&nbsp;: chaque ligne dit où elle a eu lieu,
+            et beaucoup n'ont jamais touché l'Europe.</p>
+        </div>
+        <div class="toolbar cadeaux-filtres">
+          <input type="search" id="cadeauxQ"
+                 placeholder="Un Pokémon, un numéro, un évènement…"
+                 aria-label="Chercher un Pokémon, un numéro ou un évènement"
+                 autocomplete="off">
+          <select id="cadeauxGen" aria-label="Filtrer par génération">
+            <option value="all">Toutes générations</option>
+          </select>
+          <select id="cadeauxJeu" aria-label="Filtrer par jeu">
+            <option value="all">Tous les jeux</option>
+          </select>
+          <select id="cadeauxRarete" aria-label="Filtrer par rareté">
+            <option value="all">Toutes raretés</option>
+            <option value="normal">Normal</option>
+            <option value="legendaire">👑 Légendaire</option>
+            <option value="fabuleux">✴ Fabuleux</option>
+            <option value="chromatique">✨ Distribué en chromatique</option>
+          </select>
+        </div>
+        <div class="cadeaux-compte" id="cadeauxCompte"></div>
+        <div class="cadeaux-liste" id="cadeauxListe"></div>
+      </section>
+
+      <!-- Les verrous chromatiques. Une page, pas une fenetre : on la garde
+           ouverte a cote pendant qu'on prepare une chasse, et on y revient.
+           Voir js/verrous.js. -->
+      <section class="page" id="page-verrous">
+        <!-- Il nomme sa destination plutôt que de dire « Retour » : on arrive
+             ici depuis Chasse, et lire où l'on retourne évite de cliquer pour
+             le découvrir. Même patron que « ← Classement » chez les dresseurs. -->
+        <button class="toggle-btn verrou-retour" id="verrousRetour" type="button">← Chasse</button>
+        <div class="home-hero">
+          <div class="home-eyebrow">Avant de lancer une chasse</div>
+          <h2 class="home-title">Shiny-lock</h2>
+          <p class="home-sous">Les rencontres dont la forme chromatique ne
+            s'obtient pas. Le classement est par jeu : la question qu'on se pose
+            est « je lance celui-la, qu'est-ce que je ne dois pas chasser ».</p>
+        </div>
+        <div class="verrou-filtres">
+          <input type="search" id="verrousQ" placeholder="Chercher un Pokemon…"
+                 aria-label="Chercher un Pokemon verrouille" autocomplete="off">
+        </div>
+        <!-- Les jeux restent tous a l'ecran plutot que replies dans un menu :
+             voir la liste entiere dit d'un coup d'oeil lesquels ont des
+             verrous, ce qu'un menu ferme ne dit pas. -->
+        <div class="verrou-corps">
+          <nav class="verrou-nav" id="verrousNav" aria-label="Jeux"></nav>
+          <div class="verrou-panneau">
+            <div class="verrou-compte" id="verrousCompte"></div>
+            <div class="verrou-liste" id="verrousListe"></div>
+          </div>
+        </div>
+      </section>
 
       <!-- L'aide aux transferts. Ces règles dépendent du JEU et jamais de
            l'espèce : les répéter sur mille deux cent quatre-vingt-une fiches
@@ -1110,6 +1178,7 @@
 <!-- Le lexique. Une seule liste, deux portes : le bouton 📖 de l'en-tête, et
      les pastilles « ? » que lexique.js pose sur tout élément portant
      data-lexique. Voir js/lexique.js. -->
+
 <div class="modal-overlay" id="lexiqueOverlay" style="display:none;" role="dialog"
      aria-modal="true" aria-labelledby="lexiqueTitre">
   <div class="modal-card lexique-card">
@@ -1477,6 +1546,10 @@
 <!-- Généré par outils/generer-donnees.html. Doit précéder cache.js, qui y
      puise quand le stockage local est vide. -->
 <script src="js/donnees-embarquees.js"></script>
+<!-- Les verrous chromatiques : des données seules, relevées à la source et
+     datées. Doit précéder verrous.js, qui les affiche. -->
+<script src="js/donnees-cadeaux.js"></script>
+<script src="js/donnees-verrous.js"></script>
 <!-- Les notices du Pokédex, une par espèce et par jeu, relevées sur Poképédia
      par outils/relever-descriptions.py, ne sont PAS déclarées ici : fiche.js va
      les chercher à la première fiche ouverte, comme les attaques et les lieux.
@@ -1506,6 +1579,8 @@
 <script src="js/lieux.js"></script>
 <script src="js/filtres.js"></script>
 <script src="js/chasse.js"></script>
+<script src="js/verrous.js"></script>
+<script src="js/cadeaux.js"></script>
 <!-- Les règles de combat, puis l'écran qui s'appuie dessus. Tous deux après
      fiche.js (TYPE_RELATIONS, puceType, decoderBloc) et avant menus.js, qui
      stylise leurs menus déroulants. -->

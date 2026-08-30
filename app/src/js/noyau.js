@@ -154,6 +154,8 @@ const pageProfilEl = document.getElementById('page-profil');
 const pageParametresEl = document.getElementById('page-parametres');
 const pageChasseEl = document.getElementById('page-chasse');
 const pageJeuxEl = document.getElementById('page-jeux');
+const pageVerrousEl = document.getElementById('page-verrous');
+const pageCadeauxEl = document.getElementById('page-cadeaux');
 const pageStrategieEl = document.getElementById('page-strategie');
 const pageReproductionEl = document.getElementById('page-reproduction');
 const pageTransfertsEl = document.getElementById('page-transferts');
@@ -218,7 +220,8 @@ const fichePaliers = document.getElementById('fichePaliers');
 const portraitSource = document.getElementById('portraitSource');
 
 const STORAGE_KEY = 'living-dex-progress';
-const BATCH_SIZE = 60;
+// Combien de cartes par lot, au premier dessin comme à chaque « Afficher plus ».
+const BATCH_SIZE = 55;
 const GAUGE_CIRCUMFERENCE = 2 * Math.PI * 31; // matches r=31 in the SVG
 const usingClaudeStorage = !!(window.storage && typeof window.storage.get === 'function');
 
@@ -393,6 +396,40 @@ let saveTimer = null;
 //   5) A generic placeholder icon if nothing loads
 function localSpriteUrl(name, shiny){
   return 'Sprites/' + (shiny ? 'shiny/' : '') + name + '.png';
+}
+
+// Le dossier Sprites/ existe pour qui dépose ses propres rips — et il est VIDE
+// dans une installation ordinaire. Chaque carte y perdait donc une requête : mille
+// trois cents 404 au premier Pokédex, un journal de console illisible, et
+// l'erreur utile noyée au milieu des autres. Les images finissaient par
+// s'afficher, ce qui rendait le gaspillage invisible.
+//
+// ON N'ABANDONNE QUE SI L'ON N'A JAMAIS RIEN TROUVÉ. Une collection partielle —
+// seulement les sprites de première génération, par exemple — donne des séries
+// d'échecs sur les autres pages sans que le dossier soit vide pour autant :
+// couper au premier échec priverait cette personne de ses propres fichiers.
+//
+// CE QUE LE SEUIL NE FAIT PAS, ET IL FAUT LE SAVOIR : il n'épargne pas le
+// PREMIER lot. Les cinquante-cinq vignettes reçoivent leur adresse d'un seul
+// tenant, avant qu'aucune erreur ne soit revenue — le compteur est encore à zéro
+// quand la dernière part. Mesuré : cinquante-cinq échecs au premier lot, puis
+// zéro sur tous les suivants. On passe d'environ mille trois cents requêtes
+// perdues à cinquante-cinq, une fois par session, et non à huit.
+//
+// Le compteur ne vit qu'une session. Quelqu'un qui dépose ses sprites pendant
+// qu'elle tourne les retrouve au prochain lancement, sans réglage à changer.
+let spritesLocauxTrouves = 0;
+let spritesLocauxEchecs = 0;
+const SPRITES_LOCAUX_ABANDON = 8;
+
+/** Vaut-il encore la peine de tenter le dossier local ? */
+function spritesLocauxPossibles(){
+  return spritesLocauxTrouves > 0 || spritesLocauxEchecs < SPRITES_LOCAUX_ABANDON;
+}
+
+function noterSpriteLocal(trouve){
+  if(trouve) spritesLocauxTrouves++;
+  else spritesLocauxEchecs++;
 }
 function pokeosHomeUrl(id, shiny){
   const base = 'https://s3.pokeos.com/pokeos-uploads/assets/pokemon/home/render/';

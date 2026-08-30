@@ -469,20 +469,6 @@
     overflow-y:auto;
     padding:22px 22px 18px;
   }
-  /* Pouce en --ink-soft : mesure du contraste, --card-border tombe a 1.29 sur
-     --card et 1.13 sur --screen, soit un ascenseur invisible au repos. --ink-soft
-     donne 4.5 a 6.9 selon le fond et le theme, au-dessus du 3:1 attendu d un
-     element d interface.
-     Pas de scrollbar-width : la ou la notation standard est comprise elle
-     l emporte sur les regles -webkit, et dessine deux chevrons qu elle ne permet
-     pas de retirer. */
-  .preview-defilant::-webkit-scrollbar{ width:9px; }
-  .preview-defilant::-webkit-scrollbar-track{ background:transparent; }
-  .preview-defilant::-webkit-scrollbar-thumb{
-    background:var(--ink-soft); border-radius:999px;
-    border:2px solid transparent; background-clip:content-box;
-  }
-  .preview-defilant::-webkit-scrollbar-thumb:hover{ background:var(--ink); }
 
   /* Posee au-dessus du conteneur defilant, et decalee de la largeur de
      l'ascenseur : elle reste visible du haut en bas de la fiche, sur un fond
@@ -758,7 +744,13 @@
 .depart-mode-exemple{
   font-family:var(--font-data); font-size:10.5px; line-height:1.5;
   color:var(--ink-faint);
-  border-top:1px solid var(--card-border); padding-top:7px; margin-top:2px;
+  border-top:1px solid var(--card-border); padding-top:7px;
+  /* margin-top:auto — LE TRAIT DESCEND AU BAS DE LA CARTE, et les trois se
+     retrouvent donc à la même hauteur. Les trois descriptions n'ont pas la même
+     longueur ; caler le trait sur le texte le faisait flotter à trois hauteurs
+     différentes, ce qui se voit bien plus qu'un blanc. Le trou au-dessus est le
+     prix, et il est moins cher. */
+  margin-top:auto;
 }
 
 /* ---- L'entraide -------------------------------------------------------
@@ -931,3 +923,34 @@
   font-family:var(--font-body); font-size:12.5px;
 }
 .lex-tout:hover{ border-color:var(--ink-faint); color:var(--ink); }
+
+/* ===== L'ascenseur, partout =================================================
+   UNE SEULE DÉCLARATION. Il y en avait six, une par écran, et elles avaient
+   divergé : 9 px ici, 10 px là, rayon 5, 6 ou 999 selon l'endroit. Personne ne
+   voit deux ascenseurs côte à côte, donc personne ne remarquait la dérive —
+   c'est exactement ce qui la laisse s'installer.
+
+   POUCE EN --ink-soft, ET C'EST MESURÉ. --card-border tombe à 1.29 sur --card
+   et 1.13 sur --screen, soit un ascenseur invisible au repos. --ink-soft donne
+   entre 4.5 et 6.9 selon le fond et le thème, au-dessus du 3:1 attendu d'un
+   élément d'interface. Il suit aussi les couleurs choisies dans le Profil,
+   puisqu'il appartient à la même famille que le texte.
+
+   UN POUCE DE 5 PX DANS UNE GOUTTIÈRE DE 9. La bordure transparente et le
+   background-clip creusent la marge, plutôt qu'un ascenseur étroit collé au
+   texte.
+
+   PAS DE scrollbar-width NI DE scrollbar-color, VOLONTAIREMENT. Quand les deux
+   notations sont comprises, la standard l'emporte et tout ce qui suit est
+   ignoré — or scrollbar-width:thin dessine encore ses deux chevrons dans ce
+   moteur, et rien dans la notation standard ne permet de les retirer. Vérifié :
+   en retirant les propriétés standard, la largeur passe de 10 px à 9 et les
+   chevrons s'en vont.                                                        */
+*::-webkit-scrollbar{ width:9px; height:9px; }
+*::-webkit-scrollbar-track{ background:transparent; }
+*::-webkit-scrollbar-thumb{
+  background:var(--ink-soft); border-radius:999px;
+  border:2px solid transparent; background-clip:content-box;
+}
+*::-webkit-scrollbar-thumb:hover{ background:var(--ink); }
+*::-webkit-scrollbar-corner{ background:transparent; }

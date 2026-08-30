@@ -391,9 +391,9 @@ function showPage(name){
   if(name === 'outils') name = 'strategie';
 
   if(name === 'dresseurs' || name === 'profil' || name === 'chasse'
-     || name === 'strategie' || name === 'reproduction'
+     || name === 'verrous' || name === 'strategie' || name === 'reproduction'
      || name === 'transferts' || name === 'amis' || name === 'lieux'
-     || name === 'parametres'){
+     || name === 'parametres' || name === 'cadeaux'){
     currentPage = name;
     pageHomeEl.classList.remove('active');
     pageDexEl.classList.remove('active');
@@ -404,12 +404,17 @@ function showPage(name){
     if(pageProfilEl) pageProfilEl.classList.toggle('active', name === 'profil');
     if(pageParametresEl) pageParametresEl.classList.toggle('active', name === 'parametres');
     if(pageChasseEl) pageChasseEl.classList.toggle('active', name === 'chasse');
+    if(pageVerrousEl) pageVerrousEl.classList.toggle('active', name === 'verrous');
+    if(pageCadeauxEl) pageCadeauxEl.classList.toggle('active', name === 'cadeaux');
     if(pageStrategieEl) pageStrategieEl.classList.toggle('active', name === 'strategie');
     if(pageReproductionEl) pageReproductionEl.classList.toggle('active', name === 'reproduction');
     if(pageTransfertsEl) pageTransfertsEl.classList.toggle('active', name === 'transferts');
     // Les trois écrans d'outils allument le même onglet : c'est de là qu'on
     // vient, et c'est là qu'on retourne.
-    marquerOnglet(EST_UN_OUTIL.indexOf(name) !== -1 ? 'outils' : name);
+    // Shiny-lock n'a pas d'onglet à lui : on y entre depuis Chasse, et c'est
+    // Chasse qui reste allumé — sinon la barre n'indique plus d'où l'on vient.
+    marquerOnglet(EST_UN_OUTIL.indexOf(name) !== -1 ? 'outils'
+      : (name === 'verrous' ? 'chasse' : name));
     majSousNavOutils(name);
     if(name === 'dresseurs' && typeof chargerDresseurs === 'function') chargerDresseurs();
     if(name === 'amis' && typeof chargerAmis === 'function') chargerAmis();
@@ -419,6 +424,8 @@ function showPage(name){
     if(name === 'profil' && typeof chargerProfil === 'function') chargerProfil();
     if(name === 'parametres' && typeof chargerParametres === 'function') chargerParametres();
     if(name === 'chasse' && typeof dessinerChasses === 'function') dessinerChasses();
+    if(name === 'cadeaux' && typeof chargerCadeaux === 'function') chargerCadeaux();
+    if(name === 'verrous' && typeof dessinerVerrousPage === 'function') dessinerVerrousPage();
     if(name === 'strategie' && typeof dessinerStrategie === 'function') dessinerStrategie();
     if(name === 'reproduction' && typeof dessinerReproduction === 'function') dessinerReproduction();
     if(name === 'transferts' && typeof dessinerTransferts === 'function') dessinerTransferts();

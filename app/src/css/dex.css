@@ -266,55 +266,6 @@
   }
   .select-item.selected:hover{ background:var(--dex-red-deep); }
 
-  /* ---- La molette (voir dessinerRoulette dans js/menus.js) ----
-     Employée dès six options ; en dessous, la liste plate ci-dessus. */
-  .select-list.roulette{ padding:0; overflow:hidden; position:absolute; }
-  .roulette-piste{
-    /* LA HAUTEUR EST LA SEULE SOURCE : menus.js mesure un cran, en déduit le
-       rembourrage qui permet au premier et au dernier d'atteindre le centre, et
-       ne recopie aucun nombre d'ici. */
-    box-sizing:border-box;
-    height:200px;
-    overflow-y:auto;
-    scroll-snap-type:y mandatory;
-    scrollbar-width:none;
-    outline:none;
-  }
-  .roulette-piste::-webkit-scrollbar{ display:none; }
-  .roulette-item{
-    /* 40 px : cinq crans dans les 200 px ci-dessus, dont un au centre. */
-    box-sizing:border-box;
-    display:block; width:100%; height:40px;
-    scroll-snap-align:center;
-    font-family:var(--font-body);
-    font-size:13px; font-weight:500;
-    color:var(--ink);
-    background:transparent; border:none;
-    padding:0 16px;
-    text-align:left;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    cursor:pointer;
-    transition:color 120ms, font-weight 120ms;
-  }
-  /* Le cran sous la bande : c'est lui qu'un relâchement choisira. */
-  .roulette-item.au-centre{ color:var(--dex-red); font-weight:700; }
-  /* La bande fixe au milieu. Elle ne reçoit aucun clic — sinon elle
-     intercepterait celui destiné au cran qu'elle recouvre. */
-  .roulette-fenetre{
-    position:absolute; left:5px; right:5px; top:50%;
-    transform:translateY(-50%);
-    pointer-events:none;
-    border-top:1.5px solid var(--card-border);
-    border-bottom:1.5px solid var(--card-border);
-    background:rgba(238,58,58,.06);
-  }
-  /* Le mouvement doux dérange : le défilement reste instantané, l'aimant
-     opère toujours. */
-  @media (prefers-reduced-motion:reduce){
-    .roulette-piste{ scroll-behavior:auto; }
-    .roulette-item{ transition:none; }
-  }
-
   .toggle-btn{
     font-family:var(--font-body);
     font-weight:600;
@@ -347,9 +298,6 @@
     padding:4px 4px 4px 2px;
     scroll-behavior:smooth;
   }
-  .grid::-webkit-scrollbar{ width:9px; }
-  .grid::-webkit-scrollbar-thumb{ background:var(--ink-soft); border-radius:6px; }
-  .grid::-webkit-scrollbar-track{ background:transparent; }
 
   .gen-header{
     grid-column:1 / -1;
@@ -768,15 +716,7 @@
    --card et 1.13 sur --screen, soit un ascenseur invisible au repos. --ink-soft
    donne 4.5 a 6.9 selon le fond et le theme, au-dessus du 3:1 attendu d un
    element d interface.
-   Pas de scrollbar-width : la ou la notation standard est comprise elle
-   l emporte sur les regles -webkit, et dessine deux chevrons qu elle ne permet
-   pas de retirer. */
-.fiche-jeux-attaques::-webkit-scrollbar{ height:6px; }
-.fiche-jeux-attaques::-webkit-scrollbar-track{ background:transparent; }
-.fiche-jeux-attaques::-webkit-scrollbar-thumb{
-  background:var(--ink-soft); border-radius:999px;
-}
-.fiche-jeux-attaques:empty{ display:none; }
+ .fiche-jeux-attaques:empty{ display:none; }
 .jeu-onglet{
   flex:0 0 auto;
   font-family:var(--font-body); font-size:11.5px; font-weight:600;
@@ -901,9 +841,6 @@
   overflow-x:auto; overflow-y:hidden;
   margin-bottom:7px; padding-bottom:4px;
 }
-.fiche-raccourcis::-webkit-scrollbar{ height:6px; }
-.fiche-raccourcis::-webkit-scrollbar-track{ background:transparent; }
-.fiche-raccourcis::-webkit-scrollbar-thumb{ background:var(--ink-soft); border-radius:999px; }
 .fiche-raccourcis:empty{ display:none; }
 .raccourci{
   display:inline-flex; align-items:center; gap:5px;
@@ -1046,17 +983,19 @@
 .boite-fleche:hover:not(:disabled){ border-color:var(--dex-red); color:var(--dex-red); }
 .boite-fleche:disabled{ opacity:.35; cursor:default; }
 .boite-fleche:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
-/* Un menu natif : il est cree a chaque dessin, et enhanceSelect() ne passe
-   qu'une fois au chargement. On l'habille donc a la main plutot que de
-   l'inscrire dans une liste qui grossirait a chaque changement de boite. */
-.boite-choix{
-  height:30px; padding:0 8px; cursor:pointer;
-  border:1px solid var(--card-border); border-radius:8px;
-  background:var(--card); color:var(--ink);
+/* Ce menu passait en gris systeme : il est cree a chaque dessin, et menus.js
+   ne balayait qu'au chargement. Il l'habille desormais a l'insertion, comme
+   tous les autres — le menu est donc une molette, ses quarante et quelques
+   boites valant largement le seuil de six.
+
+   Il ne reste ici que ce que le composant ne peut pas deviner : la largeur
+   dans la rangee, et les chiffres tabulaires, sans lesquels « 12 / 30 »
+   danserait a chaque changement de boite. */
+#boiteNav .select-wrap{ flex:0 1 auto; min-width:150px; }
+#boiteNav .select-btn{
   font-family:var(--font-data); font-size:11.5px;
   font-variant-numeric:tabular-nums;
 }
-.boite-choix:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
 .boite-note{
   font-family:var(--font-data); font-size:10px; color:var(--ink-faint);
   letter-spacing:.02em;
@@ -1242,12 +1181,183 @@
    afin de savoir si on l'a deja demandee. */
 .blocage-cherche{ font-style:normal; font-size:11px; }
 
-/* L'étroit. Le site se lit au téléphone, et à 375 px la ligne se pliait mal : les
-   deux sélecteurs tombaient à la largeur de leur flèche, et le bouton s'insérait
-   au milieu des pastilles au lieu de les suivre. */
-@media (max-width:560px){
-  /* La recherche prend sa ligne, les deux sélecteurs se partagent la suivante. */
+/* ===== Le catalogue des verrous chromatiques =============================
+   Voir verrous.js. Il se consulte avant de lancer une chasse : trois mille
+   rencontres sur un Pokémon verrouillé, c'est l'erreur qu'on ne fait qu'une
+   fois — et seulement si personne ne l'a dite avant. */
+/* Une page, pas une fenêtre : elle prend la largeur qu'on lui donne. La donnée
+   est dense — une rencontre, une portée, une exception — et l'entasser dans
+   une colonne étroite obligeait à lire en escalier. */
+.verrou-retour{ margin:0 0 12px; }
+.verrou-filtres{
+  display:flex; gap:9px; align-items:center; margin:4px 0 14px;
+}
 
-  /* La ligne se plie : sprite et nom en haut, le bouton dessous, sur toute la
-     largeur — c'est la cible d'un pouce, elle a besoin de place. */
+/* Deux colonnes : les jeux à gauche, toujours tous visibles ; la donnée à
+   droite, en grand. On arrive ici avec une console allumée — savoir d'un coup
+   d'œil quels jeux ont des verrous vaut mieux qu'un menu à ouvrir. */
+.verrou-corps{ display:flex; gap:16px; align-items:flex-start; text-align:left; }
+.verrou-nav{
+  flex:0 0 250px; display:flex; flex-direction:column; gap:2px;
+  position:sticky; top:12px; align-self:flex-start;
+  max-height:calc(100vh - 40px); overflow-y:auto; padding-right:4px;
+}
+.verrou-onglet{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  width:100%; text-align:left; cursor:pointer;
+  padding:7px 10px; border-radius:9px;
+  border:1px solid transparent; background:transparent; color:var(--ink-soft);
+  font-family:var(--font-body); font-size:12px; font-weight:600;
+}
+.verrou-onglet:hover{ background:var(--screen); color:var(--ink); }
+.verrou-onglet.actif{
+  background:var(--dex-red); border-color:var(--dex-red); color:#fff;
+}
+.verrou-onglet:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+.verrou-onglet-nom{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.verrou-onglet-compte{
+  flex:0 0 auto; font-family:var(--font-data); font-size:10px;
+  padding:1px 6px; border-radius:6px;
+  background:var(--card-border); color:var(--ink-soft);
+}
+.verrou-onglet.actif .verrou-onglet-compte{ background:rgba(255,255,255,.24); color:#fff; }
+.verrou-onglet-compte.regle-seule{
+  background:transparent; border:1px solid var(--card-border);
+  color:var(--ink-faint); font-size:9px; letter-spacing:.04em;
+}
+.verrou-panneau{ flex:1 1 auto; min-width:0; }
+.verrou-filtres input[type="search"]{
+  flex:1 1 auto; min-width:0; height:34px; padding:0 11px;
+  border:1px solid var(--card-border); border-radius:10px;
+  background:var(--screen); color:var(--ink);
+  font-family:var(--font-body); font-size:12.5px;
+}
+.verrou-filtres input[type="search"]:focus-visible{
+  outline:2px solid var(--dex-red); outline-offset:1px;
+}
+/* menus.js masque le <select> natif : c'est .select-wrap qui occupe la place. */
+.modal-card .verrou-filtres .select-wrap{ flex:0 0 auto; width:auto; min-width:200px; }
+.verrou-compte{
+  font-family:var(--font-data); font-size:10.5px; color:var(--ink-faint);
+  letter-spacing:.06em; text-transform:uppercase; margin-bottom:8px;
+}
+/* .modal-card centre son contenu — c'est bon pour un titre, pas pour une liste
+   qu'on parcourt : l'œil a besoin d'un bord gauche fixe pour descendre. */
+/* Plus de hauteur plafonnée : la page défile, comme le reste de l'application.
+   Un second ascenseur imbriqué dans une page qui défile déjà, c'est la roulette
+   de souris qui ne sait plus lequel des deux elle actionne. */
+.verrou-liste{ text-align:left; }
+
+/* Le séparateur de groupe. Le classement est PAR JEU : c'est la question qu'on
+   se pose vraiment — « je lance Épée, qu'est-ce que je ne dois pas chasser ». */
+.verrou-section{ margin-bottom:18px; }
+.verrou-section-titre{
+  font-family:var(--font-body); font-size:12px; font-weight:800;
+  letter-spacing:.04em; color:var(--ink);
+  padding-bottom:5px; border-bottom:1.5px solid var(--card-border); margin-bottom:8px;
+}
+.verrou-section-note{
+  font-size:11px; color:var(--ink-soft); font-style:italic; margin-bottom:8px;
+}
+/* Une règle de moteur ne vise aucune espèce, mais elle condamne des chasses
+   entières : elle passe donc AVANT la liste, pas après la décision. */
+.verrou-regle{
+  font-size:11.5px; line-height:1.5; color:var(--ink-soft);
+  background:var(--screen); border-left:3px solid var(--gold);
+  border-radius:0 8px 8px 0; padding:7px 10px; margin-bottom:8px;
+}
+
+/* La ligne est un bouton : elle ouvre la fiche. D'où la remise à zéro des
+   styles natifs — un <button> arrive avec sa bordure, son fond et son
+   centrage, et les trois se voyaient. */
+.verrou-ligne{
+  display:flex; gap:11px; align-items:flex-start; width:100%;
+  padding:9px 6px; border:0; border-bottom:1px solid var(--card-border);
+  background:transparent; color:inherit; font:inherit; text-align:left;
+  border-radius:8px; cursor:pointer;
+}
+.verrou-ligne:last-child{ border-bottom:none; }
+.verrou-ligne:hover{ background:var(--screen); }
+.verrou-ligne:focus-visible{ outline:2px solid var(--dex-red); outline-offset:-2px; }
+.verrou-ligne:disabled{ cursor:default; opacity:.6; }
+.verrou-sprite{
+  flex:0 0 auto; width:64px; height:64px; display:grid; place-items:center;
+  background:var(--screen); border-radius:10px;
+}
+.verrou-sprite img{ max-width:100%; max-height:100%; image-rendering:auto; }
+.verrou-infos{ flex:1 1 auto; min-width:0; }
+.verrou-nom{ font-family:var(--font-body); font-size:15.5px; font-weight:700; color:var(--ink); }
+.verrou-no{ font-family:var(--font-data); font-size:10.5px; color:var(--ink-faint); margin-left:7px; }
+/* LA LIGNE QUI PORTE TOUT : ce qui est verrouillé, pas qui. */
+.verrou-quoi{ font-size:13px; color:var(--ink-soft); margin-top:3px; }
+.verrou-jeux{ margin-top:5px; display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+.verrou-etiq{
+  font-family:var(--font-data); font-size:9.5px; font-weight:700;
+  letter-spacing:.05em; text-transform:uppercase;
+  padding:2px 6px; border-radius:6px;
+}
+/* Rouge : rien à espérer. Ambre : possible, seulement plus long. Deux
+   couleurs, deux décisions — les confondre fait renoncer pour rien. */
+.verrou-etiq.ferme{ color:var(--danger); border:1px solid var(--danger); }
+.verrou-etiq.tiede{ color:var(--gold-deep); border:1px solid var(--gold); }
+.verrou-libelle{
+  font-family:var(--font-data); font-size:9.5px; color:var(--ink-faint);
+  padding:2px 6px; border:1px solid var(--card-border); border-radius:6px;
+}
+/* L'exclusivité de version : elle décide si la ligne vous concerne. */
+.verrou-libelle.version{ color:var(--gold-deep); border-color:var(--gold); }
+/* Ce que porte l'apparition elle-même : son niveau, ses capacités. */
+.verrou-apparition{ margin-top:5px; display:flex; flex-wrap:wrap; gap:5px; }
+.verrou-niveau{
+  font-family:var(--font-data); font-size:9.5px; font-weight:700;
+  padding:2px 6px; border-radius:6px;
+  background:var(--card-border); color:var(--ink-soft);
+}
+.verrou-attaque{
+  font-family:var(--font-body); font-size:10.5px;
+  padding:2px 7px; border-radius:6px;
+  background:var(--screen); color:var(--ink-soft);
+}
+.verrou-exception{
+  font-size:11.5px; color:var(--caught-ink); margin-top:4px;
+}
+.verrou-note-ligne{
+  font-size:11px; color:var(--ink-faint); font-style:italic; margin-top:3px;
+}
+
+/* Ce qui manque, écrit à l'écran. Une liste incomplète qui se présente comme
+   complète est pire qu'une liste absente : on cesse de vérifier ailleurs. */
+.verrou-incomplet{
+  margin-top:6px; padding:11px 12px; border-radius:10px;
+  border:1px dashed var(--card-border); background:var(--screen);
+}
+.verrou-incomplet-titre{
+  font-family:var(--font-data); font-size:10px; font-weight:700;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--gold-deep);
+  margin-bottom:6px;
+}
+.verrou-incomplet-ligne{
+  font-size:11.5px; line-height:1.5; color:var(--ink-soft); margin-bottom:4px;
+}
+
+/* L'étroit. Le site se lit au téléphone, et à 375 px la ligne se pliait mal. */
+/* L'étroit. À 560 px les deux colonnes ne tiennent plus côte à côte : les jeux
+   passent en bandeau horizontal qui défile, ce qui garde la navigation visible
+   au lieu de la replier dans un menu. */
+@media (max-width:860px){
+  .verrou-corps{ flex-direction:column; gap:12px; }
+  .verrou-nav{
+    flex:0 0 auto; width:100%; flex-direction:row; gap:6px;
+    max-height:none; overflow-x:auto; overflow-y:hidden;
+    padding-bottom:6px;
+  }
+  .verrou-onglet{ flex:0 0 auto; width:auto; }
+  .verrou-onglet-nom{ max-width:46vw; }
+}
+@media (max-width:560px){
+  .verrou-filtres{ flex-wrap:wrap; }
+  .verrou-filtres input[type="search"]{ flex:1 1 100%; }
+  .verrou-ligne{ gap:9px; }
+  .verrou-sprite{ width:48px; height:48px; }
+  .verrou-nom{ font-size:14px; }
 }

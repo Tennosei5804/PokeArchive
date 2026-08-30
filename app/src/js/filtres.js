@@ -104,17 +104,69 @@ function dessinerFiltres(){
 }
 
 /**
- * Aligne les pastilles sur le champ.
+ * Les formes régionales que les jeux connaissent, d'après GAMES.
+ *
+ * Pas de liste écrite ici : chaque jeu porte déjà `region`, et les mots-clés de
+ * la recherche emploient le même vocabulaire — « alola », « galar », « hisui »,
+ * « paldea ». Une dixième génération ajoutera sa région dans donnees.js et la
+ * pastille suivra sans qu'on y touche.
+ */
+function regionsConnues(){
+  const out = new Set();
+  if(typeof GAMES === 'undefined') return out;
+  GAMES.forEach(function(g){ if(g.region && g.region !== '*') out.add(g.region); });
+  return out;
+}
+
+/**
+ * Ce filtre a-t-il un sens dans le Pokédex ouvert ?
+ *
+ * LE PROBLÈME. Proposer « Gigamax » sur Pokémon Jaune, ou « Formes de Hisui »
+ * sur Rubis, c'est promettre un tri qui ne peut rien rendre. Quinze pastilles
+ * dont six ne servent à rien font douter des neuf autres.
+ *
+ * TOUT VIENT DE GAMES, RIEN N'EST RECOPIÉ. `mega`, `gmax` et `region` sont déjà
+ * renseignés jeu par jeu, et SANS_CHROMATIQUES dit où le chromatique n'existe
+ * pas. Une seconde table aurait été une seconde vérité, et celle-là se serait
+ * trompée au premier jeu ajouté.
+ *
+ * HORS D'UN JEU, TOUT RESTE. Le Pokédex national et la collection HOME
+ * rassemblent toutes les formes : rien à masquer.
+ */
+function filtrePertinent(mot){
+  const jeu = (typeof gameByKey !== 'undefined' && typeof currentTab !== 'undefined')
+    ? gameByKey[currentTab] : null;
+  if(!jeu) return true;
+
+  if(mot === 'mega') return !!jeu.mega;
+  if(mot === 'gigamax') return !!jeu.gmax;
+  if(regionsConnues().has(mot)) return jeu.region === '*' || jeu.region === mot;
+  // Rouge, Bleu et Jaune n'ont aucun chromatique : ni « obtenus », ni « lockés ».
+  if(mot === 'shiny' || mot === 'verrouille'){
+    return typeof SANS_CHROMATIQUES === 'undefined'
+        || SANS_CHROMATIQUES.indexOf(jeu.key) === -1;
+  }
+  return true;
+}
+
+/**
+ * Aligne les pastilles sur le champ, et sur le Pokédex ouvert.
  *
  * Appelée depuis majJetonsRecherche(), qui tourne à chaque dessin de la grille :
- * les pastilles suivent donc aussi une recherche tapée à la main, une remise à
- * zéro par un autre écran, ou un changement d'onglet.
+ * les pastilles suivent donc une recherche tapée à la main, une remise à zéro
+ * venue d'un autre écran, et un changement d'onglet.
  */
 function majFiltresActifs(){
   const el = document.getElementById('filtresRapides');
   if(!el) return;
   el.querySelectorAll('.filtre-chip').forEach(function(b){
-    b.setAttribute('aria-pressed', String(filtreActif(b.dataset.mot)));
+    const actif = filtreActif(b.dataset.mot);
+    b.setAttribute('aria-pressed', String(actif));
+    // ON NE CACHE JAMAIS UN FILTRE QUI AGIT. Masquer une pastille allumée en
+    // changeant de Pokédex laisserait son mot dans la recherche : la grille se
+    // viderait sans que rien à l'écran n'en donne la raison. Tant qu'il est
+    // posé, il reste visible — donc retirable.
+    b.hidden = !actif && !filtrePertinent(b.dataset.mot);
   });
 }
 
