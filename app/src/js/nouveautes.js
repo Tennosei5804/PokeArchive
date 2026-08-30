@@ -20,6 +20,31 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.34.0', date: '2026-08-31',
+    titre: 'Les messages ont leur page',
+    points: [
+      '**🩹 Un mot envoyé avec une proposition d’échange arrive enfin.** Il '
+      + 'déclenchait bien une notification, mais l’écran Messages restait vide : '
+      + 'il était rangé à côté de la conversation, pas dedans. La première chose '
+      + 'qu’on écrit était la seule à ne pas arriver. Les échanges déjà proposés '
+      + 'sont rattrapés — tu retrouveras des conversations que tu croyais vides.',
+      '**💬 Un onglet « Messages », et une vraie page.** Deux colonnes : à '
+      + 'gauche à qui tu parles, à droite ce que vous vous dites. C’était une '
+      + 'fenêtre par-dessus l’écran, trop étroite pour une conversation.',
+      '**Plus aucune fenêtre par-dessus.** La discussion d’un échange en était '
+      + 'une, ouverte depuis la cloche : tu avais deux boîtes pour la même '
+      + 'personne. Cliquer une notification de message ouvre maintenant la page, '
+      + 'à la bonne conversation.',
+      '**🔍 Le champ « À qui veux-tu écrire ? » propose des noms.** Tes amis '
+      + 'd’abord, dès l’ouverture et sans rien taper, puis les autres dresseurs '
+      + 'quand tu tapes. Et si personne ne correspond, tu peux écrire au pseudo '
+      + 'exact — quelqu’un qui s’est retiré du classement reste joignable.',
+      '**🎴 Joindre un Pokémon**, par son nom ou en parcourant une génération. '
+      + 'Chez l’autre, ça arrive comme une carte qui ouvre sa fiche.',
+      '**Une conversation ne se fige plus au deux-centième message.**',
+    ],
+  },
+  {
     version: '0.33.0', date: '2026-08-30',
     titre: 'Une personne, une conversation',
     points: [
