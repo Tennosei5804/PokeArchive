@@ -78,6 +78,7 @@ function detailDe(cleDex, nom){
 }
 
 function poserDetail(cleDex, nom, champ, valeur){
+  if(!exigeCompte('noter les details d’une capture')) return;
   const propre = String(valeur || '').slice(0, 60).trim();
   if(!detailsCapture[cleDex]) detailsCapture[cleDex] = {};
   const d = detailsCapture[cleDex][nom] || {};

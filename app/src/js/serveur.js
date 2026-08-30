@@ -115,6 +115,16 @@ async function loadProgress(){
 // Rien n'est enregistré tant que le dresseur n'a pas de pseudo : c'est lui
 // qui identifie la sauvegarde, donc aucune écriture ne part sans lui.
 function queueSave(){
+  // LE DERNIER FILET, ET LE SEUL QUI SOIT COMPLET PAR CONSTRUCTION. Chaque
+  // modification de l'aventure finit ici, d'ou qu'elle vienne : on ne peut donc
+  // pas en oublier une. Les portes principales — cocher une capture, proposer
+  // un echange, creer une aventure — refusent plus tot et plus proprement, avant
+  // que rien ne bouge ; celles qu'on n'a pas nommees une a une echouent au
+  // moins EN LE DISANT, au lieu de laisser croire a un enregistrement.
+  //
+  // noyau.js en pose un defaut permissif, que compte.js ecrase : les pages de
+  // generation, qui retirent compte.js, gardent donc une fonction a appeler.
+  if(!exigeCompte('enregistrer ta progression')) return;
   if(!playerName) return;
   if(saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(function(){

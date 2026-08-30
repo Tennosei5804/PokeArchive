@@ -17,6 +17,40 @@ if (!invoke) {
 
 let dresseurCourant = null;
 
+// ---- Sans compte, on regarde -----------------------------------------------
+//
+// L'APPLICATION SE LIT SANS COMPTE ET NE S'ECRIT PAS. Parcourir le Pokedex,
+// ouvrir une fiche, lire les cadeaux mysteres ou le catalogue des verrous : un
+// almanach n'a besoin de personne. Cocher une capture, creer une aventure,
+// proposer un echange : ces gestes-la appartiennent a quelqu'un.
+//
+// LE REFUS EXISTAIT DEJA, MAIS MUET. `queueSave()` renonce a ecrire quand il n'y
+// a pas de pseudo ; l'interface, elle, acceptait le clic. La case se cochait, la
+// barre de progression avancait, et tout disparaissait au rechargement. C'est
+// le pire des deux mondes : on croit avoir enregistre.
+//
+// POURQUOI PAS `dresseurCourant` ? Parce qu'il ne dit pas « connecte », il dit
+// « l'API a repondu ». Au demarrage sans reseau, la session stockee est bonne,
+// `moi` echoue quand meme, et dresseurCourant reste nul : s'y fier verrouillerait
+// un joueur legitime hors ligne — or c'est precisement le cas que l'application
+// sait traiter, `playerName` etant relu du stockage local et `queueSave` y
+// ecrivant. On garde donc a part la seule question qui ne demande pas le reseau :
+// « ai-je un jeton ? », que le Rust tranche avec `session.is_some()`.
+let sessionOuverte = false;
+
+/**
+ * Ce geste demande-t-il un compte, et l'a-t-on ?
+ *
+ * Rend true si l'on peut continuer. Sinon ouvre la connexion en DISANT CE QU'ON
+ * VOULAIT FAIRE — « Connecte-toi pour cocher une capture » se comprend, une
+ * fenetre de connexion surgie sans raison, non.
+ */
+function exigeCompte(geste){
+  if(sessionOuverte) return true;
+  ouvrirAuthModal('Connecte-toi pour ' + (geste || 'enregistrer quoi que ce soit') + '.');
+  return false;
+}
+
 // MODES_DEX et infoMode vivent dans donnees.js : la grille en a besoin, et
 // compte.js n'est pas chargé par les pages de génération.
 
@@ -272,7 +306,8 @@ async function ouvrirSession(){
   try{ etat = await invoke('etat'); }
   catch(e){ etat = { connecte: false }; }
 
-  if(!etat.connecte){ ouvrirAuthModal(); return false; }
+  sessionOuverte = Boolean(etat.connecte);
+  if(!sessionOuverte){ ouvrirAuthModal(); marquerSansCompte(); return false; }
 
   try{
     const data = await invoke('moi');
@@ -288,6 +323,8 @@ async function ouvrirSession(){
 
 function appliquerDresseur(d){
   dresseurCourant = d;
+  sessionOuverte = true;
+  marquerSansCompte();
   playerName = d.pseudo;         // le reste de l'app s'appuie dessus
   fermerAuthModal();
 
@@ -366,6 +403,8 @@ async function perdreSession(){
   // d'amis alors qu'on a justement voulu partir.
   if(typeof presenceEffacer === 'function') presenceEffacer();
   dresseurCourant = null;
+  sessionOuverte = false;
+  marquerSansCompte();
   profilCourant = null;
   profilsConnus = [];
   playerName = '';
@@ -414,6 +453,19 @@ function ouvrirAuthModal(message){
 
 function fermerAuthModal(){ authOverlay.style.display = 'none'; }
 
+/**
+ * Pose ou retire `sans-compte` sur <body>.
+ *
+ * LE REFUS DOIT SE VOIR AVANT LE GESTE, pas apres. Une case qu'on peut cocher
+ * et qui refuse ensuite est une promesse rompue ; une case grisee ne promet
+ * rien. La feuille de style se charge du reste — c'est elle qui sait a quoi
+ * ressemble un bouton qu'on ne peut pas presser, et cela evite de dupliquer
+ * ici une liste de selecteurs qui vivrait mal.
+ */
+function marquerSansCompte(){
+  document.body.classList.toggle('sans-compte', !sessionOuverte);
+}
+
 authConnexion.addEventListener('click', async function(){
   authConnexion.disabled = true;
   authLibelle.textContent = 'Validation dans ton navigateur…';
@@ -453,6 +505,8 @@ document.getElementById('quitter').addEventListener('click', async function(e){
   await invoke('deconnexion').catch(function(){});
   if(typeof presenceEffacer === 'function') presenceEffacer();
   dresseurCourant = null;
+  sessionOuverte = false;
+  marquerSansCompte();
   profilCourant = null;
   profilsConnus = [];
   playerName = '';
@@ -1099,6 +1153,7 @@ function fermerProfilModal(){
 }
 
 async function creerAventure(){
+  if(!exigeCompte('créer une aventure')) return;
   const nom = profilNouveauNom.value.trim();
   // La même règle qu'au renommage : sans elle, un nom d'une lettre partait au
   // serveur pour en revenir refusé.

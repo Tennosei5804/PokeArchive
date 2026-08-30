@@ -151,7 +151,7 @@ export async function session(jeton) {
   if (!jeton) return null;
   const l = await une(
     `SELECT d.id, d.discord_id, d.pseudo, d.avatar, d.cree_le, d.visible,
-            s.expire_le
+            d.echanges_ouverts, d.messages_de, s.expire_le
        FROM pa_sessions s JOIN pa_dresseurs d ON d.id = s.dresseur_id
       WHERE s.jeton_cle = ?`, [cle(jeton)]);
   if (!l) return null;
@@ -163,6 +163,8 @@ export async function session(jeton) {
     id: l.id, discordId: l.discord_id, pseudo: l.pseudo,
     avatar: l.avatar, creeLe: l.cree_le,
     visible: l.visible !== 0,
+    echangesOuverts: l.echanges_ouverts !== 0,
+    messagesDe: l.messages_de || 'tous',
   };
 }
 
@@ -640,6 +642,40 @@ export async function chercherDresseurs(requete) {
  * pourquoi. Pour ne rien montrer, l'outil existe deja et il est plus precis :
  * marquer ses aventures comme privees.
  */
+/**
+ * Ouvrir ou fermer sa porte aux propositions d'echange.
+ *
+ * FERMER N'ANNULE RIEN DE CE QUI EXISTE. Les echanges deja proposes, acceptes
+ * ou en discussion continuent leur vie : on ferme la porte, on ne vide pas la
+ * piece. Quelqu'un qui attend une reponse depuis trois jours ne doit pas voir
+ * son echange disparaitre parce que l'autre a change un reglage.
+ */
+// Qui peut m'ecrire. Trois valeurs, et rien d'autre n'est accepte : une chaine
+// inconnue arrivant par la route deviendrait un quatrieme etat silencieux, dont
+// personne ne saurait dire ce qu'il autorise.
+export const QUI_PEUT_ECRIRE = ['tous', 'amis', 'personne'];
+
+/**
+ * Ouvrir sa boite a tout le monde, a ses seuls amis, ou a personne.
+ *
+ * POURQUOI UN REGLAGE A PART DE `echanges_ouverts`. Recevoir une proposition
+ * d'echange et recevoir un message ne se subissent pas pareil : l'une se refuse
+ * d'un clic et disparait, l'autre se lit. Beaucoup voudront rester joignables
+ * pour echanger tout en fermant la conversation aux inconnus — et l'inverse
+ * existe aussi.
+ */
+export async function changerMessagesDe(dresseurId, valeur) {
+  const v = QUI_PEUT_ECRIRE.indexOf(valeur) !== -1 ? valeur : 'tous';
+  await ecrire('UPDATE pa_dresseurs SET messages_de = ? WHERE id = ?', [v, dresseurId]);
+  return { messagesDe: v };
+}
+
+export async function changerEchangesOuverts(dresseurId, ouverts) {
+  const v = ouverts ? 1 : 0;
+  await ecrire('UPDATE pa_dresseurs SET echanges_ouverts = ? WHERE id = ?', [v, dresseurId]);
+  return { echangesOuverts: v === 1 };
+}
+
 export async function changerVisibilite(dresseurId, visible) {
   const v = visible ? 1 : 0;
   await ecrire('UPDATE pa_dresseurs SET visible = ? WHERE id = ?', [v, dresseurId]);

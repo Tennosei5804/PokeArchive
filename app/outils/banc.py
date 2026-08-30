@@ -87,6 +87,9 @@ const NOTIFS = [
     jeDonne:'kadabra', jeRecois:'abra' },
 ];
 
+// Les messages directs, en memoire le temps de la page.
+const DIRECTS = [];
+
 const REPONSES = {
   etat:            () => ({ connecte:true }),
   moi:             () => ({ dresseur:{ id:1, pseudo:'Tennosei_', discordId:'1', avatar:null },
@@ -159,6 +162,32 @@ const REPONSES = {
   echange_ecrire:  (a) => { MESSAGES.push({ id: MESSAGES.length + 1, echange:(a&&a.id),
                               texte:(a&&a.texte)||'', quand:'', pseudo:'Tennosei_', deMoi:true });
                             return { id: MESSAGES.length, quand:'' }; },
+  changer_messages_de: (a) => { const v = (a&&a.valeur)||'tous';
+                            // Le serveur rabat une valeur inconnue sur « tous » :
+                            // le pont fait pareil, sinon l'ecran croirait avoir
+                            // pose un quatrieme etat qui n'existe pas.
+                            const bons = ['tous','amis','personne'];
+                            return { messagesDe: bons.indexOf(v) !== -1 ? v : 'tous' }; },
+
+  // --- La messagerie --------------------------------------------------------
+  // Les messages directs vivent en memoire, comme le reste : le banc peut donc
+  // en envoyer et les relire sans qu'aucune ligne ne parte au serveur.
+  messages_liste:  () => ({ conversations: DIRECTS.length
+                              ? [{ pseudo:'Ondine', avatar:null, discordId:'2',
+                                   dernier: DIRECTS[DIRECTS.length - 1].texte,
+                                   deMoi: DIRECTS[DIRECTS.length - 1].deMoi,
+                                   quand:'', nonLus:0 }]
+                              : [] }),
+  messages_avec:   (a) => ({ avec:{ pseudo:(a&&a.pseudo)||'Ondine', avatar:null, discordId:'2' },
+                             messages: DIRECTS.map(m => ({ ...m })) }),
+  messages_ecrire: (a) => { const texte = (a&&a.texte)||'';
+                            // Le meme filtre qu'au serveur, en beaucoup plus
+                            // simple : le banc n'eprouve pas le filtre ici, il
+                            // eprouve que l'ecran affiche le refus.
+                            if(/sale con/.test(texte)) throw new Error('Ton message ne passe pas. Reformule-le.');
+                            DIRECTS.push({ id: DIRECTS.length + 1, texte, quand:'', deMoi:true });
+                            return { id: DIRECTS.length, quand:'' }; },
+
   notifications:   () => ({ notifications: NOTIFS.map(n => ({ ...n })),
                             nonLues: NOTIFS.filter(n => !n.lu).length }),
   notifications_lues: () => { NOTIFS.forEach(n => { n.lu = true; }); return { ok:true, nonLues:0 }; },

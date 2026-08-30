@@ -130,6 +130,11 @@ const amisPlus = document.getElementById('amisPlus');
 const amisNotif = document.getElementById('amisNotif');
 const visibleDresseurs = document.getElementById('visibleDresseurs');
 const visibleEtat = document.getElementById('visibleEtat');
+const trocContre = document.getElementById('trocContre');
+const messagesDe = document.getElementById('messagesDe');
+const messagesDeEtat = document.getElementById('messagesDeEtat');
+const echangesOuverts = document.getElementById('echangesOuverts');
+const echangesOuvertsEtat = document.getElementById('echangesOuvertsEtat');
 const retroBloc = document.getElementById('retroBloc');
 const succesBloc = document.getElementById('succesBloc');
 const succesBtn = document.getElementById('succesBtn');
@@ -380,6 +385,25 @@ function nomAffiche(entry){
 }
 
 let playerName = '';
+
+/**
+ * Ce geste demande-t-il un compte ? Ici, jamais.
+ *
+ * VALEUR PAR DEFAUT, DESTINEE A ETRE ECRASEE. compte.js redeclare cette
+ * fonction et repond alors vraiment ; charge apres noyau.js, sa declaration
+ * l'emporte. C'est l'idiome deja employe dans ce depot pour les fonctions qui
+ * parlent au serveur, et il sert ici deux clients qui n'ont pas de compte :
+ *
+ *   les pages de generation  retirent compte.js — sans ce defaut, la premiere
+ *                            case cochee levait une ReferenceError.
+ *   le site web              le garde, mais son pont repond « connecte: true »
+ *                            puisque la collection tient dans le navigateur et
+ *                            qu'il n'y a aucun compte a creer.
+ *
+ * Repondre « oui » par defaut est le bon sens du refus : un client qui ne
+ * connait pas les comptes ne doit pas se retrouver bride par eux.
+ */
+function exigeCompte(){ return true; }
 let shinyView = false;
 let renderedCount = 0;
 let currentFiltered = [];

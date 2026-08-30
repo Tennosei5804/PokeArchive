@@ -94,6 +94,12 @@ const BONUS = {
 // C'est en revanche un réglage SERVEUR — une partie peut l'avoir changé, et
 // l'écran de chasse le dit.
 function tauxDeBase(cle){
+  // PAS DE JEU N'EST PAS UN JEU MODERNE. Le 4096 de la fin est un DÉFAUT voulu
+  // — un jeu qu'on n'a pas listé est récent, donc à 4096 — mais appliqué à une
+  // clé vide il rendait un taux d'apparence normale pour rien du tout.
+  // Mesuré depuis le calculateur, où un menu peut ne rien valoir le temps d'un
+  // changement de jeu : « Un chromatique sur 4 096 » s'affichait sans jeu.
+  if(!cle) return null;
   if(SANS_CHROMATIQUES.indexOf(cle) !== -1) return null;
   if(cle === 'cobblemon') return 8192;
   return TAUX_ANCIEN.indexOf(cle) !== -1 ? 8192 : 4096;

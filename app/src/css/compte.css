@@ -2056,3 +2056,125 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   .cadeau-ligne{ gap:9px; padding:9px 8px; }
   .cadeau-sprite{ width:38px; height:38px; }
 }
+
+/* ---- Le calculateur de taux ------------------------------------------------
+   Posé ici, à la suite des styles de chasse dont il reprend les cases à cocher.
+
+   LE TAUX D'ABORD, GROS ET SEUL : c'est la réponse. Le détail dessous, en
+   petit, parce qu'il sert à VÉRIFIER la réponse et non à la lire — et parce
+   qu'un calcul écrit en gros au milieu d'une fenêtre se lit comme le résultat,
+   ce qu'il n'est pas. */
+.calc-taux{
+  margin:18px 0 6px;
+  font-family:var(--font-body);
+  font-size:20px;
+  text-align:center;
+  color:var(--ink);
+}
+.calc-taux b{ font-family:var(--font-data); color:var(--gold-deep); }
+.calc-detail{
+  margin:0 0 15px;
+  font-family:var(--font-data);
+  font-size:11.5px;
+  line-height:1.8;
+  text-align:center;
+  color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;
+}
+.calc-detail b{ color:var(--ink); }
+
+.calc-seuils{ display:grid; gap:6px; margin-bottom:16px; }
+/* Deux colonnes plutôt qu'une phrase : les trois lignes se comparent d'un coup
+   d'œil, et les nombres tombent les uns sous les autres. */
+.calc-seuil{
+  display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+  padding:7px 11px; border-radius:9px;
+  background:var(--screen); border:1px solid var(--card-border);
+  font-family:var(--font-body); font-size:13px;
+}
+.calc-seuil-part{ color:var(--ink-soft); }
+.calc-seuil-n{
+  font-family:var(--font-data); font-size:12px; color:var(--ink);
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+
+.calc-proba{
+  margin:9px 0 0;
+  font-family:var(--font-body); font-size:13.5px;
+  text-align:center; color:var(--ink);
+  /* Réservée même vide : sans cela, taper un chiffre fait sauter la fenêtre. */
+  min-height:21px;
+}
+.calc-proba b{ font-family:var(--font-data); color:var(--gold-deep); }
+
+/* ---- La messagerie ---------------------------------------------------------
+   Deux etats dans une seule fenetre : la liste des conversations et le fil de
+   l'une d'elles. Les bulles viennent de .discussion-* — c'est la meme chose a
+   l'ecran, et un second jeu de styles aurait diverge au premier ajustement.
+
+   LA FENETRE A UNE HAUTEUR FIXE, contrairement aux autres. Passer de la liste
+   au fil changeait sa taille d'un coup, et le bouton « Fermer » sautait sous le
+   curseur au moment ou l'on cliquait. */
+.msg-card{ min-height:min(72vh, 560px); display:flex; flex-direction:column; }
+
+.msg-entete{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.msg-entete .modal-title{ margin:0; }
+/* Un carre, pas un bouton de texte : c'est une fleche, elle n'a pas de libelle
+   a faire respirer. */
+.msg-retour{ padding:5px 11px; font-size:15px; line-height:1; flex-shrink:0; }
+
+#msgQ{
+  width:100%; padding:9px 12px; border-radius:8px; margin-bottom:10px;
+  border:1px solid var(--card-border); background:var(--screen); color:var(--ink);
+  font-family:var(--font-body); font-size:13.5px;
+}
+#msgQ:focus{ outline:none; border-color:var(--dex-red); }
+
+.msg-liste{ display:flex; flex-direction:column; gap:6px; flex:1 1 auto; overflow-y:auto; }
+.msg-conv{
+  display:flex; align-items:center; gap:10px; text-align:left;
+  padding:9px 11px; border-radius:10px; cursor:pointer;
+  background:var(--screen); border:1px solid var(--card-border);
+  font-family:var(--font-body); color:var(--ink);
+  transition:border-color 120ms;
+}
+.msg-conv:hover{ border-color:var(--gold); }
+.msg-conv-avatar{ width:32px; height:32px; border-radius:50%; flex-shrink:0; }
+/* min-width:0 sur le conteneur ET l'apercu : sans lui, une flexbox refuse de
+   retrecir son enfant sous la longueur du texte, et l'ellipse ne prend jamais. */
+.msg-conv-corps{ display:flex; flex-direction:column; gap:1px; flex:1 1 auto; min-width:0; }
+.msg-conv-nom{ font-size:13.5px; }
+.msg-conv-apercu{
+  font-size:11.5px; color:var(--ink-soft);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;
+}
+.msg-conv.non-lu .msg-conv-nom{ font-weight:600; }
+.msg-conv.non-lu .msg-conv-apercu{ color:var(--ink); }
+.msg-conv-pastille{
+  flex-shrink:0; min-width:19px; height:19px; padding:0 5px;
+  display:grid; place-items:center; border-radius:999px;
+  background:var(--dex-red); color:#fff;
+  font-family:var(--font-data); font-size:10.5px;
+}
+
+/* Le fil occupe la place laissee libre, plutot qu'une hauteur a lui : sinon la
+   zone de saisie flotte au milieu quand la conversation est courte. */
+.msg-fil{ flex:1 1 auto; max-height:none; }
+.discussion-ecrire textarea{
+  flex:1 1 auto; min-width:0; resize:none;
+  padding:9px 12px; border-radius:8px;
+  border:1px solid var(--card-border); background:var(--screen); color:var(--ink);
+  font-family:var(--font-body); font-size:13.5px; line-height:1.5;
+}
+.discussion-ecrire textarea:focus{ outline:none; border-color:var(--dex-red); }
+
+.amis-actions{ display:flex; gap:8px; margin-bottom:10px; }
+
+/* La recherche du panneau d'entraide. Meme dessin que les autres champs de
+   fenetre : ce n'est pas un element a part, c'est un champ de plus. */
+#echangeQ{
+  width:100%; padding:9px 12px; border-radius:8px; margin-bottom:12px;
+  border:1px solid var(--card-border); background:var(--screen); color:var(--ink);
+  font-family:var(--font-body); font-size:13.5px;
+}
+#echangeQ:focus{ outline:none; border-color:var(--dex-red); }

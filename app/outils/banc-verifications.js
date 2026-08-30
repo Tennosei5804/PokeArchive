@@ -1705,3 +1705,179 @@ async function lancerBanc(){
 // On attend que l'application ait fini de se dessiner : ses écrans se
 // construisent après plusieurs allers-retours simulés.
 window.addEventListener('load', function(){ setTimeout(lancerBanc, 2200); });
+
+verifier('Sans compte',
+  'Aucune écriture n’est acceptée sans session, et le refus se voit',
+  function(){
+    // CE QUI ARRIVAIT AVANT. On pouvait fermer la fenêtre de connexion et se
+    // servir de l'application entière : cocher, créer une aventure, tenir une
+    // liste d'envies. Rien n'était enregistré — `queueSave` renonce sans pseudo
+    // — mais rien ne le disait. La case restait cochée, la barre de progression
+    // avançait, et tout disparaissait au rechargement suivant. On croyait avoir
+    // enregistré une heure de travail.
+    //
+    // ON ÉPROUVE LES DEUX MOITIÉS, parce qu'aucune ne suffit seule :
+    // le refus lui-même, et le fait qu'il se voie AVANT le geste.
+    if(typeof exigeCompte !== 'function') return 'échec : exigeCompte introuvable';
+
+    const avant = sessionOuverte;
+    const dit = [];
+    try{
+      sessionOuverte = false;
+      marquerSansCompte();
+
+      if(exigeCompte('essayer')) return 'échec : accepté sans session';
+      if(!document.body.classList.contains('sans-compte')){
+        return 'échec : rien ne signale l’absence de compte à l’écran';
+      }
+      const modale = document.getElementById('authOverlay');
+      if(!modale || modale.style.display !== 'flex'){
+        return 'échec : le refus n’ouvre pas la connexion';
+      }
+      // Le message NOMME le geste refusé : une fenêtre de connexion surgie sans
+      // raison ne s'explique pas d'elle-même.
+      const message = document.getElementById('authErreur');
+      if(!message || message.textContent.indexOf('essayer') === -1){
+        return 'échec : le refus ne dit pas ce qu’on voulait faire';
+      }
+      dit.push('refusé, signalé à l’écran, et la connexion s’ouvre en le disant');
+
+      sessionOuverte = true;
+      marquerSansCompte();
+      if(!exigeCompte('essayer')) return 'échec : refusé alors que la session est ouverte';
+      if(document.body.classList.contains('sans-compte')){
+        return 'échec : la marque « sans compte » survit à la session';
+      }
+      dit.push('accepté dès que la session revient');
+    } finally {
+      // MÊME EN CAS D'ÉCHEC : laisser sessionOuverte à false ferait échouer
+      // toutes les vérifications suivantes, et pour une mauvaise raison.
+      sessionOuverte = avant;
+      marquerSansCompte();
+      if(typeof fermerAuthModal === 'function') fermerAuthModal();
+    }
+    return dit.join(' · ');
+  });
+
+verifier('Calculateur',
+  'Les bonus s’additionnent, et le calcul se lit terme à terme',
+  function(){
+    // L'EXEMPLE QUI L'A FAIT NAÎTRE, et il vient des taux publiés : dans
+    // Légendes Arceus, une mégapparition avec le Charme Chroma et la page de
+    // Pokédex complète passe à 1/128. Si cette ligne casse, c'est le modèle de
+    // taux qui a bougé — pas l'affichage.
+    //
+    // ON ÉPROUVE L'ADDITION, PAS SEULEMENT LE RÉSULTAT. Un taux juste obtenu
+    // par une mauvaise décomposition retomberait juste par hasard, et la
+    // prochaine combinaison serait fausse.
+    if(typeof ouvrirCalculateur !== 'function') return 'échec : calculateur absent';
+
+    ouvrirCalculateur();
+    calcJeu.value = 'pla';
+    calcMajMethodes();
+    calcMethode.value = 'megapparition';
+    calcDessiner();
+    calcBonus.querySelectorAll('input').forEach(function(c){ c.checked = true; });
+    calcDessiner();
+
+    const taux = calcTaux.textContent;
+    if(taux.indexOf('128') === -1) return 'échec : attendu 1/128, lu « ' + taux + ' »';
+
+    // TOUTES LES ESPACES SE VALENT ICI. L'affichage sépare les milliers par une
+    // espace fine insécable — la bonne, en typographie française — et chercher
+    // « 4 096 » avec une espace ordinaire ne la trouvait pas. Une vérification
+    // ne doit pas tomber sur un choix typographique.
+    const espaces = function(s){ return s.replace(/[\s\u00a0\u202f]+/g, ' '); };
+    const detail = espaces(calcDetail.textContent);
+    const manque = ['1 (de base)', '25', '32 tirage', '4 096']
+      .filter(function(x){ return detail.indexOf(x) === -1; });
+    if(manque.length) return 'échec : le détail ne montre pas ' + manque.join(', ');
+
+    // Les seuils : 1/128 donne 89 rencontres pour une chance sur deux. Ce n'est
+    // PAS 64 — la moitié du taux — et c'est justement pourquoi on l'affiche.
+    const seuils = espaces(calcSeuils.textContent);
+    if(seuils.indexOf('89') === -1) return 'échec : seuil 50 % attendu à 89, lu « ' + seuils + ' »';
+
+    // Un jeu sans chromatique n'a pas de taux, et une clé vide non plus : le
+    // défaut à 4096 rendait « 1 sur 4 096 » pour rien du tout.
+    if(tauxDeBase('') !== null) return 'échec : une clé vide rend un taux';
+    if(tauxDeBase('rby') !== null) return 'échec : Rouge/Bleu rend un taux';
+
+    fermerCalculateur();
+    return '1/128 en Légendes Arceus, détail complet, 50 % à 89 rencontres';
+  });
+
+verifier('Messagerie',
+  'On écrit à quelqu’un, le fil l’affiche, et un refus ne perd pas le texte',
+  async function(){
+    // CE QUE CET ÉCRAN REMPLACE. Pour dire « tu aurais un Abra ? » il fallait
+    // d'abord composer une proposition d'échange — décider quoi donner et quoi
+    // demander avant même d'avoir pu poser la question.
+    if(typeof ouvrirMessagerie !== 'function') return 'échec : messagerie absente';
+
+    ouvrirMessagerie('Ondine');
+    await new Promise(function(r){ setTimeout(r, 60); });
+    if(msgOverlay.style.display !== 'flex') return 'échec : la fenêtre ne s’ouvre pas';
+    if(msgFil.hidden) return 'échec : le fil reste caché';
+    if(!msgRetour || msgRetour.hidden) return 'échec : pas de retour vers la liste';
+
+    msgTexte.value = 'Salut ! Tu aurais un Abra ?';
+    await msgEnvoyerTexte();
+    if(msgFil.querySelectorAll('.discussion-bulle').length !== 1){
+      return 'échec : le message envoyé n’apparaît pas dans le fil';
+    }
+    if(msgTexte.value !== '') return 'échec : le champ n’est pas vidé après envoi';
+
+    // LE REFUS NE DOIT PAS PERDRE LE TEXTE. Vider le champ avant d'avoir la
+    // réponse du serveur efface ce que quelqu'un vient d'écrire dès que le
+    // filtre refuse — et le filtre refuse, c'est son travail.
+    msgTexte.value = 'ferme ta gueule sale con';
+    await msgEnvoyerTexte();
+    if(msgTexte.value === ''){
+      return 'échec : un message refusé est effacé du champ';
+    }
+    if(msgEtat.textContent.indexOf('ne passe pas') === -1){
+      return 'échec : le refus ne s’affiche pas — lu « ' + msgEtat.textContent + ' »';
+    }
+
+    // Retour à la liste sans fermer : une fenêtre qui se referme à chaque
+    // aller-retour fait perdre le fil, au sens propre.
+    msgRevenirListe();
+    await new Promise(function(r){ setTimeout(r, 60); });
+    if(msgOverlay.style.display !== 'flex') return 'échec : le retour ferme la fenêtre';
+    if(!msgFil.hidden) return 'échec : le fil reste visible sur la liste';
+
+    fermerMessagerie();
+    // Le sondage rapide s'arrête AVEC la fenêtre : c'est tout le marché qui
+    // rend la cadence de cinq secondes acceptable.
+    if(msgMinuteur !== null) return 'échec : le sondage continue fenêtre fermée';
+
+    return 'écrit, affiché, refus signalé sans perdre le texte, sondage arrêté';
+  });
+
+verifier('Sans compte',
+  'Qui peut m’écrire a trois crans, et le refus revient au cran d’avant',
+  async function(){
+    // TROIS CRANS, PAS UNE BASCULE. Le cas du milieu — joignable par ceux qu'on
+    // a choisis — est celui que la plupart des gens veulent. Une bascule aurait
+    // forcé à choisir entre tout ouvrir et tout fermer, et la plupart auraient
+    // tout fermé.
+    if(!messagesDe) return 'échec : le réglage est absent de l’écran';
+    const crans = Array.prototype.map.call(messagesDe.options, function(o){ return o.value; });
+    const manque = ['tous', 'amis', 'personne'].filter(function(v){
+      return crans.indexOf(v) === -1;
+    });
+    if(manque.length) return 'échec : cran(s) absent(s) — ' + manque.join(', ');
+
+    messagesDe.value = 'amis';
+    await changerQuiPeutEcrire();
+    if(messagesDe.value !== 'amis') return 'échec : le cran choisi n’est pas retenu';
+    if(messagesDeEtat.textContent.indexOf('que tu suis') === -1){
+      return 'échec : rien ne dit ce que le cran change — lu « '
+        + messagesDeEtat.textContent + ' »';
+    }
+
+    messagesDe.value = 'tous';
+    await changerQuiPeutEcrire();
+    return 'trois crans, et chacun dit ce qu’il change';
+  });

@@ -325,7 +325,9 @@
         <!-- Le compte ci-contre dit COMBIEN ; celui-ci dit LESQUELS, ce qui
              est la seule forme actionnable de la même information. -->
         <button class="bulk-btn" id="echangeBtn" type="button"
-                title="La liste nommée de ce que vous pouvez vous apporter.">🤝 Entraide</button>
+                title="Ce que vous pouvez vous apporter, et de quoi composer une proposition.">🤝 Proposer un échange</button>
+        <button class="bulk-btn" id="compareMessage" type="button"
+                title="Écrire à ce dresseur sans passer par un échange.">✉️ Envoyer un message</button>
         <!-- Il ramene desormais la ou l'on etait avant de comparer : « Quitter »
              ne disait ni ce qu'on quitte, ni ou l'on va. -->
         <button class="bulk-btn" id="compareQuit" type="button"
@@ -372,6 +374,11 @@
                question se pose là : avant de lancer trois mille rencontres. -->
           <button class="toggle-btn" id="verrousBtn" type="button"
                   title="Les Pokémon dont la forme chromatique ne s'obtient pas — nulle part, ou pas par cette rencontre.">🔒 Shiny-lock</button>
+          <!-- Le calculateur. À côté du catalogue des verrous, et pour la même
+               raison : la question se pose AVANT de lancer trois mille
+               rencontres, pas pendant. -->
+          <button class="toggle-btn" id="calcBtn" type="button"
+                  title="Le taux chromatique d'une situation : jeu, méthode et bonus cumulés, avec le détail du calcul et le nombre de rencontres pour 50, 90 et 99 %.">🧮 Calculateur de taux</button>
           <!-- L'overlay OBS. Masqué sur le site : un navigateur ne peut pas
                ouvrir d'écoute locale. Voir overlay.rs et chasse.js. -->
           <button class="toggle-btn" id="overlayBtn" type="button" hidden
@@ -576,6 +583,43 @@
           <span class="profil-bloc-etat" id="visibleEtat"></span>
         </div>
 
+        <div class="home-section-title">Les échanges</div>
+        <div class="profil-bloc">
+          <p class="profil-bloc-note"><b>Ouverte au départ.</b> Recevoir des
+            propositions est ce pour quoi on entre dans la liste des dresseurs : c'est
+            la fermeture qui est une décision, pas l'ouverture.</p>
+          <p class="profil-bloc-note">Porte fermée, personne ne peut plus t'en
+            proposer — ni depuis l'application, ni autrement, le serveur refuse.
+            <b>Ce que tu as déjà en cours ne bouge pas</b> : les
+            propositions reçues, les échanges acceptés et leurs
+            discussions continuent leur vie. On ferme la porte, on ne vide pas la
+            pièce. Et tu peux toujours proposer aux autres.</p>
+          <label class="bascule">
+            <input type="checkbox" id="echangesOuverts">
+            <span class="bascule-piste" aria-hidden="true"><span class="bascule-pouce"></span></span>
+            <span class="bascule-texte">Accepter les propositions d'échange</span>
+          </label>
+          <span class="profil-bloc-etat" id="echangesOuvertsEtat"></span>
+        </div>
+
+        <div class="home-section-title">Qui peut m'écrire</div>
+        <div class="profil-bloc">
+          <p class="profil-bloc-note">Séparé du réglage ci-dessus, et pas par hasard :
+            une proposition d'échange se refuse d'un clic et disparaît, un message se
+            lit. On peut vouloir rester joignable pour échanger tout en fermant la
+            conversation aux inconnus.</p>
+          <p class="profil-bloc-note"><b>« Mes amis » veut dire ceux que TU suis</b>, pas
+            ceux qui te suivent — sans quoi n'importe qui s'ouvrirait la porte en
+            s'abonnant à toi. Dans tous les cas, les conversations déjà commencées
+            restent lisibles.</p>
+          <select id="messagesDe" aria-label="Qui peut t'écrire">
+            <option value="tous">Tout le monde peut m'écrire</option>
+            <option value="amis">Seulement les dresseurs que je suis</option>
+            <option value="personne">Personne</option>
+          </select>
+          <span class="profil-bloc-etat" id="messagesDeEtat"></span>
+        </div>
+
         <div class="home-section-title">Ma présence Discord</div>
         <div class="profil-bloc">
           <p class="profil-bloc-note"><b>Éteinte au départ.</b> Discord peut afficher
@@ -697,6 +741,11 @@
           <h2 class="home-title">Les amis</h2>
           <p class="home-sub">Suis qui tu veux, sans rien demander : leur progression
              est déjà publique. Tu seras prévenu quand ils avancent.</p>
+        </div>
+
+        <div class="amis-actions">
+          <button class="toggle-btn" id="amisMessage" type="button"
+                  title="Tes conversations, et de quoi en commencer une.">✉️ Envoyer un message</button>
         </div>
 
         <div class="amis-ajout">
@@ -1064,6 +1113,11 @@
     <div class="modal-eyebrow" id="echangeEyebrow">Entraide</div>
     <h2 class="modal-title" id="echangeTitre">Ce que vous pouvez vous apporter</h2>
     <p class="echange-note" id="echangeNote"></p>
+    <!-- Les colonnes sont plafonnées et se terminent par « et N de plus » :
+         sans recherche, ce qu'on cherche est souvent dans le « N ». -->
+    <input type="search" id="echangeQ" autocomplete="off"
+           placeholder="Chercher un Pokémon dans les deux colonnes…"
+           aria-label="Chercher un Pokémon">
     <div class="echange-colonnes">
       <div class="echange-colonne">
         <div class="echange-titre" id="echangeTitreLui">Il peut te donner</div>
@@ -1084,8 +1138,8 @@
          Machopeur » — avant d'envoyer quoi que ce soit. -->
     <div class="troc-barre" id="trocBarre" hidden>
       <div class="troc-choix">
-        <span class="troc-fente" id="trocVeux">Choisis ce que tu veux &agrave; gauche</span>
-        <span class="troc-contre">contre</span>
+        <span class="troc-fente" id="trocVeux">Sans rien demander en retour</span>
+        <span class="troc-contre" id="trocContre">contre</span>
         <span class="troc-fente" id="trocDonne">et ce que tu donnes &agrave; droite</span>
       </div>
       <input type="text" id="trocMot" maxlength="280" autocomplete="off"
@@ -1093,7 +1147,7 @@
       <div class="troc-actions">
         <span class="troc-jeu" id="trocJeu"></span>
         <button class="toggle-btn primary" id="trocEnvoyer" type="button" disabled>
-          Proposer l&rsquo;&eacute;change</button>
+          Offrir ce Pok&eacute;mon</button>
       </div>
       <span class="profil-bloc-etat" id="trocEtat"></span>
     </div>
@@ -1245,6 +1299,74 @@
     <div class="modal-actions">
       <button class="toggle-btn" id="chasseAnnuler" type="button">Annuler</button>
       <button class="toggle-btn primary" id="chasseValider" type="button">Commencer</button>
+    </div>
+  </div>
+</div>
+
+<!-- La messagerie. Deux etats dans une seule fenetre : la liste des
+     conversations, et le fil de l'une d'elles. Voir js/messagerie.js. -->
+<div class="modal-overlay" id="msgOverlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="msgTitre">
+  <div class="modal-card msg-card">
+    <div class="msg-entete">
+      <button class="toggle-btn msg-retour" id="msgRetour" type="button" hidden>←</button>
+      <h2 class="modal-title" id="msgTitre">Messages</h2>
+    </div>
+
+    <div id="msgNouveau">
+      <input type="search" id="msgQ" autocomplete="off"
+             placeholder="À qui veux-tu écrire ?" aria-label="Chercher un dresseur">
+      <div class="amis-propositions" id="msgPropositions"></div>
+    </div>
+
+    <div class="msg-liste" id="msgListe"></div>
+
+    <div class="discussion-fil msg-fil" id="msgFil" hidden></div>
+    <div class="discussion-ecrire" id="msgZone" hidden>
+      <textarea id="msgTexte" rows="2" maxlength="1000"
+                placeholder="Ton message… (Entrée pour envoyer)"
+                aria-label="Ton message"></textarea>
+      <button class="toggle-btn primary" id="msgEnvoyer" type="button">Envoyer</button>
+    </div>
+
+    <p class="profil-bloc-etat" id="msgEtat"></p>
+    <div class="modal-actions">
+      <button class="toggle-btn" id="msgFermer" type="button">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="calcOverlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="calcTitre">
+  <div class="modal-card">
+    <div class="modal-eyebrow">Chromatiques</div>
+    <h2 class="modal-title" id="calcTitre">Calculateur de taux</h2>
+    <p class="modal-sub">
+      Les bonus ne multiplient pas la chance : ils ajoutent des tirages. C'est
+      pour cela qu'ils se cumulent, et le détail du calcul est écrit dessous.
+    </p>
+
+    <label class="chasse-label" for="calcJeu">Dans quel jeu ?</label>
+    <select id="calcJeu" aria-label="Jeu du calcul"></select>
+
+    <label class="chasse-label" for="calcMethode">Avec quelle méthode ?</label>
+    <select id="calcMethode" data-lexique="taux-chasse" aria-label="Méthode"></select>
+
+    <div id="calcBlocBonus" style="display:none;">
+      <span class="chasse-label">Bonus cumulables</span>
+      <div class="chasse-bonus" id="calcBonus"></div>
+    </div>
+
+    <p class="calc-taux" id="calcTaux"></p>
+    <p class="calc-detail" id="calcDetail"></p>
+
+    <div class="calc-seuils" id="calcSeuils"></div>
+
+    <label class="chasse-label" for="calcRencontres">Et après combien de rencontres ?</label>
+    <input type="number" id="calcRencontres" min="0" step="1" inputmode="numeric"
+           placeholder="par exemple 1500" autocomplete="off">
+    <p class="calc-proba" id="calcProba"></p>
+
+    <div class="modal-actions">
+      <button class="toggle-btn" id="calcFermer" type="button">Fermer</button>
     </div>
   </div>
 </div>
@@ -1591,6 +1713,9 @@
 <script src="js/lieux.js"></script>
 <script src="js/filtres.js"></script>
 <script src="js/chasse.js"></script>
+<!-- Apres chasse.js : il se sert de son modele de taux plutot que d'en
+     porter une copie, qui divergerait a la premiere correction. -->
+<script src="js/calculateur.js"></script>
 <script src="js/verrous.js"></script>
 <script src="js/cadeaux.js"></script>
 <!-- Les règles de combat, puis l'écran qui s'appuie dessus. Tous deux après
@@ -1613,6 +1738,9 @@
      compte.js pour nomJournal, libelleDex, avatarDiscord et dateLisible. -->
 <script src="js/troc.js"></script>
 <!-- Après amis.js (pontNotif, bullePermise) et troc.js (ouvrirDiscussion). -->
+<!-- Apres troc.js : il reprend ses bulles de discussion plutot que d'en
+     redefinir un second jeu, qui aurait diverge. -->
+<script src="js/messagerie.js"></script>
 <script src="js/notifs.js"></script>
 <!-- Après chasse.js (nomDeChasse, dessinerTableauChasse) et compte.js
      (perdreSession, profilCourant). -->

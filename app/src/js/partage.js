@@ -63,6 +63,7 @@ function majBarreComparaison(){
     if(a && b) communs++;
   });
   compareBar.style.display = '';
+  majBoutonMessage();
   compareLabel.innerHTML =
     '<b>' + escapeHtml(amiProgression.joueur) + '</b> : ' + lui + ' / ' + scopeEntries.length
     + ' &nbsp;·&nbsp; il a <b>' + luiSeul + '</b> que tu n\'as pas'
@@ -240,6 +241,35 @@ function remplirColonne(cible, liste, cote){
   }
 }
 
+// Ce que les deux colonnes contiendraient sans recherche. Retenu ici pour que
+// filtrer n'oblige pas a recalculer les deux dex a chaque frappe.
+let echangeLuiTout = [];
+let echangeMoiTout = [];
+
+const echangeQ = document.getElementById('echangeQ');
+
+/**
+ * Le filtre des deux colonnes.
+ *
+ * SUR LE NOM AFFICHE, pas sur l'identifiant : on cherche « Insécateur », pas
+ * « scyther ». nomAffiche() rend le nom dans la langue choisie, et c'est celui
+ * qu'on a sous les yeux.
+ */
+function echangeFiltre(liste){
+  const q = echangeQ ? (echangeQ.value || '').trim().toLowerCase() : '';
+  if(!q) return liste;
+  return liste.filter(function(e){
+    return nomAffiche(e).toLowerCase().indexOf(q) !== -1;
+  });
+}
+
+function echangeRedessiner(){
+  remplirColonne(echangeLui, echangeFiltre(echangeLuiTout), 'veux');
+  remplirColonne(echangeMoi, echangeFiltre(echangeMoiTout), 'donne');
+}
+
+if(echangeQ) echangeQ.addEventListener('input', echangeRedessiner);
+
 function ouvrirEchanges(){
   if(!echangeOverlay || !amiProgression) return;
   const moi = activeSet();
@@ -263,8 +293,12 @@ function ouvrirEchanges(){
         ? 'Clique un nom dans chaque colonne pour composer une proposition.'
         : 'Clique un nom pour ouvrir sa fiche.');
 
-  remplirColonne(echangeLui, lui, 'veux');
-  remplirColonne(echangeMoi, mien, 'donne');
+  echangeLuiTout = lui;
+  echangeMoiTout = mien;
+  // La recherche se vide a chaque ouverture : garder « pika » d'une comparaison
+  // precedente ferait croire que l'autre n'a rien a donner.
+  if(echangeQ) echangeQ.value = '';
+  echangeRedessiner();
 
   // La barre de proposition se remet a zero a chaque ouverture : garder le
   // choix d'une comparaison precedente ferait proposer le mauvais Pokemon a la
@@ -280,6 +314,32 @@ function fermerEchanges(){
 }
 
 if(echangeBtn) echangeBtn.addEventListener('click', ouvrirEchanges);
+
+// Écrire à la personne qu'on compare, sans passer par une proposition.
+//
+// LE BOUTON NE VAUT QUE POUR UN VRAI DRESSEUR. Une comparaison peut venir d'un
+// code de partage : c'est alors une collection, pas quelqu'un — il n'y a
+// personne à qui écrire, et `amiProgression.pseudo` est nul. On le cache plutôt
+// que de le laisser cliquer pour rien.
+const compareMessage = document.getElementById('compareMessage');
+if(compareMessage){
+  compareMessage.addEventListener('click', function(){
+    if(amiProgression && amiProgression.pseudo && typeof ouvrirMessagerie === 'function'){
+      ouvrirMessagerie(amiProgression.pseudo);
+    }
+  });
+}
+
+/** Appelée quand la barre de comparaison change de sujet. */
+function majBoutonMessage(){
+  if(!compareMessage) return;
+  // Deux conditions, et elles ne disent pas la même chose : il faut quelqu'un
+  // en face — une comparaison peut venir d'un code de partage, qui donne une
+  // collection et pas une personne — ET une messagerie qui existe, ce qui n'est
+  // pas le cas sur le site.
+  const possible = typeof messagerieDisponible !== 'function' || messagerieDisponible();
+  compareMessage.hidden = !(possible && amiProgression && amiProgression.pseudo);
+}
 if(echangeFermer) echangeFermer.addEventListener('click', fermerEchanges);
 if(echangeOverlay){
   echangeOverlay.addEventListener('click', function(e){

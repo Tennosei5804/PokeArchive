@@ -176,18 +176,35 @@ const TABLES = [
        REFERENCES pa_dresseurs(id) ON DELETE CASCADE
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 
-  // La discussion d'un echange, et rien d'autre. Il n'y a pas de messagerie
-  // dans PokeArchive : on ne peut ecrire qu'a quelqu'un qui a accepte un
-  // echange avec soi. C'est ce qui empeche l'abonnement a sens unique de
-  // devenir une porte ouverte.
+  // La discussion d'un echange, et rien d'autre. Il n'y a toujours pas de
+  // messagerie libre dans PokeArchive : on n'ecrit qu'a l'interieur d'un
+  // echange qu'on a propose ou recu, jamais a quelqu'un au hasard.
+  //
+  // Ce commentaire disait « qu'a quelqu'un qui a ACCEPTE un echange ». La
+  // discussion ouvre desormais des la proposition — voir l'en-tete de
+  // echanges.js, qui explique pourquoi cette regle-la protegeait l'importun
+  // plutot que l'importune.
+  // UN MESSAGE VISE UN ÉCHANGE, OU UNE PERSONNE — jamais les deux, jamais ni
+  // l'un ni l'autre. C'est pourquoi les deux colonnes sont NULL : l'une porte
+  // la conversation d'un échange, l'autre un message direct.
+  //
+  // POURQUOI UNE SEULE TABLE. Deux tables auraient divergé — un correctif sur
+  // la longueur, sur l'ordre, sur ce qu'on affiche, n'aurait été appliqué qu'à
+  // l'une des deux. Et surtout : à l'écran, une conversation avec quelqu'un est
+  // UNE conversation. Qu'un message parle d'un échange précis ou de rien de
+  // particulier ne change pas à qui on parle.
   `CREATE TABLE IF NOT EXISTS pa_messages (
-     id         BIGINT       NOT NULL AUTO_INCREMENT PRIMARY KEY,
-     echange_id BIGINT       NOT NULL,
-     auteur_id  BIGINT       NOT NULL,
-     texte      VARCHAR(1000) NOT NULL,
-     cree_le    VARCHAR(64)  NOT NULL,
+     id             BIGINT       NOT NULL AUTO_INCREMENT PRIMARY KEY,
+     echange_id     BIGINT       NULL,
+     destinataire_id BIGINT      NULL,
+     auteur_id      BIGINT       NOT NULL,
+     texte          VARCHAR(1000) NOT NULL,
+     lu             TINYINT(1)   NOT NULL DEFAULT 0,
+     cree_le        VARCHAR(64)  NOT NULL,
      CONSTRAINT fk_pa_messages_echange FOREIGN KEY (echange_id)
        REFERENCES pa_echanges(id) ON DELETE CASCADE,
+     CONSTRAINT fk_pa_messages_destinataire FOREIGN KEY (destinataire_id)
+       REFERENCES pa_dresseurs(id) ON DELETE CASCADE,
      CONSTRAINT fk_pa_messages_auteur FOREIGN KEY (auteur_id)
        REFERENCES pa_dresseurs(id) ON DELETE CASCADE
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
@@ -386,6 +403,9 @@ export async function creerSchema(journal = () => {}) {
   await migrerVersProfils(journal);
   await migrerIdSession(journal);
   await migrerVisibiliteDresseur(journal);
+  await migrerEchangesOuverts(journal);
+  await migrerMessagesDirects(journal);
+  await migrerQuiPeutEcrire(journal);
   await migrerNomDiscord(journal);
   await migrerNotesProfil(journal);
 }
@@ -465,6 +485,61 @@ async function migrerVisibiliteDresseur(journal) {
   await base().query(
     'ALTER TABLE pa_dresseurs ADD COLUMN visible TINYINT(1) NOT NULL DEFAULT 1');
   journal('schema : colonne pa_dresseurs.visible ajoutee');
+}
+
+async function migrerEchangesOuverts(journal) {
+  const deja = await une(
+    `SELECT COUNT(*) AS n FROM information_schema.columns
+      WHERE table_schema = DATABASE() AND table_name = 'pa_dresseurs'
+        AND column_name = 'echanges_ouverts'`);
+  if (deja?.n) return;
+  // ALLUME PAR DEFAUT, contrairement a `visible`. Recevoir des propositions est
+  // ce pour quoi on entre dans la liste des dresseurs ; c'est l'extinction qui
+  // est la decision. Les comptes existants ne changent donc pas de comportement
+  // le jour de la migration — ce qu'un DEFAULT 0 aurait fait en silence.
+  await base().query(
+    'ALTER TABLE pa_dresseurs ADD COLUMN echanges_ouverts TINYINT(1) NOT NULL DEFAULT 1');
+  journal('schema : colonne pa_dresseurs.echanges_ouverts ajoutee');
+}
+
+async function migrerMessagesDirects(journal) {
+  const deja = await une(
+    `SELECT COUNT(*) AS n FROM information_schema.columns
+      WHERE table_schema = DATABASE() AND table_name = 'pa_messages'
+        AND column_name = 'destinataire_id'`);
+  if (deja?.n) return;
+
+  // L'ORDRE COMPTE. On rend echange_id facultatif AVANT d'ajouter la colonne
+  // qui le remplace : entre les deux, une table où aucune des deux voies n'est
+  // ouverte refuserait toute écriture.
+  await base().query('ALTER TABLE pa_messages MODIFY echange_id BIGINT NULL');
+  await base().query(
+    'ALTER TABLE pa_messages ADD COLUMN destinataire_id BIGINT NULL AFTER echange_id');
+  await base().query(
+    'ALTER TABLE pa_messages ADD COLUMN lu TINYINT(1) NOT NULL DEFAULT 0');
+  await base().query(
+    `ALTER TABLE pa_messages ADD CONSTRAINT fk_pa_messages_destinataire
+       FOREIGN KEY (destinataire_id) REFERENCES pa_dresseurs(id) ON DELETE CASCADE`);
+
+  // LES MESSAGES DÉJÀ ÉCRITS SONT LUS. Les marquer non lus ferait sonner la
+  // cloche pour des conversations vieilles de plusieurs mois, le jour de la
+  // migration, chez tout le monde à la fois.
+  await base().query('UPDATE pa_messages SET lu = 1');
+  journal('schema : pa_messages accepte les messages directs');
+}
+
+async function migrerQuiPeutEcrire(journal) {
+  const deja = await une(
+    `SELECT COUNT(*) AS n FROM information_schema.columns
+      WHERE table_schema = DATABASE() AND table_name = 'pa_dresseurs'
+        AND column_name = 'messages_de'`);
+  if (deja?.n) return;
+  // « tous » PAR DEFAUT, comme echanges_ouverts et pour la meme raison : le
+  // jour de la migration, personne ne doit voir son comportement changer sans
+  // l'avoir demande. Se fermer est la decision ; rester ouvert ne l'est pas.
+  await base().query(
+    "ALTER TABLE pa_dresseurs ADD COLUMN messages_de VARCHAR(16) NOT NULL DEFAULT 'tous'");
+  journal('schema : colonne pa_dresseurs.messages_de ajoutee');
 }
 
 async function migrerIdSession(journal) {

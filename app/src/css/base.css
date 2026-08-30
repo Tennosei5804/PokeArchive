@@ -954,3 +954,23 @@
 }
 *::-webkit-scrollbar-thumb:hover{ background:var(--ink); }
 *::-webkit-scrollbar-corner{ background:transparent; }
+
+/* ---- Sans compte, on regarde ---------------------------------------------
+   Le refus doit se voir AVANT le geste. Une case qu'on peut cocher et qui
+   refuse ensuite est une promesse rompue ; une case grisée ne promet rien.
+
+   Rien n'est masqué : le Pokédex, les fiches, les cadeaux mystères et le
+   catalogue des verrous restent entiers. Seuls s'éteignent les contrôles qui
+   écrivent — et ils gardent leur place, pour qu'on voie ce qu'on gagne à se
+   connecter plutôt que de découvrir une interface amputée.
+
+   `pointer-events` n'est PAS utilisé : il rendrait l'élément sourd, donc muet.
+   On le laisse cliquable pour que le clic ouvre la connexion en disant
+   pourquoi ; c'est le JavaScript qui refuse, cette règle ne fait que
+   l'annoncer. */
+body.sans-compte .chip-check,
+body.sans-compte #trocEnvoyer,
+body.sans-compte #profilCreer{
+  opacity:.45;
+  cursor:not-allowed;
+}

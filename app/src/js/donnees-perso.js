@@ -372,6 +372,8 @@ document.addEventListener('DOMContentLoaded', function(){
   if (sessionsAutres) sessionsAutres.addEventListener('click', fermerLesAutresSessions);
   if (adminRenommer) adminRenommer.addEventListener('click', renommerQuelquun);
   if (visibleDresseurs) visibleDresseurs.addEventListener('change', basculerVisibilite);
+  if (echangesOuverts) echangesOuverts.addEventListener('change', basculerEchangesOuverts);
+  if (messagesDe) messagesDe.addEventListener('change', changerQuiPeutEcrire);
 });
 
 /** Appelé par chargerProfil() : la page vient de s'ouvrir. */
@@ -379,6 +381,8 @@ function chargerDonneesPerso() {
   chargerSessions();
   verifierAdmin();
   if (typeof dresseurCourant !== 'undefined') poserVisibilite(dresseurCourant);
+  if (typeof dresseurCourant !== 'undefined') poserEchangesOuverts(dresseurCourant);
+  if (typeof dresseurCourant !== 'undefined') poserMessagesDe(dresseurCourant);
 }
 
 // ---- Ma presence dans la liste des dresseurs --------------------------------
@@ -416,4 +420,88 @@ function poserVisibilite(dresseur) {
   if (!visibleDresseurs || !dresseur) return;
   // Absent d'une ancienne API : on suppose visible, ce qui est le defaut.
   visibleDresseurs.checked = dresseur.visible !== false;
+}
+
+// ---- Ma porte aux propositions d'echange ------------------------------------
+//
+// Meme dessin que la visibilite, et pour la meme raison : c'est une donnee de
+// COMPTE et non une preference d'appareil. Fermer sa porte depuis le portable
+// doit la fermer aussi sur la machine du salon — sans quoi le reglage ne veut
+// rien dire, puisque les propositions arrivent au compte.
+
+async function basculerEchangesOuverts() {
+  if (!echangesOuverts) return;
+  const veut = echangesOuverts.checked;
+  echangesOuverts.disabled = true;
+  echangesOuvertsEtat.textContent = '';
+  try {
+    const r = await invoke('changer_echanges_ouverts', { ouverts: veut });
+    echangesOuverts.checked = r.echangesOuverts;
+    echangesOuvertsEtat.textContent = r.echangesOuverts
+      ? 'On peut te proposer des échanges.'
+      : 'Personne ne peut plus t’en proposer. Ce qui est en cours continue.';
+    if (typeof dresseurCourant !== 'undefined' && dresseurCourant) {
+      dresseurCourant.echangesOuverts = r.echangesOuverts;
+    }
+  } catch (e) {
+    if (String(e) === 'SESSION_INVALIDE') { await perdreSession(); return; }
+    // Remettre la case ou elle etait : une case qui a bouge alors que rien n'a
+    // change au serveur est un mensonge, et le prochain chargement le defera.
+    echangesOuverts.checked = !veut;
+    echangesOuvertsEtat.textContent = String(e);
+  } finally {
+    echangesOuverts.disabled = false;
+  }
+}
+
+// ---- Qui peut m'ecrire ------------------------------------------------------
+//
+// Trois crans plutot qu'une bascule, parce que le cas du milieu est celui que
+// la plupart des gens veulent : joignable par ceux qu'on a choisis, tranquille
+// vis-a-vis des autres. Une bascule aurait force a choisir entre tout ouvrir et
+// tout fermer, et la plupart auraient tout ferme.
+
+const QUI_PEUT_ECRIRE_DIT = {
+  tous: 'Tout le monde peut t’écrire.',
+  amis: 'Seuls les dresseurs que tu suis peuvent t’écrire.',
+  personne: 'Personne ne peut plus t’écrire. Tes conversations restent lisibles.',
+};
+
+async function changerQuiPeutEcrire() {
+  if (!messagesDe) return;
+  const veut = messagesDe.value;
+  const avant = (typeof dresseurCourant !== 'undefined' && dresseurCourant)
+    ? (dresseurCourant.messagesDe || 'tous') : 'tous';
+  messagesDe.disabled = true;
+  messagesDeEtat.textContent = '';
+  try {
+    const r = await invoke('changer_messages_de', { valeur: veut });
+    messagesDe.value = r.messagesDe;
+    messagesDeEtat.textContent = QUI_PEUT_ECRIRE_DIT[r.messagesDe] || '';
+    if (typeof dresseurCourant !== 'undefined' && dresseurCourant) {
+      dresseurCourant.messagesDe = r.messagesDe;
+    }
+  } catch (e) {
+    if (String(e) === 'SESSION_INVALIDE') { await perdreSession(); return; }
+    // Remettre le menu ou il etait : un reglage qui a bouge alors que rien n'a
+    // change au serveur est un mensonge, et le prochain chargement le defera.
+    messagesDe.value = avant;
+    messagesDeEtat.textContent = String(e);
+  } finally {
+    messagesDe.disabled = false;
+  }
+}
+
+function poserMessagesDe(dresseur) {
+  if (!messagesDe || !dresseur) return;
+  // Absent d'une ancienne API : on suppose « tous », le defaut de la colonne.
+  messagesDe.value = dresseur.messagesDe || 'tous';
+}
+
+function poserEchangesOuverts(dresseur) {
+  if (!echangesOuverts || !dresseur) return;
+  // Absent d'une ancienne API : on suppose ouvert, ce qui est le defaut de la
+  // colonne. Supposer ferme couperait les echanges de tout le monde le jour
+  // d'une API en retard d'une version.
+  echangesOuverts.checked = dresseur.echangesOuverts !== false;
 }

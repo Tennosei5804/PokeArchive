@@ -12,15 +12,33 @@
 // TROIS RÈGLES DE FOND :
 //
 //   · une proposition s'adresse à quelqu'un, qui l'accepte ou la refuse ;
-//   · la discussion n'ouvre qu'une fois acceptée — sinon la boîte de réception
-//     devient un canal de messages non sollicités, ce qu'un abonnement à sens
-//     unique ne doit surtout pas ouvrir ;
+//   · on peut OFFRIR sans rien demander — c'est un don, et `demande` est vide ;
+//   · la discussion ouvre dès la proposition ;
 //   · rien ne s'efface : un refus reste lisible par les deux, parce que « il
 //     n'a jamais répondu » et « il a refusé » ne se vivent pas pareil.
+//
+// LA DEUXIÈME RÈGLE A ÉTÉ RENVERSÉE, ET IL FAUT DIRE POURQUOI. Elle disait
+// l'inverse : « la discussion n'ouvre qu'une fois acceptée — sinon la boîte de
+// réception devient un canal de messages non sollicités ». La crainte était
+// juste, mais la protection était mal placée. Elle ne fermait pas le canal :
+// le `mot` de la proposition livrait déjà 280 caractères de texte libre, par
+// notification, à quelqu'un qui n'avait rien accepté. Elle empêchait seulement
+// de RÉPONDRE — c'est-à-dire qu'elle protégeait l'importun et bâillonnait
+// l'importuné.
+//
+// Ce qui protège vraiment est ailleurs, et existe désormais :
+//
+//   la porte      `echanges_ouverts` — on peut refuser toute proposition ;
+//   le filtre     `refuserSiInjurieux` sur le mot ET sur les messages ;
+//   le compteur   trois propositions en attente par personne, vingt en tout.
+//
+// Trois choses qui pèsent sur celui qui envoie. L'ancienne règle pesait sur
+// celui qui reçoit.
 
 import { lire, une, ecrire } from './base.js';
 import { ErreurCompte, horodatage, normaliser } from './comptes.js';
 import { notifier } from './notifications.js';
+import { injurieuxDansPhrase } from './pseudos-interdits.js';
 
 // Combien de propositions en attente chez la MÊME personne. Au-delà ce n'est
 // plus une proposition, c'est une liste de courses.
@@ -32,18 +50,45 @@ const MESSAGE_MAX = 1000;
 const MOT_MAX = 280;
 const MESSAGES_PAGE = 200;
 
+/**
+ * Refuse un texte injurieux, sans dire lequel des mots a declenche.
+ *
+ * POURQUOI LES MESSAGES AUSSI, ET PAS SEULEMENT LES PSEUDOS. Le commentaire en
+ * tete de ce fichier pose deja la regle : la discussion n'ouvre qu'une fois
+ * l'echange accepte, « sinon la boite de reception devient un canal de messages
+ * non sollicites ». Le `mot` de la proposition passait au travers — deux cent
+ * quatre-vingts caracteres de texte libre, vers n'importe qui par son pseudo,
+ * livres par notification a quelqu'un qui n'a rien accepte. La regle etait
+ * ecrite ; il manquait de l'appliquer a la seule porte qui la contournait.
+ *
+ * ON NE NOMME PAS LE MOT FAUTIF. Le dire, c'est apprendre quoi contourner —
+ * meme raison qu'a l'inscription. Le texte n'est pas perdu pour autant : il est
+ * reste dans le champ, et son auteur le relit.
+ */
+function refuserSiInjurieux(texte, quoi) {
+  if (texte && injurieuxDansPhrase(texte)) {
+    throw new ErreurCompte(`${quoi} ne passe pas. Reformule-le.`, 400);
+  }
+}
+
 
 async function dresseurParPseudo(pseudo) {
   const d = await une(
-    'SELECT id, pseudo, avatar, discord_id FROM pa_dresseurs WHERE pseudo_cle = ?',
+    `SELECT id, pseudo, avatar, discord_id, echanges_ouverts
+       FROM pa_dresseurs WHERE pseudo_cle = ?`,
     [normaliser(pseudo)]);
   if (!d) throw new ErreurCompte('Ce dresseur n’existe pas.', 404);
   return d;
 }
 
 /** Un nom d'espèce tel que l'application les écrit : minuscules et tirets. */
-function espece(v, quoi) {
+function espece(v, quoi, facultatif = false) {
   const s = String(v || '').trim().toLowerCase();
+  // LE DON : rien en retour, et c'est une chaine vide qu'on ecrit. La colonne
+  // est NOT NULL et un identifiant d'espece n'est jamais vide, donc le vide dit
+  // « rien » sans ambiguite et sans migration. `don` le redit en clair a
+  // l'ecran, pour que personne n'ait a deviner ce que veut dire une case vide.
+  if (!s && facultatif) return '';
   if (!s) throw new ErreurCompte(`Il manque ${quoi}.`, 400);
   if (s.length > 64 || !/^[a-z0-9-]+$/.test(s)) {
     throw new ErreurCompte(`${quoi} n’est pas un Pokémon reconnu.`, 400);
@@ -59,14 +104,31 @@ export async function proposer(dresseurId, { pseudo, dex, offert, demande, mot }
     throw new ErreurCompte('Tu ne peux pas t’échanger un Pokémon à toi-même.', 400);
   }
 
+  // LA PORTE FERMEE SE VERIFIE ICI, ET PAS SEULEMENT A L'ECRAN. Griser un
+  // bouton dans l'application n'engage rien : le jeton suffit a appeler la
+  // route directement. Un reglage qui ne tient que par l'interface n'est pas un
+  // reglage, c'est une suggestion.
+  //
+  // On le dit sans detour et sans accuser : la personne n'a rien contre vous,
+  // elle a ferme sa porte.
+  if (autre.echanges_ouverts === 0) {
+    throw new ErreurCompte(
+      `${autre.pseudo} n’accepte pas les propositions d’échange en ce moment.`, 403);
+  }
+
   const jeu = String(dex || '').trim().toLowerCase();
   if (!jeu || jeu.length > 32 || !/^[a-z0-9-]+$/.test(jeu)) {
     throw new ErreurCompte('Dis sur quel jeu se ferait l’échange.', 400);
   }
 
+  refuserSiInjurieux(mot, 'Ton mot d’accompagnement');
+
   const donne = espece(offert, 'le Pokémon que tu proposes');
-  const veut = espece(demande, 'le Pokémon que tu demandes');
-  if (donne === veut) throw new ErreurCompte('Les deux Pokémon sont les mêmes.', 400);
+  // Facultatif : sans lui, c'est un don. On offre, et l'on ne demande rien.
+  const veut = espece(demande, 'le Pokémon que tu demandes', true);
+  if (veut && donne === veut) {
+    throw new ErreurCompte('Les deux Pokémon sont les mêmes.', 400);
+  }
 
   // Le doublon exact d'abord : reproposer le même échange à la même personne
   // n'ajoute rien et lui vaudrait une seconde notification pour rien.
@@ -111,7 +173,11 @@ export async function proposer(dresseurId, { pseudo, dex, offert, demande, mot }
     // qui sait les traduire dans la langue choisie. Elle refait la phrase
     // complète à l'affichage, à partir de l'échange joint — voir
     // notifications.js, qui le renvoie avec.
-    titre: `${moi.pseudo} te propose un échange`,
+    // Un don et un echange ne se lisent pas pareil, et la difference se joue
+    // avant d'ouvrir : l'un demande une decision, l'autre offre quelque chose.
+    titre: veut
+      ? `${moi.pseudo} te propose un échange`
+      : `${moi.pseudo} veut t’offrir un Pokémon`,
   });
 
   return { id: r.insertId, etat: 'propose' };
@@ -221,6 +287,9 @@ function vueEchange(l, moi) {
     dex: l.dex,
     jeDonne: jeSuisDemandeur ? l.offert : l.demande,
     jeRecois: jeSuisDemandeur ? l.demande : l.offert,
+    // Un cote vide veut dire « rien en retour ». L'ecran ne doit pas avoir a le
+    // deduire d'une chaine vide : il le lit ici.
+    don: !l.demande,
     etat: l.etat,
     mot: l.mot,
     messages: Number(l.messages) || 0,
@@ -264,16 +333,27 @@ export async function mesEchanges(dresseurId) {
  * annuler ferme la porte.
  */
 function discussionOuverte(e) {
-  if (e.etat === 'accepte' || e.etat === 'fait') return;
-  if (e.etat === 'propose') {
-    throw new ErreurCompte('La discussion s’ouvre une fois l’échange accepté.', 400);
-  }
+  if (e.etat === 'propose' || e.etat === 'accepte' || e.etat === 'fait') return;
+  // Refusé, annulé : la conversation reste LISIBLE — `rien ne s'efface » — mais
+  // on n'y écrit plus. Continuer à parler dans un échange que l'autre a refusé,
+  // c'est exactement le harcèlement que ce module doit éviter.
   throw new ErreurCompte('Cet échange est clos.', 400);
 }
 
 export async function messages(dresseurId, id) {
+  // LIRE N'EST PAS ÉCRIRE, et cette ligne-là manquait. `discussionOuverte` était
+  // appelée ici aussi : un échange refusé devenait donc illisible, alors que
+  // l'en-tête de ce fichier promet que « rien ne s'efface — un refus reste
+  // lisible par les deux ».
+  //
+  // Cela ne se voyait pas tant qu'on ne pouvait écrire qu'après un oui : un
+  // échange refusé n'avait jamais de messages à perdre. Depuis que la
+  // discussion ouvre dès la proposition, il en a — et les perdre au refus,
+  // c'est effacer la conversation de quelqu'un d'autre que soi.
+  //
+  // `monEchange` garde l'essentiel : on ne lit que les échanges dont on est
+  // l'une des deux parties.
   const e = await monEchange(dresseurId, id);
-  discussionOuverte(e);
   const lignes = await lire(
     `SELECT m.id, m.texte, m.cree_le, m.auteur_id, d.pseudo
        FROM pa_messages m
@@ -301,6 +381,9 @@ export async function ecrireMessage(dresseurId, id, texte) {
 
   const t = String(texte || '').trim().slice(0, MESSAGE_MAX);
   if (!t) throw new ErreurCompte('Le message est vide.', 400);
+  // APRES la coupe : ce qui est refuse est ce qui serait enregistre, et non ce
+  // qui a ete tape. Un millier de caracteres plus loin, le texte n'existe pas.
+  refuserSiInjurieux(t, 'Ton message');
 
   const quand = horodatage();
   const r = await ecrire(

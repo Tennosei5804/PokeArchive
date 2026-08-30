@@ -47,6 +47,18 @@ function trocJeuNom(cle){
  * serveur, plutôt que dans chaque écran qui affiche un échange.
  */
 function trocPhrase(e){
+  // UN DON N'A PAS DE « CONTRE ». Un côté vide veut dire « rien en retour » —
+  // le serveur le redit avec `don`, et l'on s'appuie sur lui plutôt que sur une
+  // chaîne vide, qui pourrait aussi bien signaler une donnée manquante.
+  //
+  // La phrase change de sens selon le côté où l'on se trouve, et c'est le seul
+  // endroit de ce fichier où cela arrive : recevoir un don et en faire un ne se
+  // racontent pas pareil, alors qu'un échange se raconte pareil des deux côtés.
+  if(e.don){
+    return e.jeRecois
+      ? trocNom(e.jeRecois) + ', offert'
+      : trocNom(e.jeDonne) + ', en cadeau';
+  }
   return trocNom(e.jeRecois) + ' contre ' + trocNom(e.jeDonne);
 }
 
@@ -98,19 +110,33 @@ function trocChoisir(cote, entry, ligne){
 function trocMajBarre(){
   if(!trocVeux || !trocDonne || !trocEnvoyer) return;
 
+  // CE QU'ON DONNE SUFFIT. Sans rien demander en face, c'est un don — et la
+  // colonne de droite liste justement ce que l'autre N'A PAS. Offrir depuis
+  // cet écran ne demandait donc aucune donnée de plus : seulement de cesser
+  // d'exiger la colonne de gauche.
+  const don = !trocSel.veux;
+
   trocVeux.textContent = trocSel.veux
-    ? nomAffiche(trocSel.veux) : 'Choisis ce que tu veux à gauche';
+    ? nomAffiche(trocSel.veux) : 'Sans rien demander en retour';
   trocVeux.classList.toggle('rempli', !!trocSel.veux);
 
   trocDonne.textContent = trocSel.donne
-    ? nomAffiche(trocSel.donne) : 'et ce que tu donnes à droite';
+    ? nomAffiche(trocSel.donne) : 'Choisis ce que tu donnes à droite';
   trocDonne.classList.toggle('rempli', !!trocSel.donne);
 
-  trocEnvoyer.disabled = !(trocSel.veux && trocSel.donne);
+  // « contre » n'a pas de sens quand il n'y a rien en face.
+  if(trocContre) trocContre.textContent = don ? '·' : 'contre';
+
+  // Le bouton dit LEQUEL DES DEUX GESTES on s'apprête à faire. « Proposer
+  // l'échange » sous un don serait faux, et c'est le dernier mot qu'on lit
+  // avant d'envoyer.
+  trocEnvoyer.textContent = don ? 'Offrir ce Pokémon' : 'Proposer l’échange';
+  trocEnvoyer.disabled = !trocSel.donne;
 }
 
 async function trocProposer(){
-  if(!trocSel.veux || !trocSel.donne) return;
+  if(!exigeCompte('proposer un échange')) return;
+  if(!trocSel.donne) return;
   if(typeof amiProgression === 'undefined' || !amiProgression || !amiProgression.pseudo) return;
 
   trocEnvoyer.disabled = true;
@@ -122,10 +148,13 @@ async function trocProposer(){
       // Ce qu'IL me donne est ce que JE demande : les deux noms partent dans le
       // sens du demandeur, qui est moi puisque c'est moi qui propose.
       offert: trocSel.donne.name,
-      demande: trocSel.veux.name,
+      // Vide : c'est un don. Le serveur l'accepte et le nomme ainsi.
+      demande: trocSel.veux ? trocSel.veux.name : '',
       mot: (trocMot && trocMot.value.trim()) || null,
     });
-    if(trocEtat) trocEtat.textContent = 'Proposition envoyée.';
+    if(trocEtat) {
+      trocEtat.textContent = trocSel.veux ? 'Proposition envoyée.' : 'Don envoyé.';
+    }
     trocSel = { veux: null, donne: null };
     if(trocMot) trocMot.value = '';
     [echangeLui, echangeMoi].forEach(function(c){
@@ -235,7 +264,13 @@ function ligneTroc(e){
   if(e.etat === 'propose' && e.sens === 'propose'){
     actions.appendChild(boutonTroc('Retirer', '', function(){ annulerTroc(e.id); }));
   }
-  if(e.etat === 'accepte' || e.etat === 'fait'){
+  // ON PARLE DÈS LA PROPOSITION. Le bouton n'apparaissait qu'après un oui,
+  // ce qui laissait le destinataire sans un mot à répondre — voir l'en-tête
+  // de api/src/echanges.js pour la règle et son renversement.
+  //
+  // Refusé ou retiré, le bouton reste : la conversation est LISIBLE, elle
+  // n'est plus ouverte. Le serveur refuse l'écriture, et l'écran le dira.
+  {
     const parler = boutonTroc('💬 Discuter', '', function(){ ouvrirDiscussion(e.id); });
     if(e.messages){
       parler.textContent = '💬 Discuter (' + e.messages + ')';
@@ -265,6 +300,7 @@ function boutonTroc(texte, classe, action){
 }
 
 async function repondreTroc(id, reponse){
+  if(!exigeCompte('répondre à un échange')) return;
   try{
     await invoke('echange_reponse', { id: id, reponse: reponse });
   }catch(e){
@@ -338,6 +374,17 @@ async function dessinerDiscussion(){
   discussionResume.textContent = 'Sur ' + trocJeuNom(e.dex)
     + '  ·  ' + (TROC_ETATS[e.etat] || { mot: e.etat }).mot;
 
+  // CLOS : LISIBLE, PAS OUVERT. Un échange refusé ou retiré garde sa
+  // conversation — « rien ne s'efface » — mais on n'y écrit plus. Laisser le
+  // champ actif ferait taper un message pour rien, et le refus n'arriverait
+  // qu'à l'envoi ; le dire à l'ouverture coûte une phrase et évite ça.
+  const ouvert = e.etat === 'propose' || e.etat === 'accepte' || e.etat === 'fait';
+  if(discussionTexte) discussionTexte.disabled = !ouvert;
+  if(discussionEnvoyer) discussionEnvoyer.disabled = !ouvert;
+  if(!ouvert){
+    discussionEtat.textContent = 'Cet échange est clos. Vous pouvez relire, plus écrire.';
+  }
+
   discussionFil.innerHTML = '';
   if(!r.messages.length){
     discussionFil.innerHTML = '<div class="state-msg">Rien encore. '
@@ -373,6 +420,7 @@ async function dessinerDiscussion(){
 }
 
 async function envoyerMessage(){
+  if(!exigeCompte('écrire dans un échange')) return;
   if(trocDiscussion === null) return;
   const texte = discussionTexte.value.trim();
   if(!texte) return;

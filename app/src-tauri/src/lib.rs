@@ -744,6 +744,79 @@ async fn changer_visibilite(etat: State<'_, Etat>, visible: bool) -> Result<serd
     .await
 }
 
+/// Ouvrir ou fermer sa porte aux propositions d'echange.
+#[tauri::command]
+async fn changer_echanges_ouverts(
+    etat: State<'_, Etat>,
+    ouverts: bool,
+) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(
+        reqwest::Method::POST,
+        "/api/echanges-ouverts",
+        &jeton,
+        Some(serde_json::json!({ "ouverts": ouverts })),
+    )
+    .await
+}
+
+// --- La messagerie ----------------------------------------------------------
+// Ecrire a quelqu'un sans passer par un echange. Le pseudo voyage dans le
+// chemin : il est encode, parce qu'un pseudo accepte les espaces et les
+// accents et qu'un chemin ne les accepte pas tels quels.
+
+/// Qui peut m'ecrire : « tous », « amis » ou « personne ».
+#[tauri::command]
+async fn changer_messages_de(
+    etat: State<'_, Etat>,
+    valeur: String,
+) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(
+        reqwest::Method::POST,
+        "/api/messages-de",
+        &jeton,
+        Some(serde_json::json!({ "valeur": valeur })),
+    )
+    .await
+}
+
+/// Avec qui j'ai une conversation, et ou elle en est.
+#[tauri::command]
+async fn messages_liste(etat: State<'_, Etat>) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(reqwest::Method::GET, "/api/messages", &jeton, None).await
+}
+
+/// Une conversation. La lire la marque lue, cote serveur.
+#[tauri::command]
+async fn messages_avec(
+    etat: State<'_, Etat>,
+    pseudo: String,
+) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    let chemin = format!("/api/messages/{}", urlencode(&pseudo));
+    appeler(reqwest::Method::GET, &chemin, &jeton, None).await
+}
+
+/// Ecrire a quelqu'un.
+#[tauri::command]
+async fn messages_ecrire(
+    etat: State<'_, Etat>,
+    pseudo: String,
+    texte: String,
+) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    let chemin = format!("/api/messages/{}", urlencode(&pseudo));
+    appeler(
+        reqwest::Method::POST,
+        &chemin,
+        &jeton,
+        Some(serde_json::json!({ "texte": texte })),
+    )
+    .await
+}
+
 // --- Les amis ---------------------------------------------------------------
 //
 // Abonnement à sens unique : pas de demande, pas d'acceptation. Ce que l'API
@@ -1188,6 +1261,11 @@ pub fn run() {
             succes_de,
             retrospective,
             changer_visibilite,
+            changer_echanges_ouverts,
+            changer_messages_de,
+            messages_liste,
+            messages_avec,
+            messages_ecrire,
             amis,
             suivre,
             ne_plus_suivre,

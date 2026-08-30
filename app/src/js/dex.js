@@ -245,6 +245,7 @@ function updateBulkBar(){
 }
 
 async function applyBulk(add){
+  if(!exigeCompte('cocher des captures')) return;
   const t = bulkTargets();
   const list = add ? t.toCheck : t.toUncheck;
   if(!list.length) return;
@@ -965,6 +966,9 @@ function renderCard(entry){
 
   // Les deux formes sont indépendantes : cocher l'une ne touche jamais l'autre.
   input.addEventListener('change', function(){
+    // Avant que la case ne change d'etat : la remettre apres coup ferait
+    // clignoter l'ecran, et l'utilisateur aurait vu son geste accepte.
+    if(!exigeCompte('cocher une capture')){ input.checked = !input.checked; return; }
     const target = activeSet();
     if(input.checked) target.add(entry.name);
     else target.delete(entry.name);

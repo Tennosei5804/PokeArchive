@@ -38,6 +38,7 @@ function chercheDeja(nom){
  * l'impression d'un bouton cassé.
  */
 function basculerRecherche(nom){
+  if(!exigeCompte('tenir une liste d’envies')) return false;
   const i = recherches.indexOf(nom);
   if(i !== -1){
     recherches.splice(i, 1);

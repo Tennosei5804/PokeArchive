@@ -22,6 +22,7 @@ import * as amis from './amis.js';
 import * as troc from './echanges.js';
 import * as notifications from './notifications.js';
 import * as images from './images.js';
+import * as messagerie from './messagerie.js';
 import * as discord from './discord.js';
 import { limiter } from './debit.js';
 
@@ -378,6 +379,35 @@ app.get('/api/retrospective', route(async (req, res) => {
 app.post('/api/visibilite', route(async (req, res) => {
   const d = await exiger(req, res); if (!d) return;
   res.json({ ok: true, ...(await comptes.changerVisibilite(d.id, !!req.body?.visible)) });
+}));
+
+app.post('/api/echanges-ouverts', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json({ ok: true, ...(await comptes.changerEchangesOuverts(d.id, !!req.body?.ouverts)) });
+}));
+
+// --- La messagerie ----------------------------------------------------------
+// Ecrire a quelqu'un sans passer par un echange. Voir messagerie.js pour ce que
+// cela ouvre, et ce qui le garde.
+
+app.post('/api/messages-de', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json({ ok: true, ...(await comptes.changerMessagesDe(d.id, req.body?.valeur)) });
+}));
+
+app.get('/api/messages', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json(await messagerie.conversations(d.id));
+}));
+
+app.get('/api/messages/:pseudo', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json(await messagerie.conversation(d.id, req.params.pseudo));
+}));
+
+app.post('/api/messages/:pseudo', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json(await messagerie.ecrireA(d.id, req.params.pseudo, req.body?.texte));
 }));
 
 // --- Les amis ---------------------------------------------------------------
