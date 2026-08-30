@@ -1179,6 +1179,18 @@
      les pastilles « ? » que lexique.js pose sur tout élément portant
      data-lexique. Voir js/lexique.js. -->
 
+<!-- La carte d'une distribution. Elle ne remplace pas la fiche de l'espèce :
+     elle décrit CE QU'ON A REÇU, pas ce qu'est le Pokémon. Voir js/cadeaux.js. -->
+<div class="modal-overlay" id="cadeauOverlay" style="display:none;" role="dialog"
+     aria-modal="true" aria-labelledby="cadeauTitre">
+  <div class="modal-card cadeau-carte">
+    <button class="fiche-fermer" id="cadeauFermer" type="button" aria-label="Fermer">✕</button>
+    <div class="modal-eyebrow" id="cadeauEyebrow">Distribution</div>
+    <h2 class="modal-title" id="cadeauTitre">—</h2>
+    <div class="cadeau-carte-corps" id="cadeauCorps"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="lexiqueOverlay" style="display:none;" role="dialog"
      aria-modal="true" aria-labelledby="lexiqueTitre">
   <div class="modal-card lexique-card">
@@ -1542,91 +1554,91 @@
   </div>
 </div>
 
-<script src="../src/js/donnees.js?v=1788090117"></script>
+<script src="../src/js/donnees.js?v=1788097475"></script>
 <!-- Généré par outils/generer-donnees.html. Doit précéder cache.js, qui y
      puise quand le stockage local est vide. -->
-<script src="../src/js/donnees-embarquees.js?v=1788090117"></script>
+<script src="../src/js/donnees-embarquees.js?v=1788097475"></script>
 <!-- Les verrous chromatiques : des données seules, relevées à la source et
      datées. Doit précéder verrous.js, qui les affiche. -->
-<script src="../src/js/donnees-cadeaux.js?v=1788090117"></script>
-<script src="../src/js/donnees-verrous.js?v=1788090117"></script>
+<script src="../src/js/donnees-cadeaux.js?v=1788097475"></script>
+<script src="../src/js/donnees-verrous.js?v=1788097475"></script>
 <!-- Les notices du Pokédex, une par espèce et par jeu, relevées sur Poképédia
      par outils/relever-descriptions.py, ne sont PAS déclarées ici : fiche.js va
      les chercher à la première fiche ouverte, comme les attaques et les lieux.
      Une notice par jeu, c'est vingt-deux fois le texte d'une notice par espèce
      — de quoi allonger chaque démarrage pour une carte qu'on ne lit pas
      toujours. -->
-<script src="../src/js/cache.js?v=1788090117"></script>
-<script src="../src/js/noyau.js?v=1788090117"></script>
-<script src="../src/js/confirmer.js?v=1788090117"></script>
-<script src="../src/js/maj.js?v=1788090117"></script>
-<script src="../src/js/nouveautes.js?v=1788090117"></script>
+<script src="../src/js/cache.js?v=1788097475"></script>
+<script src="../src/js/noyau.js?v=1788097475"></script>
+<script src="../src/js/confirmer.js?v=1788097475"></script>
+<script src="../src/js/maj.js?v=1788097475"></script>
+<script src="../src/js/nouveautes.js?v=1788097475"></script>
 <!-- Le lexique. Autonome : il ne lit rien d'autre que ses propres définitions,
      et pose ses pastilles au DOMContentLoaded. -->
-<script src="../src/js/lexique.js?v=1788090117"></script>
-<script src="../src/js/serveur.js?v=1788090117"></script>
-<script src="../src/js/formes.js?v=1788090117"></script>
-<script src="../src/js/accueil.js?v=1788090117"></script>
-<script src="../src/js/dex.js?v=1788090117"></script>
-<script src="../src/js/fiche.js?v=1788090117"></script>
-<script src="../src/js/grille.js?v=1788090117"></script>
+<script src="../src/js/lexique.js?v=1788097475"></script>
+<script src="../src/js/serveur.js?v=1788097475"></script>
+<script src="../src/js/formes.js?v=1788097475"></script>
+<script src="../src/js/accueil.js?v=1788097475"></script>
+<script src="../src/js/dex.js?v=1788097475"></script>
+<script src="../src/js/fiche.js?v=1788097475"></script>
+<script src="../src/js/grille.js?v=1788097475"></script>
 <!-- Après dex.js et grille.js : les objectifs figent currentFiltered. -->
-<script src="../src/js/objectifs.js?v=1788090117"></script>
+<script src="../src/js/objectifs.js?v=1788097475"></script>
 <!-- Après grille.js : la fiche de capture complète la fenêtre d'aperçu. -->
-<script src="../src/js/capture.js?v=1788090117"></script>
+<script src="../src/js/capture.js?v=1788097475"></script>
 <!-- Après compte.js : la rareté demande la table à l'API. -->
-<script src="../src/js/rarete.js?v=1788090117"></script>
-<script src="../src/js/lieux.js?v=1788090117"></script>
-<script src="../src/js/filtres.js?v=1788090117"></script>
-<script src="../src/js/chasse.js?v=1788090117"></script>
-<script src="../src/js/verrous.js?v=1788090117"></script>
-<script src="../src/js/cadeaux.js?v=1788090117"></script>
+<script src="../src/js/rarete.js?v=1788097475"></script>
+<script src="../src/js/lieux.js?v=1788097475"></script>
+<script src="../src/js/filtres.js?v=1788097475"></script>
+<script src="../src/js/chasse.js?v=1788097475"></script>
+<script src="../src/js/verrous.js?v=1788097475"></script>
+<script src="../src/js/cadeaux.js?v=1788097475"></script>
 <!-- Les règles de combat, puis l'écran qui s'appuie dessus. Tous deux après
      fiche.js (TYPE_RELATIONS, puceType, decoderBloc) et avant menus.js, qui
      stylise leurs menus déroulants. -->
-<script src="../src/js/combat.js?v=1788090117"></script>
-<script src="../src/js/strategie.js?v=1788090117"></script>
+<script src="../src/js/combat.js?v=1788097475"></script>
+<script src="../src/js/strategie.js?v=1788097475"></script>
 <!-- Après strategie.js : il lui emprunte creerSelecteur. -->
-<script src="../src/js/reproduction.js?v=1788090117"></script>
+<script src="../src/js/reproduction.js?v=1788097475"></script>
 <!-- Après donnees.js pour GAMES, et après reproduction.js par simple
      voisinage : les trois partagent la barre « Outils ». -->
-<script src="../src/js/transferts.js?v=1788090117"></script>
-<script src="../src/js/partage.js?v=1788090117"></script>
-<script src="../src/js/menus.js?v=1788090117"></script>
+<script src="../src/js/transferts.js?v=1788097475"></script>
+<script src="../src/js/partage.js?v=1788097475"></script>
+<script src="../src/js/menus.js?v=1788097475"></script>
 <!-- Redéfinit la couche de sauvegarde quand l'app tourne dans Tauri.
      Hors Tauri (serveur.py, ou fichier ouvert directement), il ne fait rien. -->
 
-<script src="../src/js/amis.js?v=1788090117"></script>
+<script src="../src/js/amis.js?v=1788097475"></script>
 <!-- Après partage.js, dont il complète le panneau d'entraide, et après
      compte.js pour nomJournal, libelleDex, avatarDiscord et dateLisible. -->
-<script src="../src/js/troc.js?v=1788090117"></script>
+<script src="../src/js/troc.js?v=1788097475"></script>
 <!-- Après amis.js (pontNotif, bullePermise) et troc.js (ouvrirDiscussion). -->
-<script src="../src/js/notifs.js?v=1788090117"></script>
+<script src="../src/js/notifs.js?v=1788097475"></script>
 <!-- Après chasse.js (nomDeChasse, dessinerTableauChasse) et compte.js
      (perdreSession, profilCourant). -->
-<script src="../src/js/photos.js?v=1788090117"></script>
+<script src="../src/js/photos.js?v=1788097475"></script>
 <!-- Après formes.js (speciesForVariant, poolEntries), accueil.js (semeur,
      hachage) et photos.js (vignettePhoto). -->
-<script src="../src/js/defi.js?v=1788090117"></script>
+<script src="../src/js/defi.js?v=1788097475"></script>
 <!-- Après compte.js (nomJournal, perdreSession) et amis.js. -->
-<script src="../src/js/recherches.js?v=1788090117"></script>
+<script src="../src/js/recherches.js?v=1788097475"></script>
 <!-- Après dex.js (obtentionDe) et recherches.js (chercheDeja). -->
-<script src="../src/js/blocages.js?v=1788090117"></script>
+<script src="../src/js/blocages.js?v=1788097475"></script>
 <!-- Après grille.js (BOITE_TAILLE, allerBoite, basculerBoites) et dex.js
      (trierEntrees). -->
-<script src="../src/js/rangement.js?v=1788090117"></script>
-<script src="../src/js/retrospective.js?v=1788090117"></script>
-<script src="../src/js/succes.js?v=1788090117"></script>
+<script src="../src/js/rangement.js?v=1788097475"></script>
+<script src="../src/js/retrospective.js?v=1788097475"></script>
+<script src="../src/js/succes.js?v=1788097475"></script>
 <!-- Après retrospective.js : la carte lit retroDonnees si elle est là, et se
      passe d'elle sinon. -->
-<script src="../src/js/carte.js?v=1788090117"></script>
+<script src="../src/js/carte.js?v=1788097475"></script>
 <!-- Après compte.js : le premier lancement lit profilCourant et profilsConnus. -->
-<script src="../src/js/depart.js?v=1788090117"></script>
-<script src="../src/js/donnees-perso.js?v=1788090117"></script>
-<script src="../src/js/presence.js?v=1788090117"></script>
+<script src="../src/js/depart.js?v=1788097475"></script>
+<script src="../src/js/donnees-perso.js?v=1788097475"></script>
+<script src="../src/js/presence.js?v=1788097475"></script>
 
-<script src="../src/js/selecteur-couleur.js?v=1788090117"></script>
-<script src="../src/js/apparence.js?v=1788090117"></script>
+<script src="../src/js/selecteur-couleur.js?v=1788097475"></script>
+<script src="../src/js/apparence.js?v=1788097475"></script>
 <script src="generer.js"></script>
 </body>
 </html>

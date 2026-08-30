@@ -1930,6 +1930,128 @@ html[data-theme="light"] body{ background:#e9e7e0; }
    pu nous concerner, et elle se perdrait au milieu de six étiquettes grises. */
 .cadeau-etiq.region{ color:var(--dex-red); border-color:var(--dex-red); }
 
+/* La ligne est un bouton : elle ouvre la carte. On lui retire l'allure de
+   bouton, on garde le geste. */
+.cadeau-ligne{
+  width:100%; text-align:left; border:none; border-bottom:1px solid var(--card-border);
+  background:transparent; cursor:pointer; font:inherit; color:inherit;
+}
+.cadeau-ligne:focus-visible{ outline:2px solid var(--dex-red); outline-offset:-2px; }
+
+/* ---- La carte d'une distribution ---- */
+.cadeau-carte{ width:min(600px, 95vw); max-width:min(600px, 95vw); text-align:left; }
+.cadeau-carte .modal-eyebrow,
+.cadeau-carte .modal-title{ text-align:center; }
+.cadeau-carte-corps{ max-height:min(64vh, 520px); overflow-y:auto; margin-top:14px; }
+.cadeau-carte-tete{ display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+.cadeau-carte-sprite{
+  width:84px; height:84px; flex:0 0 auto;
+  display:grid; place-items:center;
+  background:var(--screen); border-radius:12px;
+}
+.cadeau-carte-sprite img{ max-width:100%; max-height:100%; }
+.cadeau-carte-no{ font-family:var(--font-data); font-size:11px; color:var(--ink-faint); }
+.cadeau-carte-chroma{
+  font-family:var(--font-body); font-size:12.5px; color:var(--ink-soft);
+  margin-top:4px; line-height:1.5;
+}
+/* ENCADRÉS COMME LES BLOCS D'OBTENTION D'UNE FICHE. Le vocabulaire vient de
+   .obt-ligne : fond de carte, bordure fine, et un liseré de gauche de trois
+   pixels qui porte le sens plutôt qu'un simple trait de séparation.
+
+   Trois traits horizontaux se lisaient comme une seule longue liste ; trois
+   cadres se comptent d'un coup d'œil. */
+.cadeau-bloc{
+  margin-top:12px; padding:11px 13px 12px;
+  background:var(--card);
+  border:1px solid var(--card-border);
+  border-left:3px solid var(--ink-faint);
+  border-radius:9px;
+}
+/* Rouge : quand et comment on l'a distribué. Vert : ce qu'on a reçu — la même
+   couleur que « capturé » ailleurs. Neutre : ce qui vient de la réserve et ne
+   parle pas de cet exemplaire-là. */
+.cadeau-bloc-quand{ border-left-color:var(--dex-red); }
+.cadeau-bloc-recu{ border-left-color:var(--caught); }
+.cadeau-bloc-absent{ border-left-color:var(--card-border); }
+.cadeau-bloc-titre{
+  font-family:var(--font-data); font-size:9.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--ink-faint); margin-bottom:7px;
+}
+/* TROIS COLONNES, ET C'EST LA GRILLE QUI LES TIENT. En rangées indépendantes,
+   les valeurs tombaient bien au même pixel — mesuré — mais une icône posée
+   devant le texte le poussait de trente et un pixels, et « Poké Ball » ne
+   tombait plus sous « Synchro ». L'icône a désormais sa colonne, vide sur les
+   lignes qui n'en ont pas, et les trois s'alignent d'elles-mêmes.
+
+   LA COLONNE DU MILIEU EST FIXE, pas `auto`. Avec `auto` elle se réglait sur
+   le contenu de CHAQUE bloc : nulle dans « La distribution » qui n'a pas
+   d'icône, vingt-deux pixels dans « L'exemplaire » qui porte la Ball. Les deux
+   blocs s'alignaient donc chacun de son côté, et pas l'un sur l'autre. Une
+   largeur fixe coûte un retrait partout et rend la carte entière réglure. */
+.cadeau-champs{
+  display:grid; grid-template-columns:92px 24px 1fr;
+  gap:5px 10px; align-items:center;
+}
+.cadeau-champ-cle{
+  font-family:var(--font-data); font-size:10.5px; color:var(--ink-faint);
+}
+.cadeau-champ-icone{ display:flex; align-items:center; }
+.cadeau-champ-val{
+  font-family:var(--font-body); font-size:12.5px; color:var(--ink);
+}
+
+/* Les barres : la même lecture que sur la fiche d'une espèce. */
+.cadeau-stat{ display:flex; align-items:center; gap:8px; padding:2px 0; }
+.cadeau-stat-nom{
+  flex:0 0 76px; font-family:var(--font-data); font-size:10px; color:var(--ink-faint);
+}
+.cadeau-stat-jauge{
+  flex:1 1 auto; height:7px; border-radius:999px; background:var(--screen);
+  overflow:hidden;
+}
+.cadeau-stat-jauge span{ display:block; height:100%; background:var(--caught); }
+.cadeau-stat-val{
+  flex:0 0 30px; text-align:right;
+  font-family:var(--font-data); font-size:11px; color:var(--ink-soft);
+}
+
+/* LES LOGOS DE TYPE FONT 200 × 44, soit un rapport de 50:11. object-fit les
+   empêche d'être écrasés quoi qu'on demande ; une case au mauvais rapport se
+   contente donc de laisser un filet de vide, invisible à cette taille.
+   Les capacités tiennent le rapport exactement (50 × 11) ; la puce principale
+   arrondit à 72 × 16, ce qui laisse un demi-pixel.
+
+   72 px ici plutôt que les 100 par défaut : la puce de type était la plus
+   grosse chose de la carte, à côté d'un texte de 12,5 px. */
+.cadeau-types{ display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+.cadeau-types .type-img{ width:72px; height:16px; }
+/* La Ball est un sprite de 30 px : 24 la rend nette sans l'agrandir, et
+   pixelated évite le flou d'un lissage sur une image de cette taille. */
+.cadeau-ball-img{ width:24px; height:24px; image-rendering:pixelated; }
+.cadeau-capacites{ display:flex; flex-wrap:wrap; gap:5px; }
+/* Une capacité : son nom, et la puce de son type sous lui — la même image
+   que partout ailleurs dans l'application. */
+.cadeau-capacite{
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  font-family:var(--font-body); font-size:11px; line-height:1.2;
+  border:1px solid var(--card-border); border-radius:8px;
+  padding:5px 7px 4px; color:var(--ink);
+}
+.cadeau-capacite .type-img{ width:50px; height:11px; }
+/* Exclusive à la distribution : c'est souvent sa raison d'être. */
+.cadeau-capacite.exclusive{ border-color:var(--gold-deep); }
+.cadeau-capacite.exclusive .cadeau-capacite-nom{ color:var(--gold-deep); font-weight:700; }
+/* Le repère des lignes documentées : discret, mais il dit où cliquer. */
+.cadeau-etiq.detaille{ color:var(--caught); border-color:var(--caught); }
+
+/* Ce qui manque se dit, plutôt que de laisser une section vide : un blanc se
+   lit « il n'y en avait pas », ce qui est une réponse, et fausse. */
+.cadeau-manque{
+  margin:0; font-family:var(--font-body); font-size:12px; line-height:1.55;
+  color:var(--ink-faint);
+}
+
 @media (max-width:560px){
   .cadeau-ligne{ gap:9px; padding:9px 8px; }
   .cadeau-sprite{ width:38px; height:38px; }

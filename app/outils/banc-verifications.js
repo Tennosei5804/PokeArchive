@@ -1476,22 +1476,22 @@ verifier('Cadeau Mystère',
     // peut pas voir, c'est une clé de GAMES renommée APRÈS la génération : le
     // fichier resterait valide et ses distributions deviendraient introuvables
     // au filtre, sans rien casser.
-    if(typeof CADEAUX === 'undefined') return 'échec : donnees-cadeaux.js absent';
+    if(typeof DISTRIBUTIONS === 'undefined') return 'échec : donnees-cadeaux.js absent';
     const connues = new Set(GAMES.map(function(g){ return g.key; }));
     const fautes = new Set();
     let n = 0;
-    CADEAUX.forEach(function(x){
+    DISTRIBUTIONS.forEach(function(x){
       x[3].forEach(function(k){ n++; if(!connues.has(k)) fautes.add(k); });
     });
     if(fautes.size) return 'échec : ' + Array.from(fautes).join(', ');
     // Et les index de textes, qui rendraient « undefined » à l'écran.
-    const hors = CADEAUX.filter(function(x){
+    const hors = DISTRIBUTIONS.filter(function(x){
       return [x[7], x[8], x[10]].some(function(i){
-        return i >= CADEAUX_TEXTES.length;
+        return i >= DISTRIBUTIONS_TEXTES.length;
       });
     });
     if(hors.length) return 'échec : ' + hors.length + ' index de texte hors table';
-    return CADEAUX.length + ' distributions, ' + n + ' références de jeu, toutes reliées';
+    return DISTRIBUTIONS.length + ' distributions, ' + n + ' références de jeu, toutes reliées';
   });
 
 verifier('Cadeau Mystère',
@@ -1501,16 +1501,16 @@ verifier('Cadeau Mystère',
     // la génération, mais personne ne relit une sortie de script des semaines
     // plus tard — onze noms étaient tombés sur « Miaouss de Galar », que la
     // réserve écrit « Miaouss (Galar) ».
-    if(typeof CADEAUX === 'undefined') return 'échec : donnees-cadeaux.js absent';
+    if(typeof DISTRIBUTIONS === 'undefined') return 'échec : donnees-cadeaux.js absent';
     if(typeof allEntries === 'undefined' || !allEntries.length){
       return 'ignoré : la réserve n’est pas chargée';
     }
     const connues = new Set(allEntries.map(function(e){ return e.speciesId; }));
-    const perdus = CADEAUX.filter(function(x){ return !x[1] || !connues.has(x[1]); });
+    const perdus = DISTRIBUTIONS.filter(function(x){ return !x[1] || !connues.has(x[1]); });
     if(perdus.length){
       return 'échec : ' + perdus.length + ' non résolue(s), dont « ' + perdus[0][0] + ' »';
     }
-    return CADEAUX.length + ' distributions, toutes rattachées à une espèce';
+    return DISTRIBUTIONS.length + ' distributions, toutes rattachées à une espèce';
   });
 
 verifier('Cadeau Mystère',
@@ -1520,25 +1520,129 @@ verifier('Cadeau Mystère',
     // total. Un quatrième cas apparu à la source — une catégorie non prévue —
     // tomberait silencieusement dans « normal » par le défaut de l'outil, et le
     // compte le dirait avant que la liste ne mente.
-    if(typeof CADEAUX === 'undefined') return 'échec : donnees-cadeaux.js absent';
+    if(typeof DISTRIBUTIONS === 'undefined') return 'échec : donnees-cadeaux.js absent';
     if(typeof cadeauxFiltres !== 'function') return 'échec : cadeaux.js absent';
     const par = {};
-    CADEAUX.forEach(function(x){
-      const c = CADEAUX_CATEGORIES[x[4]];
+    DISTRIBUTIONS.forEach(function(x){
+      const c = DISTRIBUTIONS_CATEGORIES[x[4]];
       par[c] = (par[c] || 0) + 1;
     });
-    const somme = CADEAUX_CATEGORIES.reduce(function(a, c){ return a + (par[c] || 0); }, 0);
-    if(somme !== CADEAUX.length){
-      return 'échec : ' + somme + ' classées pour ' + CADEAUX.length + ' distributions';
+    const somme = DISTRIBUTIONS_CATEGORIES.reduce(function(a, c){ return a + (par[c] || 0); }, 0);
+    if(somme !== DISTRIBUTIONS.length){
+      return 'échec : ' + somme + ' classées pour ' + DISTRIBUTIONS.length + ' distributions';
     }
     // Et « chromatique », qui n'est pas une catégorie mais un état de la
     // distribution : il doit croiser les trois autres, pas s'y substituer.
-    const chroma = CADEAUX.filter(function(x){
-      return CADEAUX_CHROMA[x[5]] === 'shiny_garanti';
+    const chroma = DISTRIBUTIONS.filter(function(x){
+      return DISTRIBUTIONS_CHROMA[x[5]] === 'shiny_garanti';
     }).length;
     if(!chroma) return 'échec : aucune distribution chromatique garantie';
-    return CADEAUX_CATEGORIES.map(function(c){ return (par[c] || 0) + ' ' + c; }).join(', ')
+    return DISTRIBUTIONS_CATEGORIES.map(function(c){ return (par[c] || 0) + ' ' + c; }).join(', ')
       + '  ·  ' + chroma + ' en chromatique garanti';
+  });
+
+verifier('Le chargement',
+  'Chaque script a survécu à son chargement',
+  function(){
+    // LE DÉFAUT QU'ELLE ARRÊTE, ET IL A COÛTÉ UNE VERSION PUBLIÉE.
+    //
+    // En scripts classiques, deux `const` du même nom dans deux fichiers font
+    // lever le SECOND — et tout ce qu'il déclare disparaît avec lui. Une réserve
+    // générée nommée CADEAUX a rencontré le CADEAUX de fiche.js, et fiche.js est
+    // mort en entier : la carte d'une espèce, ses statistiques, ses lieux, ses
+    // attaques. La page se chargeait sans broncher, l'erreur restait dans la
+    // console, et le banc passait au vert.
+    //
+    // node --check ne peut PAS voir ça : il lit un fichier à la fois, et la
+    // collision n'existe que dans la portée globale que les scripts partagent.
+    // verifier.py non plus — il cherche des appels sans cible, or la cible
+    // existe dans le source ; c'est à l'exécution qu'elle manque.
+    //
+    // Un témoin par fichier, choisi parmi ce qu'il déclare en dernier : s'il
+    // répond, le fichier est allé au bout.
+    // Des fermetures plutôt qu'un eval sur une chaîne : `const GAMES` vit dans
+    // la portée lexicale globale et n'apparaît PAS sur window, donc window[nom]
+    // ne répondrait rien. Une fonction, elle, voit ce que voit le script.
+    const TEMOINS = [
+      ['noyau.js',          function(){ return typeof nomAffiche; }],
+      ['donnees.js',        function(){ return typeof GAMES; }],
+      ['dex.js',            function(){ return typeof analyserRecherche; }],
+      ['grille.js',         function(){ return typeof renderList; }],
+      ['fiche.js',          function(){ return typeof ficheEmbarquee; }],
+      ['formes.js',         function(){ return typeof poolEntries; }],
+      ['chasse.js',         function(){ return typeof ouvrirChasseModal; }],
+      ['verrous.js',        function(){ return typeof verrousGroupes; }],
+      ['donnees-verrous.js',function(){ return typeof verrouillePour; }],
+      ['cadeaux.js',        function(){ return typeof chargerCadeaux; }],
+      ['donnees-cadeaux.js',function(){ return typeof DISTRIBUTIONS; }],
+      ['filtres.js',        function(){ return typeof filtresDisponibles; }],
+      ['menus.js',          function(){ return typeof syncSelects; }],
+      ['lexique.js',        function(){ return typeof ouvrirLexique; }],
+      ['accueil.js',        function(){ return typeof showPage; }],
+      ['nouveautes.js',     function(){ return typeof ouvrirNouveautes; }]
+    ];
+    const morts = [];
+    TEMOINS.forEach(function(x){
+      let vivant = false;
+      try{ vivant = x[1]() !== 'undefined'; }catch(e){ vivant = false; }
+      if(!vivant) morts.push(x[0]);
+    });
+    if(morts.length){
+      return 'échec : ' + morts.length + ' script(s) non chargé(s) — ' + morts.join(', ');
+    }
+    return TEMOINS.length + ' scripts, tous allés au bout';
+  });
+
+verifier('Cadeau Mystère',
+  'Le détail relevé pointe toujours dans sa table',
+  function(){
+    // Les index sont produits par un outil qui apparie deux sources dont les
+    // libellés ne coïncident pas. Un index hors table ne lèverait rien — la carte
+    // afficherait « undefined » là où elle promet un Dresseur d'Origine.
+    if(typeof DISTRIBUTIONS === 'undefined') return 'échec : réserve absente';
+    if(typeof DISTRIBUTIONS_DETAILS === 'undefined') return 'échec : détails absents';
+    const hors = DISTRIBUTIONS.filter(function(x){
+      return x[12] >= DISTRIBUTIONS_DETAILS.length;
+    });
+    if(hors.length) return 'échec : ' + hors.length + ' index hors table';
+    const avec = DISTRIBUTIONS.filter(function(x){ return x[12] >= 0; }).length;
+    if(!avec) return 'échec : aucune distribution n’a de détail';
+    // Un détail vide serait pire qu'absent : la carte annoncerait un bloc et
+    // n'aurait rien à y mettre.
+    const vides = DISTRIBUTIONS_DETAILS.filter(function(d){
+      return !d.do && !d.id && !d.niveau && !d.ball && !(d.capacites || []).length;
+    });
+    if(vides.length) return 'échec : ' + vides.length + ' détail(s) vide(s)';
+    return avec + ' distributions détaillées sur ' + DISTRIBUTIONS.length
+      + ', en ' + DISTRIBUTIONS_DETAILS.length + ' relevés distincts';
+  });
+
+verifier('Cadeau Mystère',
+  'Un détail parle toujours de l’espèce sur laquelle il est posé',
+  function(){
+    // LE BUG QU'ELLE ARRÊTE, ET IL A ÉTÉ VU À L'ÉCRAN. La fiche de Germignon s'est
+    // retrouvée sur la ligne de Phanpy : type Plante, Danse-Fleur, et le surnom
+    // japonais de Chicorita sur un Pokémon Sol. L'appariement de repli comparait
+    // le titre de l'évènement et jamais l'espèce — or « Œufs Mystère — Série 1 »
+    // couvre une trentaine d'espèces, et le titre seul n'en désigne aucune.
+    //
+    // Rien ne levait : les champs étaient remplis, cohérents entre eux, et faux.
+    // C'est exactement le genre d'erreur qu'un compte de couverture ne voit pas.
+    if(typeof DISTRIBUTIONS === 'undefined') return 'échec : réserve absente';
+    const mauvais = [];
+    let verifies = 0;
+    DISTRIBUTIONS.forEach(function(x){
+      if(x[12] < 0) return;
+      const d = DISTRIBUTIONS_DETAILS[x[12]];
+      if(!d || !d.espece) return;
+      verifies++;
+      if(d.espece !== x[1]) mauvais.push('#' + x[1] + ' ← #' + d.espece);
+    });
+    if(mauvais.length){
+      return 'échec : ' + mauvais.length + ' détail(s) étranger(s), dont ' + mauvais[0];
+    }
+    if(!verifies) return 'échec : aucun détail ne déclare son espèce';
+    return verifies + ' détails, tous posés sur la bonne espèce';
   });
 
 // ---------------------------------------------------------------------------
