@@ -931,6 +931,66 @@ async function tout(ids) {
     });
 
   await verifier(
+    'Une image de message se lit dans sa conversation, et le ménage l’épargne',
+    async () => {
+      // DEUX PIÈGES SYMÉTRIQUES, et c'est pour eux que le sujet « message »
+      // existe à côté de « chasse ».
+      //
+      // LE PREMIER EST LE MÉNAGE. Il efface tout ce qu'aucune chasse ne
+      // réclame — et une image envoyée dans une conversation n'est réclamée par
+      // aucune : elle vit dans un message, et les messages ne sont pas dans la
+      // sauvegarde. Sans exception, envoyer une image puis cocher une capture
+      // l'aurait effacée quelques secondes plus tard.
+      //
+      // LE SECOND EST LA VISIBILITÉ. La rattacher à celle de l'aventure aurait
+      // eu deux défauts oposés : privée, le destinataire ne verrait rien ;
+      // publique, n'importe qui pourrait lire une image adressée à une seule
+      // personne. C'est la conversation qui tranche.
+      await ecrire('DELETE FROM pa_images WHERE profil_id = ?', [profilUn]);
+      const img = await images.deposer(un, profilUn, 'message', jpegAvecExif());
+
+      // MÊME EN AVENTURE PRIVÉE : elle n'appartient à aucune aventure.
+      await ecrire('UPDATE pa_profils SET public = 0 WHERE id = ?', [profilUn]);
+      const envoye = await ecrireA(un, 'BancDeux', 'la voilà', null, img.id);
+      if (!envoye?.id) return 'échec : refusée alors qu’elle n’est pas une photo de chasse';
+      await images.servir(deux, img.id);       // le destinataire, malgré le privé
+      await images.servir(un, img.id);         // et son auteur, toujours
+      await ecrire('UPDATE pa_profils SET public = 1 WHERE id = ?', [profilUn]);
+
+      // ET PERSONNE D'AUTRE, même aventure redevenue publique : une image
+      // adressée à quelqu'un n'est pas une pièce d'album.
+      const tiers = await une(
+        'SELECT id FROM pa_dresseurs WHERE id NOT IN (?, ?) LIMIT 1', [un, deux]);
+      if (tiers) {
+        let refuse = false;
+        try { await images.servir(tiers.id, img.id); } catch (e) { refuse = e.code === 404; }
+        if (!refuse) return 'échec : un tiers lit l’image d’une conversation';
+      }
+
+      // LE MÉNAGE PASSE, ET NE L'EMPORTE PAS.
+      const otees = await images.menage(profilUn, sauvegarde(['abra'], {
+        chasses: [], chassesFinies: [],
+      }));
+      if (otees !== 0) return `échec : le ménage a emporté ${otees} image(s) de message`;
+      await images.servir(deux, img.id);
+
+      // MAIS IL BALAIE CELLE QU'ON A CHOISIE PUIS ABANDONNÉE. Entre le dépôt et
+      // l'envoi, une image n'est portée par rien : fermer la fenêtre sans
+      // écrire la laisserait pour toujours au quota de quelqu'un.
+      const perdue = await images.deposer(un, profilUn, 'message', jpegAvecExif());
+      await ecrire('UPDATE pa_images SET cree_le = ? WHERE id = ?',
+        [horodatage(new Date(Date.now() - 3 * 3600 * 1000)), perdue.id]);
+      const balayees = await images.menage(profilUn, sauvegarde(['abra'], {
+        chasses: [], chassesFinies: [],
+      }));
+      if (balayees !== 1) return `échec : ${balayees} image(s) abandonnée(s) balayée(s), une attendue`;
+      await images.servir(deux, img.id);      // celle qui est partie reste
+
+      return 'lisible par les deux malgré le privé, fermée aux tiers, '
+        + 'épargnée par le ménage ; l’abandonnée balayée';
+    });
+
+  await verifier(
     "Le ménage n'emporte que ce qu'aucune chasse ne réclame",
     async () => {
       // ON PART D'UNE ARDOISE PROPRE. Les vérifications précédentes ont déposé

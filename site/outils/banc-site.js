@@ -314,7 +314,7 @@ verifier('La synchro',
   });
 
 verifier('Le pont HTTP',
-  'Une photo revient en adresse `data:`, et non en objet',
+  'Une photo part avec son aventure, et revient en adresse `data:`',
   async function(){
     // LE BUG, ET IL TOUCHAIT TOUTES LES PHOTOS DU SITE. L'écran fait
     // `img.src = await invoke('image_charger', …)` sans regarder ce qu'il
@@ -354,6 +354,32 @@ verifier('Le pont HTTP',
         w.document.body.appendChild(s);
       });
 
+      // L'ENVOI D'ABORD : l'aventure et le sujet doivent voyager dans l'adresse,
+      // comme le fait le Rust. Sans eux le serveur retombait sur l'aventure PAR
+      // DÉFAUT et sur le sujet « chasse » — une photo posée depuis une seconde
+      // aventure atterrissait dans la première, où le ménage l'effaçait au
+      // prochain enregistrement ; et une image de message, déposée en
+      // « chasse », subissait le même sort.
+      let vue = null;
+      w.fetch = async function(url){
+        vue = String(url);
+        return {
+          ok: true, status: 200,
+          headers: { get: function(n){
+            return /content-type/i.test(n) ? 'image/png' : null; } },
+          json: async function(){ return { ok: true, id: 7 }; },
+          arrayBuffer: async function(){ return octets.buffer; },
+        };
+      };
+      await w.__TAURI__.core.invoke('image_envoyer',
+        { profil: 42, sujet: 'message', mime: 'image/png', octets: [1, 2, 3] });
+      if(vue.indexOf('sujet=message') === -1){
+        return 'échec : le sujet ne voyage pas — ' + vue;
+      }
+      if(vue.indexOf('profil=42') === -1){
+        return 'échec : l’aventure ne voyage pas — ' + vue;
+      }
+
       const rendu = await w.__TAURI__.core.invoke('image_charger', { id: 1 });
       if(typeof rendu !== 'string'){
         return 'échec : le pont rend un ' + typeof rendu + ' — img.src écrirait « [object Object] »';
@@ -365,7 +391,8 @@ verifier('Le pont HTTP',
       if(w.atob(rendu.split(',')[1]).length !== octets.length){
         return 'échec : les octets ne survivent pas au passage en base64';
       }
-      return 'adresse data:image/png, ' + octets.length + ' octets intacts';
+      return 'sujet et aventure dans l’adresse ; data:image/png, '
+        + octets.length + ' octets intacts';
     } finally {
       try{ f.contentWindow.localStorage.removeItem('pokearchive-jeton'); }catch(e){ /* déjà partie */ }
       f.remove();

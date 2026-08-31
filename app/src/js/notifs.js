@@ -55,9 +55,12 @@ function notifDetail(n){
   return n.detail || '';
 }
 
+// LE NOM D'UNE ICONE, ET NON SON DESSIN. Le tableau portait des caracteres —
+// dont deux emojis, rendus par la police du systeme en pastilles brillantes au
+// milieu d'une liste sobre. Voir l'en-tete de icones.js.
 const NOTIF_ICONES = {
-  echange: '⇄', echange_accepte: '✔', echange_refuse: '✖',
-  echange_fait: '🎉', message: '💬',
+  echange: 'echange', echange_accepte: 'coche', echange_refuse: 'croix',
+  echange_fait: 'poignee', message: 'bulle',
 };
 
 // ---- La pastille ------------------------------------------------------------
@@ -89,7 +92,7 @@ function dessinerCloche(){
 
     const icone = document.createElement('span');
     icone.className = 'cloche-icone';
-    icone.textContent = NOTIF_ICONES[n.genre] || '•';
+    icone.innerHTML = iconeHtml(NOTIF_ICONES[n.genre] || 'bulle', 16);
     ligne.appendChild(icone);
 
     const corps = document.createElement('span');
@@ -279,6 +282,12 @@ if(clocheBtn){
     else ouvrirCloche();
   });
 }
+// La cloche elle-meme. Posee ici et non dans le HTML : le dessin vit dans
+// icones.js, et le recopier en dur dans la page en ferait une seconde copie a
+// tenir d'accord.
+const clocheDessin = document.getElementById('clocheDessin');
+if(clocheDessin) clocheDessin.innerHTML = iconeHtml('cloche', 19);
+
 if(clocheToutLu){
   clocheToutLu.addEventListener('click', async function(){
     try{

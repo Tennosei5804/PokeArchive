@@ -255,7 +255,7 @@ function dessinerRappels(liste){
 
     const pict = document.createElement('span');
     pict.className = 'troc-rappel-pict';
-    pict.textContent = '⏳';
+    pict.innerHTML = iconeHtml('sablier', 18);
     bloc.appendChild(pict);
 
     const txt = document.createElement('div');
@@ -408,11 +408,12 @@ function ligneTroc(e){
     //
     // Le repli sur l'ancienne fenêtre sert les pages qui n'ont pas la
     // messagerie : le site n'a pas de compte, donc personne à qui écrire.
-    const parler = boutonTroc('💬 Discuter', '', function(){
+    const parler = boutonTroc('Discuter', '', function(){
       if(e.avec && e.avec.pseudo) ouvrirMessagerie(e.avec.pseudo);
     });
+    boutonIcone(parler, 'bulle');
     if(e.messages){
-      parler.textContent = '💬 Discuter (' + e.messages + ')';
+      boutonIcone(parler, 'bulle', 'Discuter (' + e.messages + ')');
       // Le TOTAL, pas les non lus : rien ici ne sait ce qu'on a déjà lu. C'est la
       // cloche qui annonce ce qui vient d'arriver ; ce nombre-là dit seulement
       // combien on s'est écrit, et l'infobulle le précise pour qu'on ne le

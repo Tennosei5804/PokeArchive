@@ -2383,3 +2383,98 @@ verifier('L’état du relevé',
     return GAMES.length + ' jeux ; ' + sansChroma.key
       + ' sans objet pour le taux, et sa jauge n’en souffre pas';
   });
+
+// ---------------------------------------------------------------------------
+
+verifier('Les messages',
+  'Une image prise sur l’ordinateur part avec le sujet « message »',
+  async function(){
+    // POURQUOI LE SUJET COMPTE, ET POURQUOI ON LE VÉRIFIE ICI. Le ménage du
+    // serveur efface toute image qu'aucune chasse ne réclame — et celle-ci n'en
+    // a aucune : elle vit dans un message. Le serveur l'épargne à la SEULE
+    // condition qu'elle porte le sujet « message ». Partie en « chasse », elle
+    // disparaîtrait de la conversation au prochain enregistrement du dex, sans
+    // erreur nulle part.
+    const finiesAvant = chassesFinies.slice();
+    chassesFinies = [];
+
+    ouvrirMessagerie('Ondine');
+    await new Promise(function(r){ setTimeout(r, 60); });
+
+    // UN VRAI PNG, DESSINÉ ICI. La chaîne passe par un <canvas>, qui n'accepte
+    // que ce qu'il sait décoder : des octets recopiés à la main ne prouveraient
+    // rien, et un PNG légèrement fautif ne déclenche NI `onload` NI `onerror` —
+    // la vérification restait alors suspendue sans un mot, ce qui est arrivé.
+    const toile = document.createElement('canvas');
+    toile.width = 8; toile.height = 8;
+    toile.getContext('2d').fillRect(0, 0, 8, 8);
+    const blob = await new Promise(function(r){ toile.toBlob(r, 'image/png'); });
+    const fichier = new File([blob], 'capture.png', { type: 'image/png' });
+
+    await msgPrendreFichier(fichier);
+
+    const depot = window.__appels.filter(function(a){ return a.cmd === 'image_envoyer'; }).pop();
+    if(!depot) return 'échec : rien n’est parti au dépôt';
+    if(depot.args.sujet !== 'message'){
+      return 'échec : déposée en « ' + depot.args.sujet + ' » — le ménage l’effacerait';
+    }
+    if(msgJointePhoto.hidden) return 'échec : l’image déposée ne s’affiche pas';
+
+    // ET ELLE VOYAGE AVEC LE MESSAGE.
+    msgTexte.value = 'tiens, regarde';
+    await msgEnvoyerTexte();
+    const parti = window.__appels.filter(function(a){ return a.cmd === 'messages_ecrire'; }).pop();
+    if(!parti || !parti.args.image){
+      return 'échec : l’image n’accompagne pas le message';
+    }
+
+    // CE QUI N'EST PAS UNE IMAGE EST REFUSÉ, et le dit : sans cela, glisser un
+    // document dans la conversation ne produisait rien du tout.
+    await msgPrendreFichier(new File(['bonjour'], 'notes.txt', { type: 'text/plain' }));
+    if(!/pas une image/.test(msgEtat.textContent)){
+      return 'échec : un fichier quelconque passe sans un mot';
+    }
+
+    msgTexte.value = '';
+    msgEtat.textContent = '';
+    fermerMessagerie();
+    chassesFinies = finiesAvant;
+    return 'déposée en « message », jointe, envoyée ; un texte refusé en le disant';
+  });
+
+// ---------------------------------------------------------------------------
+
+verifier('Les icônes',
+  'Les commandes portent un dessin, et plus un émoji de la police du système',
+  async function(){
+    // CE QUE ÇA GARDE. Un émoji n'est pas une icône, c'est un CARACTÈRE : son
+    // dessin appartient à la police du système, donc à la machine. Il ne prend
+    // jamais la couleur du bouton, ne s'assied pas sur la ligne de base, et
+    // change d'aspect d'un poste à l'autre. Voir l'en-tête de js/icones.js.
+    //
+    // La vérification est bête et c'est voulu : elle ne juge pas le dessin,
+    // elle constate qu'il y en a un, et qu'aucun émoji n'est revenu à côté.
+    ouvrirMessagerie('Ondine');
+    await new Promise(function(r){ setTimeout(r, 60); });
+
+    const COMMANDES = ['msgJoindre', 'msgPhotoBtn', 'msgJointeOter',
+      'msgJointePhotoOter', 'msgTeleverser', 'clocheDessin', 'ficheCherche'];
+    // Le plan émoji, et lui seul : « × », « ✓ » ou « ← » sont des caractères
+    // typographiques rendus par la police du TEXTE, qui n'ont jamais eu ce
+    // défaut. Les chasser aussi aurait été une règle sans motif.
+    const EMOJI = /[\u{1F300}-\u{1FAFF}]/u;
+
+    const sansDessin = [];
+    const avecEmoji = [];
+    COMMANDES.forEach(function(id){
+      const el = document.getElementById(id);
+      if(!el) return;               // absent de cette page : rien à dire
+      if(!el.querySelector('svg.ic')) sansDessin.push(id);
+      if(EMOJI.test(el.textContent)) avecEmoji.push(id);
+    });
+
+    fermerMessagerie();
+    if(sansDessin.length) return 'échec : sans dessin — ' + sansDessin.join(', ');
+    if(avecEmoji.length) return 'échec : émoji revenu dans — ' + avecEmoji.join(', ');
+    return COMMANDES.length + ' commandes, toutes dessinées, aucune émoji';
+  });

@@ -77,7 +77,8 @@
     <div class="cloche-coin">
       <button class="cloche-btn" id="clocheBtn" type="button"
               aria-haspopup="dialog" aria-expanded="false" title="Ce qui est arrivé">
-        🔔<span class="cloche-pastille" id="clochePastille" hidden></span>
+        <span class="cloche-dessin" id="clocheDessin"></span><span
+              class="cloche-pastille" id="clochePastille" hidden></span>
       </button>
       <div class="cloche-panneau" id="clochePanneau" role="dialog"
            aria-label="Ce qui est arrivé">
@@ -875,7 +876,7 @@
               <button class="toggle-btn msg-retour" id="msgRetour" type="button" hidden>←</button>
               <h3 class="msg-avec" id="msgTitre"></h3>
               <button class="toggle-btn msg-echange" id="msgEchange" type="button" hidden
-                      title="Comparer vos Pokédex et composer une proposition.">🤝 Proposer un échange</button>
+                      title="Comparer vos Pokédex et composer une proposition.">Proposer un échange</button>
             </div>
 
             <div class="msg-rien" id="msgRien">
@@ -889,12 +890,14 @@
             <div class="msg-jointe" id="msgJointe" hidden>
               <img id="msgJointeImg" alt="">
               <span id="msgJointeNom"></span>
-              <button type="button" id="msgJointeOter" title="Retirer">×</button>
+              <button class="msg-jointe-oter" type="button" id="msgJointeOter"
+                      title="Retirer" aria-label="Retirer le Pokémon joint"></button>
             </div>
-            <div class="msg-jointe" id="msgJointePhoto" hidden>
+            <div class="msg-jointe photo" id="msgJointePhoto" hidden>
               <img id="msgJointePhotoImg" alt="">
               <span id="msgJointePhotoNom"></span>
-              <button type="button" id="msgJointePhotoOter" title="Retirer">×</button>
+              <button class="msg-jointe-oter" type="button" id="msgJointePhotoOter"
+                      title="Retirer" aria-label="Retirer l’image jointe"></button>
             </div>
             <div class="msg-poke" id="msgPoke" hidden>
               <div class="msg-poke-haut">
@@ -905,19 +908,27 @@
               <div class="msg-poke-liste" id="msgPokeListe"></div>
             </div>
 
-            <!-- Les photos de l'aventure en cours. Le même tiroir que le
-                 sélecteur de Pokémon, à ceci près qu'il n'a rien à chercher :
-                 on n'a jamais mille photos. -->
+            <!-- Les images. Deux provenances dans un seul tiroir : l'ordinateur
+                 d'abord — c'est le geste attendu — puis les photos déjà posées
+                 sur les chasses, qu'on n'a pas à rechercher sur le disque. -->
             <div class="msg-poke msg-photos" id="msgPhotos" hidden>
+              <button class="msg-televerser" type="button" id="msgTeleverser">
+                Choisir une image sur mon ordinateur</button>
+              <p class="msg-photos-aide">Ou glisse-la dans la conversation, ou colle-la
+                 depuis le presse-papiers.</p>
               <div class="msg-photos-mot" id="msgPhotosMot"></div>
               <div class="msg-photos-liste" id="msgPhotosListe"></div>
             </div>
+            <input type="file" id="msgFichier" accept="image/png,image/jpeg,image/webp"
+                   hidden>
 
             <div class="discussion-ecrire" id="msgZone" hidden>
-              <button class="toggle-btn msg-joindre" id="msgJoindre" type="button"
-                      title="Joindre un Pokémon à ton message">➕</button>
-              <button class="toggle-btn msg-joindre" id="msgPhotoBtn" type="button"
-                      title="Joindre une photo de chasse">📷</button>
+              <button class="btn-ic msg-joindre" id="msgJoindre" type="button"
+                      title="Joindre un Pokémon à ton message"
+                      aria-label="Joindre un Pokémon"></button>
+              <button class="btn-ic msg-joindre" id="msgPhotoBtn" type="button"
+                      title="Joindre une image — de ton ordinateur ou d’une chasse"
+                      aria-label="Joindre une image"></button>
               <textarea id="msgTexte" rows="2" maxlength="1000"
                         placeholder="Ton message… (Entrée pour envoyer)"
                         aria-label="Ton message"></textarea>
@@ -1629,13 +1640,13 @@
                qu'on possède déjà — sauf si l'envie y est encore, pour pouvoir
                la retirer. Voir js/recherches.js. -->
           <button class="fiche-cherche" id="ficheCherche" type="button" hidden
-                  aria-pressed="false">&#128270; Je le cherche</button>
+                  aria-pressed="false">Je le cherche</button>
 
           <!-- L'envoyer a quelqu'un, depuis l'ecran ou l'on en parle. Sans ce
                bouton il fallait quitter la fiche, ouvrir les Messages, puis
                rechercher l'espece qu'on avait sous les yeux. -->
           <button class="fiche-cherche" id="ficheEnvoyer" type="button" hidden
-                  >&#128172; L&rsquo;envoyer &agrave; quelqu&rsquo;un</button>
+                  >L&rsquo;envoyer &agrave; quelqu&rsquo;un</button>
 
           <!-- La fiche de capture : ce que TON exemplaire a de particulier.
                Repliée par défaut, et absente tant que l'entrée n'est pas
@@ -1776,100 +1787,103 @@
   </div>
 </div>
 
-<script src="../src/js/donnees.js?v=1788205910"></script>
+<script src="../src/js/donnees.js?v=1788214883"></script>
 <!-- Généré par outils/generer-donnees.html. Doit précéder cache.js, qui y
      puise quand le stockage local est vide. -->
-<script src="../src/js/donnees-embarquees.js?v=1788205910"></script>
+<script src="../src/js/donnees-embarquees.js?v=1788214883"></script>
 <!-- Les verrous chromatiques : des données seules, relevées à la source et
      datées. Doit précéder verrous.js, qui les affiche. -->
-<script src="../src/js/donnees-cadeaux.js?v=1788205910"></script>
-<script src="../src/js/donnees-verrous.js?v=1788205910"></script>
+<script src="../src/js/donnees-cadeaux.js?v=1788214883"></script>
+<script src="../src/js/donnees-verrous.js?v=1788214883"></script>
 <!-- Les notices du Pokédex, une par espèce et par jeu, relevées sur Poképédia
      par outils/relever-descriptions.py, ne sont PAS déclarées ici : fiche.js va
      les chercher à la première fiche ouverte, comme les attaques et les lieux.
      Une notice par jeu, c'est vingt-deux fois le texte d'une notice par espèce
      — de quoi allonger chaque démarrage pour une carte qu'on ne lit pas
      toujours. -->
-<script src="../src/js/cache.js?v=1788205910"></script>
-<script src="../src/js/noyau.js?v=1788205910"></script>
-<script src="../src/js/confirmer.js?v=1788205910"></script>
-<script src="../src/js/maj.js?v=1788205910"></script>
-<script src="../src/js/nouveautes.js?v=1788205910"></script>
+<script src="../src/js/cache.js?v=1788214883"></script>
+<script src="../src/js/noyau.js?v=1788214883"></script>
+<!-- Les icônes. Tôt : tout ce qui dessine un bouton s'en sert, et elles ne
+     dépendent de rien. -->
+<script src="../src/js/icones.js?v=1788214883"></script>
+<script src="../src/js/confirmer.js?v=1788214883"></script>
+<script src="../src/js/maj.js?v=1788214883"></script>
+<script src="../src/js/nouveautes.js?v=1788214883"></script>
 <!-- Le lexique. Autonome : il ne lit rien d'autre que ses propres définitions,
      et pose ses pastilles au DOMContentLoaded. -->
-<script src="../src/js/lexique.js?v=1788205910"></script>
-<script src="../src/js/serveur.js?v=1788205910"></script>
-<script src="../src/js/formes.js?v=1788205910"></script>
-<script src="../src/js/accueil.js?v=1788205910"></script>
-<script src="../src/js/dex.js?v=1788205910"></script>
-<script src="../src/js/fiche.js?v=1788205910"></script>
-<script src="../src/js/grille.js?v=1788205910"></script>
+<script src="../src/js/lexique.js?v=1788214883"></script>
+<script src="../src/js/serveur.js?v=1788214883"></script>
+<script src="../src/js/formes.js?v=1788214883"></script>
+<script src="../src/js/accueil.js?v=1788214883"></script>
+<script src="../src/js/dex.js?v=1788214883"></script>
+<script src="../src/js/fiche.js?v=1788214883"></script>
+<script src="../src/js/grille.js?v=1788214883"></script>
 <!-- Après dex.js et grille.js : les objectifs figent currentFiltered. -->
-<script src="../src/js/objectifs.js?v=1788205910"></script>
+<script src="../src/js/objectifs.js?v=1788214883"></script>
 <!-- Après grille.js : la fiche de capture complète la fenêtre d'aperçu. -->
-<script src="../src/js/capture.js?v=1788205910"></script>
+<script src="../src/js/capture.js?v=1788214883"></script>
 <!-- Après compte.js : la rareté demande la table à l'API. -->
-<script src="../src/js/rarete.js?v=1788205910"></script>
-<script src="../src/js/lieux.js?v=1788205910"></script>
-<script src="../src/js/filtres.js?v=1788205910"></script>
-<script src="../src/js/chasse.js?v=1788205910"></script>
+<script src="../src/js/rarete.js?v=1788214883"></script>
+<script src="../src/js/lieux.js?v=1788214883"></script>
+<script src="../src/js/filtres.js?v=1788214883"></script>
+<script src="../src/js/chasse.js?v=1788214883"></script>
 <!-- Apres chasse.js : il se sert de son modele de taux plutot que d'en
      porter une copie, qui divergerait a la premiere correction. -->
-<script src="../src/js/calculateur.js?v=1788205910"></script>
-<script src="../src/js/verrous.js?v=1788205910"></script>
-<script src="../src/js/cadeaux.js?v=1788205910"></script>
+<script src="../src/js/calculateur.js?v=1788214883"></script>
+<script src="../src/js/verrous.js?v=1788214883"></script>
+<script src="../src/js/cadeaux.js?v=1788214883"></script>
 <!-- Les règles de combat, puis l'écran qui s'appuie dessus. Tous deux après
      fiche.js (TYPE_RELATIONS, puceType, decoderBloc) et avant menus.js, qui
      stylise leurs menus déroulants. -->
-<script src="../src/js/combat.js?v=1788205910"></script>
-<script src="../src/js/strategie.js?v=1788205910"></script>
+<script src="../src/js/combat.js?v=1788214883"></script>
+<script src="../src/js/strategie.js?v=1788214883"></script>
 <!-- Après strategie.js : il lui emprunte creerSelecteur. -->
-<script src="../src/js/reproduction.js?v=1788205910"></script>
+<script src="../src/js/reproduction.js?v=1788214883"></script>
 <!-- Après donnees.js pour GAMES, et après reproduction.js par simple
      voisinage : les trois partagent la barre « Outils ». -->
-<script src="../src/js/transferts.js?v=1788205910"></script>
-<script src="../src/js/partage.js?v=1788205910"></script>
-<script src="../src/js/menus.js?v=1788205910"></script>
+<script src="../src/js/transferts.js?v=1788214883"></script>
+<script src="../src/js/partage.js?v=1788214883"></script>
+<script src="../src/js/menus.js?v=1788214883"></script>
 <!-- Redéfinit la couche de sauvegarde quand l'app tourne dans Tauri.
      Hors Tauri (serveur.py, ou fichier ouvert directement), il ne fait rien. -->
 
-<script src="../src/js/amis.js?v=1788205910"></script>
+<script src="../src/js/amis.js?v=1788214883"></script>
 <!-- Après partage.js, dont il complète le panneau d'entraide, et après
      compte.js pour nomJournal, libelleDex, avatarDiscord et dateLisible. -->
-<script src="../src/js/troc.js?v=1788205910"></script>
+<script src="../src/js/troc.js?v=1788214883"></script>
 <!-- Après amis.js (pontNotif, bullePermise) et troc.js (ouvrirDiscussion). -->
 <!-- Apres troc.js : il reprend ses bulles de discussion plutot que d'en
      redefinir un second jeu, qui aurait diverge. -->
-<script src="../src/js/messagerie.js?v=1788205910"></script>
+<script src="../src/js/messagerie.js?v=1788214883"></script>
 <!-- Apres chasse.js et photos.js : il lit leurs donnees et reprend leur
      vignette plutot que d'en ecrire une seconde. -->
-<script src="../src/js/tableaux.js?v=1788205910"></script>
-<script src="../src/js/notifs.js?v=1788205910"></script>
+<script src="../src/js/tableaux.js?v=1788214883"></script>
+<script src="../src/js/notifs.js?v=1788214883"></script>
 <!-- Après chasse.js (nomDeChasse, dessinerTableauChasse) et compte.js
      (perdreSession, profilCourant). -->
-<script src="../src/js/photos.js?v=1788205910"></script>
+<script src="../src/js/photos.js?v=1788214883"></script>
 <!-- Après formes.js (speciesForVariant, poolEntries), accueil.js (semeur,
      hachage) et photos.js (vignettePhoto). -->
-<script src="../src/js/defi.js?v=1788205910"></script>
+<script src="../src/js/defi.js?v=1788214883"></script>
 <!-- Après compte.js (nomJournal, perdreSession) et amis.js. -->
-<script src="../src/js/recherches.js?v=1788205910"></script>
+<script src="../src/js/recherches.js?v=1788214883"></script>
 <!-- Après dex.js (obtentionDe) et recherches.js (chercheDeja). -->
-<script src="../src/js/blocages.js?v=1788205910"></script>
+<script src="../src/js/blocages.js?v=1788214883"></script>
 <!-- Après grille.js (BOITE_TAILLE, allerBoite, basculerBoites) et dex.js
      (trierEntrees). -->
-<script src="../src/js/rangement.js?v=1788205910"></script>
-<script src="../src/js/retrospective.js?v=1788205910"></script>
-<script src="../src/js/succes.js?v=1788205910"></script>
+<script src="../src/js/rangement.js?v=1788214883"></script>
+<script src="../src/js/retrospective.js?v=1788214883"></script>
+<script src="../src/js/succes.js?v=1788214883"></script>
 <!-- Après retrospective.js : la carte lit retroDonnees si elle est là, et se
      passe d'elle sinon. -->
-<script src="../src/js/carte.js?v=1788205910"></script>
+<script src="../src/js/carte.js?v=1788214883"></script>
 <!-- Après compte.js : le premier lancement lit profilCourant et profilsConnus. -->
-<script src="../src/js/depart.js?v=1788205910"></script>
-<script src="../src/js/donnees-perso.js?v=1788205910"></script>
-<script src="../src/js/presence.js?v=1788205910"></script>
+<script src="../src/js/depart.js?v=1788214883"></script>
+<script src="../src/js/donnees-perso.js?v=1788214883"></script>
+<script src="../src/js/presence.js?v=1788214883"></script>
 
-<script src="../src/js/selecteur-couleur.js?v=1788205910"></script>
-<script src="../src/js/apparence.js?v=1788205910"></script>
+<script src="../src/js/selecteur-couleur.js?v=1788214883"></script>
+<script src="../src/js/apparence.js?v=1788214883"></script>
 <script src="generer.js"></script>
 </body>
 </html>

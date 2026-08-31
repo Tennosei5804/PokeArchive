@@ -84,7 +84,7 @@ function dessinerBoutonRecherche(){
 
   ficheCherche.hidden = false;
   const veut = chercheDeja(nom);
-  ficheCherche.textContent = veut ? '🔎 Tu le cherches' : '🔎 Je le cherche';
+  boutonIcone(ficheCherche, 'loupe', veut ? 'Tu le cherches' : 'Je le cherche');
   ficheCherche.classList.toggle('actif', veut);
   ficheCherche.setAttribute('aria-pressed', veut ? 'true' : 'false');
   ficheCherche.title = veut
@@ -102,7 +102,7 @@ function dessinerRecherches(){
 
   if(!recherches.length){
     rechercheListe.innerHTML = '<div class="state-msg">Rien pour l’instant. '
-      + 'Ouvre la fiche d’un Pokémon et clique « 🔎 Je le cherche ».</div>';
+      + 'Ouvre la fiche d’un Pokémon et clique « Je le cherche ».</div>';
     return;
   }
 
@@ -164,6 +164,12 @@ async function chargerQuiA(){
 // ---- Le câblage -------------------------------------------------------------
 
 if(ficheCherche){
+  // L'ICÔNE DÈS LE DÉPART, et non à la première fiche ouverte. `majFicheCherche`
+  // la repose à chaque bascule du libellé, mais tant qu'aucune fiche n'avait été
+  // ouverte le bouton restait dans son état de départ : le mot seul, sans rien
+  // devant. Il est caché à ce moment-là, donc personne ne le voyait — raison de
+  // plus pour ne pas laisser un demi-bouton dans la page.
+  boutonIcone(ficheCherche, 'loupe');
   ficheCherche.addEventListener('click', function(){
     if(typeof previewEntry === 'undefined' || !previewEntry) return;
     basculerRecherche(previewEntry.name);

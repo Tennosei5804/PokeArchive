@@ -879,6 +879,40 @@
    le menu du compte, et c'est voulu : c'est la seule chose de cette barre qui
    puisse changer sans qu'on ait rien fait.
 
+/* ---- Les icones dessinees ---------------------------------------------------
+   Voir l'en-tete de js/icones.js pour le pourquoi. Ici, les trois regles qui
+   font qu'une icone se comporte comme une lettre et non comme une image :
+
+   · `currentColor` est deja pose sur le trait, donc l'icone prend la couleur du
+     bouton — au survol, en sombre, sur un bouton actif, sans rien a repeindre ;
+   · `vertical-align:-.18em` la fait s'asseoir sur la ligne de base du texte.
+     Sans cela elle flotte au-dessus, et le libelle parait tomber ;
+   · `flex-shrink:0` l'empeche de s'ecraser dans un bouton trop etroit — un
+     rond de Poke Ball devenu ovale se voit tout de suite. */
+.ic{ display:inline-block; vertical-align:-.18em; flex-shrink:0; }
+
+/* Un bouton qui porte une icone ET un mot. L'ecart est ici et non dans une
+   marge sur l'icone : la marge se serait ajoutee au bourrage du bouton dans les
+   cas ou il n'y a pas de mot. */
+.avec-ic{ display:inline-flex; align-items:center; gap:7px; }
+
+/* ---- Le bouton nu, celui qui ne porte qu'une icone --------------------------
+   Carre, pose sur rien, et qui ne se dessine qu'au survol. Il en existe une
+   demi-douzaine dans l'application — joindre, retirer, l'entraide — et ils
+   avaient chacun leur taille et leur bordure. */
+.btn-ic{
+  display:inline-grid; place-items:center;
+  width:34px; height:34px; padding:0; flex-shrink:0;
+  border:1px solid transparent; border-radius:10px;
+  background:transparent; color:var(--ink-soft); cursor:pointer;
+  transition:color 120ms, background 120ms, border-color 120ms;
+}
+.btn-ic:hover{ color:var(--ink); background:var(--screen); border-color:var(--card-border); }
+.btn-ic:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+.btn-ic:disabled{ opacity:.45; cursor:default; }
+.btn-ic.on{ color:var(--gold); border-color:var(--gold); background:var(--screen); }
+
+
    La pastille porte un chiffre plutôt qu'un point. « Trois » et « quarante »
    ne se décident pas pareil, et le point ne distinguait pas les deux. */
   .cloche-btn{
@@ -892,8 +926,12 @@
     color:#fff;
     font-size:15px; line-height:1;
     cursor:pointer; flex-shrink:0;
+    /* Une grille plutot qu'une ligne de texte : le dessin se centre de lui-meme,
+       et la pastille reste posee en absolu par-dessus. */
+    display:grid; place-items:center;
     transition:background 120ms;
   }
+  .cloche-dessin{ display:grid; place-items:center; }
   .cloche-btn:hover{ background:rgba(0,0,0,.32); }
   .cloche-btn:focus-visible{ outline:2.5px solid #fff; outline-offset:2px; }
   .cloche-btn.sonne{ animation:cloche-secoue 620ms ease-in-out; }

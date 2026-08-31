@@ -326,15 +326,19 @@ function dessinerPreviewEtats(){
   previewStates.innerHTML = '';
   const modeApercu = infoMode(modeCourant());
   [
-    { cle:'normal', label:'⬤ Normal', on: caughtSet.has(previewEntry.name), gold:false },
-    { cle:'shiny',  label:'✨ Shiny',  on: shinySet.has(previewEntry.name),  gold:true }
+    { cle:'normal', label:'Normal', ic:'disque',
+      on: caughtSet.has(previewEntry.name), gold:false },
+    { cle:'shiny',  label:'Shiny',  ic:'etincelle',
+      on: shinySet.has(previewEntry.name),  gold:true }
   ].forEach(function(s){
     const el = document.createElement('button');
     el.type = 'button';
     const actif = (s.cle === 'shiny') === previewShiny;
     el.className = 'etat' + (s.on ? ' on' : '') + (s.gold ? ' or' : '')
       + (actif ? ' actif' : '');
-    el.textContent = s.label + (s.on ? ' ✓' : '');
+    // La coche reste un caractère : c'est une marque d'état posée APRÈS le mot,
+    // pas un pictogramme de commande, et elle suit déjà la police du bouton.
+    boutonIcone(el, s.ic, s.label + (s.on ? ' ✓' : ''));
     // La coche dit « je l'ai » ; ce que « avoir » veut dire dépend de l'aventure.
     el.title = 'Afficher la forme ' + (s.cle === 'shiny' ? 'chromatique' : 'normale')
       + (s.on ? '  ·  ' + modeApercu.verbe : '');
@@ -359,6 +363,9 @@ function openPreview(entry, resolvedSrc){
   // « L'envoyer à quelqu'un » : caché là où il n'y a personne à qui écrire —
   // les pages de génération et un site sans compte n'ont pas de messagerie.
   if(ficheEnvoyer){
+    // L'icone une seule fois : `boutonIcone` relit le texte courant, et la
+    // reposer a chaque ouverture de fiche redessinerait le meme SVG mille fois.
+    if(!ficheEnvoyer.classList.contains('avec-ic')) boutonIcone(ficheEnvoyer, 'bulle');
     const possible = typeof messagerieDisponible === 'function' && messagerieDisponible();
     ficheEnvoyer.hidden = !possible;
     ficheEnvoyer.onclick = function(){

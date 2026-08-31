@@ -76,26 +76,29 @@ function especeAttachee(v) {
 /**
  * La photo jointe, si elle a le droit de partir.
  *
- * UNE PHOTO SUIT LA VISIBILITÉ DE SON AVENTURE. Celle d'une aventure privée
- * rend 404 pour tout autre lecteur : l'envoyer produirait un message portant
- * une image que le destinataire ne verrait jamais, sans que ni l'un ni l'autre
- * ne comprenne pourquoi.
+ * DEUX SORTES D'IMAGES ARRIVENT ICI, et elles n'obéissent pas à la même règle.
  *
- * ON REFUSE DONC L'ENVOI, en le disant. C'est plus surprenant que de laisser
- * partir — « pourquoi je ne peux pas envoyer ma propre photo ? » — mais un
- * refus qui s'explique vaut mieux qu'une image muette.
+ * CELLE QU'ON VIENT DE DÉPOSER pour ce message porte le sujet « message ».
+ * Elle n'appartient à aucune aventure : c'est la conversation qui dira qui la
+ * voit (`images.servir`). Rien à vérifier de plus que son propriétaire.
+ *
+ * CELLE D'UNE CHASSE, elle, suit la visibilité de son aventure. Celle d'une
+ * aventure privée rend 404 pour tout autre lecteur : l'envoyer produirait un
+ * message portant une image que le destinataire ne verrait jamais, sans que ni
+ * l'un ni l'autre ne comprenne pourquoi. ON REFUSE DONC L'ENVOI, en le disant —
+ * un refus qui s'explique vaut mieux qu'une image muette.
  */
 async function imageEnvoyable(dresseurId, imageId) {
   const id = Number(imageId) || 0;
   if (!id) return null;
   const l = await une(
-    `SELECT i.id, i.dresseur_id, p.public
+    `SELECT i.id, i.dresseur_id, i.sujet, p.public
        FROM pa_images i JOIN pa_profils p ON p.id = i.profil_id
       WHERE i.id = ?`, [id]);
   if (!l || l.dresseur_id !== dresseurId) {
     throw new ErreurCompte('Cette photo n’est pas la tienne.', 403);
   }
-  if (l.public !== 1) {
+  if (l.sujet !== 'message' && l.public !== 1) {
     throw new ErreurCompte(
       'Cette photo appartient à une aventure privée : ton correspondant ne '
       + 'pourrait pas la voir. Rends l’aventure publique, ou envoie-la autrement.',

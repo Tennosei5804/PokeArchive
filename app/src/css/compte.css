@@ -1257,10 +1257,13 @@ html[data-theme="light"] body{ background:#e9e7e0; }
    ouvre et l'autre qui ferme. Le premier se colore au survol, le second non —
    on ne met pas en avant ce qu'on n'encourage pas. */
 .ami-entraide{
-  width:26px; height:26px; padding:0; line-height:1; font-size:13px;
-  border:1px solid var(--card-border); border-radius:7px;
-  background:transparent; cursor:pointer;
+  display:grid; place-items:center;
+  width:28px; height:28px; padding:0;
+  border:1px solid var(--card-border); border-radius:8px;
+  background:transparent; color:var(--ink-soft); cursor:pointer;
+  transition:color 120ms, border-color 120ms;
 }
+.ami-entraide:hover{ color:var(--ink); }
 .ami-entraide:hover{ border-color:var(--caught); }
 .ami-entraide:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
 .ami-retirer:hover{ color:#fff; background:var(--danger); border-color:var(--danger); }
@@ -1623,7 +1626,10 @@ html[data-theme="light"] body{ background:#e9e7e0; }
    quatre lignes d'affilée fait un bloc, et on ne distingue plus les lignes. */
 .cloche-ligne.neuve{ border-left:3px solid var(--dex-red); padding-left:7px; }
 
-.cloche-icone{ flex-shrink:0; width:20px; text-align:center; font-size:14px; line-height:1.5; }
+.cloche-icone{
+  flex-shrink:0; display:grid; place-items:center;
+  width:22px; height:22px; color:var(--ink-soft);
+}
 .cloche-corps{ display:flex; flex-direction:column; gap:2px; min-width:0; }
 .cloche-titre{ font-family:var(--font-body); font-size:13px; color:var(--ink); }
 .cloche-detail{
@@ -1789,8 +1795,10 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 /* Sans photo : une invitation discrete. Elle ne doit pas attirer l'oeil plus
    que la ligne elle-meme — on vient lire un tableau de chasse, pas remplir un
    album. */
+/* Elle porte maintenant un dessin et non un caractere : plus de font-size a
+   regler, et le trait prend la couleur du texte comme partout ailleurs. */
 .chasse-photo.vide{
-  border-style:dashed; font-size:13px; opacity:.42;
+  border-style:dashed; color:var(--ink-soft); opacity:.5;
 }
 .chasse-photo.vide:hover{ opacity:1; transform:none; }
 
@@ -2263,10 +2271,21 @@ html[data-theme="light"] body{ background:#e9e7e0; }
    bulle est etroite, et la phrase « Abra contre Machopeur » y tiendrait mal en
    partageant la ligne. */
 .msg-sujet{
+  display:flex; align-items:center; gap:5px;
   font-family:var(--font-data); font-size:10px;
   color:var(--gold-deep); opacity:.85;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;
+  max-width:100%;
 }
+.msg-sujet span{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* La ligne de rangement de la fiche, et le titre d'une famille de blocages :
+   deux libelles qui portent maintenant un dessin devant eux. Le meme ecart
+   partout, plutot qu'une espace typographique dans la chaine. */
+.rangement-ou,
+.blocage-titre{ display:flex; align-items:center; gap:6px; }
+/* La marque « je le cherche » d'une liste de blocages : un dessin, pas une
+   lettre — donc plus de font-size, et la couleur vient du texte. */
+.blocage-cherche{ display:inline-grid; place-items:center; color:var(--gold); }
 .discussion-bulle.de-moi .msg-sujet{ color:var(--gold); }
 
 /* La pastille de messages en attente, dans le menu du compte.
@@ -2288,21 +2307,46 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 /* ---- Joindre un Pokémon à un message ----------------------------------------
    Le joint et sa recherche vivent AU-DESSUS du champ, pas dedans : on doit voir
    ce qu'on s'apprête à envoyer avant de l'envoyer, et pouvoir le retirer. */
-.msg-joindre{ flex-shrink:0; padding:9px 12px; font-size:14px; line-height:1; }
+/* Les deux boutons de piece jointe. Ils etaient des `toggle-btn` — un cadre
+   plein, de la hauteur d'« Envoyer », pour un seul caractere. Ils sont
+   maintenant nus, alignes EN BAS du champ : le champ grandit avec le texte, et
+   des boutons centres se seraient mis a flotter en son milieu. */
+.msg-joindre{ align-self:flex-end; }
+.msg-joindre,
+.msg-jointe-oter{ -webkit-appearance:none; appearance:none; }
+.msg-joindre .ic{ vertical-align:0; }
+/* Ouvert : le bouton reste allume tant que son tiroir l'est. Sans cela on ne
+   sait plus lequel des deux on a ouvert. */
+.msg-joindre.on{ color:var(--gold); border-color:var(--gold); background:var(--screen); }
 
+/* Ce qu'on s'apprete a envoyer, au-dessus du champ. Une puce et non un cadre :
+   c'est une piece jointe en attente, pas une section de l'ecran. */
 .msg-jointe{
   display:flex; align-items:center; gap:9px; margin-bottom:8px;
-  padding:6px 10px; border-radius:9px;
+  align-self:flex-start; max-width:100%;
+  padding:5px 5px 5px 8px; border-radius:999px;
   background:var(--screen); border:1px solid var(--gold);
   font-family:var(--font-body); font-size:12.5px; color:var(--ink);
 }
-.msg-jointe img{ width:30px; height:30px; object-fit:contain; flex-shrink:0; }
-.msg-jointe span{ flex:1 1 auto; min-width:0; }
-.msg-jointe button{
-  flex-shrink:0; border:0; background:none; cursor:pointer;
-  color:var(--ink-soft); font-size:17px; line-height:1; padding:0 3px;
+.msg-jointe img{
+  width:28px; height:28px; object-fit:contain; flex-shrink:0;
+  border-radius:50%; background:var(--card);
 }
-.msg-jointe button:hover{ color:var(--danger); }
+/* Une photo se recadre, un sprite se contient : l'un remplit son rond, l'autre
+   doit rester entier. */
+.msg-jointe.photo img{ object-fit:cover; }
+.msg-jointe span{
+  flex:1 1 auto; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.msg-jointe-oter{
+  display:grid; place-items:center; flex-shrink:0;
+  width:24px; height:24px; padding:0;
+  border:0; border-radius:50%; background:none; cursor:pointer;
+  color:var(--ink-soft); transition:color 120ms, background 120ms;
+}
+.msg-jointe-oter:hover{ color:#fff; background:var(--danger); }
+.msg-jointe-oter:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
 
 .msg-poke{ margin-bottom:8px; }
 /* Le nom prend la place, la generation prend ce qu'il lui faut : un nom de
@@ -2343,6 +2387,22 @@ html[data-theme="light"] body{ background:#e9e7e0; }
    Le tiroir des photos emprunte le cadre du sélecteur de Pokémon (.msg-poke),
    mais s'étale en GRILLE : une photo se reconnaît d'un coup d'œil, un nom de
    Pokémon se lit. */
+/* « Depuis mon ordinateur » : la premiere chose du tiroir, et la plus large.
+   C'est le geste attendu — les photos de chasse viennent apres, pour qui les a. */
+.msg-televerser{
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; padding:10px 12px; margin-bottom:6px;
+  border:1px dashed var(--card-border); border-radius:10px;
+  background:var(--screen); color:var(--ink); cursor:pointer;
+  font-family:var(--font-body); font-size:12.5px;
+  transition:border-color 120ms, color 120ms;
+}
+.msg-televerser:hover{ border-color:var(--gold); }
+.msg-televerser:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
+.msg-photos-aide{
+  margin:0 0 10px; font-family:var(--font-body); font-size:11px;
+  color:var(--ink-faint); text-align:center;
+}
 .msg-photos-mot{
   font-family:var(--font-body); font-size:12px; color:var(--ink-soft);
   margin-bottom:6px; line-height:1.45;
@@ -2374,8 +2434,15 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 .msg-photo:hover{ border-color:var(--gold); }
 .msg-photo img{ display:block; width:100%; max-height:220px; object-fit:cover; }
 .msg-photo.vide{
+  display:flex; align-items:center; gap:7px;
   padding:9px 11px; cursor:default; text-align:left;
   font-family:var(--font-body); font-size:12px; color:var(--ink-soft);
+}
+
+/* La colonne de droite pendant qu'un fichier la survole. Un liseré, pas un
+   voile : recouvrir la conversation cacherait justement ce a quoi on repond. */
+.msg-vue.depose{
+  outline:2px dashed var(--gold); outline-offset:-6px; border-radius:12px;
 }
 
 /* « Écrire à « X » » quand la recherche ne trouve personne. Sans vignette — il

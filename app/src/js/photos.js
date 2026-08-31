@@ -210,6 +210,31 @@ function redessinerPhoto(fichier){
 
 // ---- Envoyer ---------------------------------------------------------------
 
+/**
+ * Dépose une image et rend son identifiant. Rien d'autre.
+ *
+ * POURQUOI À CÔTÉ DE `envoyerPhoto` ET NON DEDANS. Celle-ci attache la photo à
+ * quelque chose — une chasse, un défi — puis enregistre la sauvegarde. Une
+ * image jointe à un message ne s'attache à rien de tout cela : elle voyage dans
+ * le message, et la sauvegarde n'a pas à bouger. Les faire passer par la même
+ * fonction aurait demandé un objet factice à qui donner un champ `image`, que
+ * l'on aurait ensuite jeté.
+ */
+async function deposerImage(fichier, genre){
+  if(!fichier) return null;
+  if(typeof profilCourant === 'undefined' || !profilCourant){
+    throw new Error('Ouvre une aventure avant d’envoyer une image.');
+  }
+  const redessinee = await redessinerPhoto(fichier);
+  const r = await invoke('image_envoyer', {
+    profil: profilCourant.id,
+    sujet: genre || 'chasse',
+    mime: redessinee.mime,
+    octets: redessinee.octets,
+  });
+  return r.id;
+}
+
 async function envoyerPhoto(sujet, fichier, apres, genre){
   if(!sujet || !fichier) return;
   if(typeof profilCourant === 'undefined' || !profilCourant){
@@ -308,7 +333,7 @@ function vignettePhoto(c, apres, genre){
 
   if(!Number.isInteger(c.image)){
     cadre.classList.add('vide');
-    cadre.textContent = '📷';
+    cadre.innerHTML = iconeHtml('appareil', 17);
     cadre.title = 'Ajouter la photo de la rencontre';
     cadre.addEventListener('click', function(){ demanderPhoto(c, apres, genre); });
     return cadre;
@@ -326,7 +351,7 @@ function vignettePhoto(c, apres, genre){
       // Introuvable ou hors ligne : la case redevient un appareil photo plutôt
       // qu'un carré cassé, et reste cliquable pour en reposer une.
       cadre.classList.add('vide');
-      cadre.textContent = '📷';
+      cadre.innerHTML = iconeHtml('appareil', 17);
       cadre.title = 'Photo indisponible — clique pour en poser une autre';
     });
   });
@@ -441,7 +466,7 @@ function carteMur(p){
   chargerQuandVisible(cadre, function(){
     chargerPhoto(p.id).then(function(url){ img.src = url; }, function(){
       cadre.classList.add('vide');
-      cadre.textContent = '📷';
+      cadre.innerHTML = iconeHtml('appareil', 17);
     });
   });
   cadre.addEventListener('click', function(){ ouvrirPhotoSeule(p); });

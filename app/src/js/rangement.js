@@ -76,7 +76,8 @@ function dessinerRangement(entry){
 
   const ou = document.createElement('span');
   ou.className = 'rangement-ou';
-  ou.textContent = '📦 Boîte ' + (p.boite + 1) + ', case ' + p.place;
+  ou.innerHTML = iconeHtml('boite', 15)
+    + '<span>Boîte ' + (p.boite + 1) + ', case ' + p.place + '</span>';
   ficheRangement.appendChild(ou);
 
   const quoi = document.createElement('span');

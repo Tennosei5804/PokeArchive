@@ -571,9 +571,47 @@ const msgJointePhoto = document.getElementById('msgJointePhoto');
 const msgJointePhotoImg = document.getElementById('msgJointePhotoImg');
 const msgJointePhotoNom = document.getElementById('msgJointePhotoNom');
 const msgJointePhotoOter = document.getElementById('msgJointePhotoOter');
+const msgTeleverser = document.getElementById('msgTeleverser');
+const msgFichier = document.getElementById('msgFichier');
 
 // La photo attachée au prochain message : { id, nom }, ou null.
 let msgPhoto = null;
+
+/**
+ * Une image prise sur l'ordinateur, déposée puis jointe.
+ *
+ * SUJET « MESSAGE », ET C'EST TOUTE LA DIFFÉRENCE avec une photo de chasse.
+ * Une photo de chasse appartient à une aventure et suit sa visibilité ; une
+ * image envoyée ici n'appartient à aucune histoire, et c'est la CONVERSATION
+ * qui dit qui la voit. Le serveur tient les deux règles séparément, et son
+ * ménage épargne celle-ci — aucune chasse ne la réclamera jamais.
+ *
+ * ELLE PART AVANT LE MESSAGE, et il faut le savoir : entre le choix et l'envoi,
+ * elle existe sur le serveur sans que rien ne la porte. Choisir puis fermer la
+ * fenêtre laisse donc une image seule — que le ménage balaie au bout d'une
+ * heure. Le dépôt après coup aurait exigé de garder les octets en mémoire
+ * pendant qu'on rédige, et de tout renvoyer à chaque tentative refusée.
+ */
+async function msgPrendreFichier(fichier){
+  if(!fichier || !msgAvec) return;
+  if(!/^image\//.test(fichier.type || '')){
+    msgEtat.textContent = 'Ce fichier n’est pas une image.';
+    return;
+  }
+  msgEtat.textContent = 'Envoi de l’image…';
+  try{
+    const id = await deposerImage(fichier, 'message');
+    if(!id) return;
+    msgPhoto = { id: id, nom: fichier.name || 'image' };
+    msgFermerPhotos();
+    msgMajJointePhoto();
+    msgEtat.textContent = '';
+    if(msgTexte) msgTexte.focus();
+  }catch(e){
+    if(String(e) === 'SESSION_INVALIDE'){ await perdreSession(); return; }
+    msgEtat.textContent = String(e.message || e);
+  }
+}
 
 /** Les chasses conclues qui portent une photo. */
 function msgPhotosPosees(){
@@ -618,19 +656,22 @@ function msgDessinerPhotos(){
     && profilCourant && !profilCourant.public;
   const liste = msgPhotosPosees();
 
+  // L'AVERTISSEMENT NE VAUT QUE POUR LES PHOTOS DE CHASSE. Une image prise sur
+  // l'ordinateur part quoi qu'il arrive : elle n'appartient à aucune aventure,
+  // donc à aucune visibilité. Barrer tout le tiroir aurait interdit le geste
+  // le plus courant pour une raison qui ne le concerne pas.
   if(privee){
-    msgPhotosMot.textContent = 'Cette aventure est privée : tes photos ne sont '
-      + 'visibles que par toi. Rends-la publique depuis le Profil pour pouvoir '
-      + 'en envoyer.';
+    msgPhotosMot.textContent = 'Tes photos de chasse restent privées avec cette '
+      + 'aventure : ton correspondant ne pourrait pas les ouvrir. Une image de '
+      + 'ton ordinateur, elle, part sans problème.';
     return;
   }
   if(!liste.length){
-    msgPhotosMot.textContent = 'Aucune photo posée sur tes chasses pour '
-      + 'l’instant. Ajoute-la depuis le tableau de chasse, puis reviens.';
+    msgPhotosMot.textContent = 'Aucune photo posée sur tes chasses pour l’instant.';
     return;
   }
 
-  msgPhotosMot.textContent = 'Une photo de tes chasses :';
+  msgPhotosMot.textContent = 'Ou une photo de tes chasses :';
   liste.forEach(function(c){
     const b = document.createElement('button');
     b.type = 'button';
@@ -683,7 +724,7 @@ function msgCartePhoto(id, deQui, quand){
       // privé. Le message reste lisible, et dit ce qui manque plutôt que de
       // montrer un carré cassé.
       carte.classList.add('vide');
-      carte.textContent = '📷 photo indisponible';
+      carte.innerHTML = iconeHtml('image', 16) + '<span>image indisponible</span>';
       carte.disabled = true;
     });
   };
@@ -849,7 +890,8 @@ async function msgDessinerFil(discret){
     if(m.echange){
       const sujet = document.createElement('span');
       sujet.className = 'msg-sujet';
-      sujet.textContent = '🔁 ' + msgSujetEchange(m.echange);
+      sujet.innerHTML = iconeHtml('echange', 14)
+        + '<span>' + escapeHtml(msgSujetEchange(m.echange)) + '</span>';
       bulle.appendChild(sujet);
     }
 
@@ -1020,6 +1062,66 @@ document.addEventListener('DOMContentLoaded', function(){
       else msgFermerPoke();
     });
   }
+  // LES DEUX BOUTONS DU COMPOSITEUR, dessinés et non écrits. Voir l'en-tête
+  // de icones.js : un émoji est un caractère rendu par la police du système,
+  // qui ne prend jamais la couleur du bouton et change de machine en machine.
+  if(msgJoindre) msgJoindre.innerHTML = iconeHtml('balle', 19);
+  if(msgPhotoBtn) msgPhotoBtn.innerHTML = iconeHtml('appareil', 19);
+  if(msgJointeOter) msgJointeOter.innerHTML = iconeHtml('croix', 15);
+  if(msgJointePhotoOter) msgJointePhotoOter.innerHTML = iconeHtml('croix', 15);
+  if(msgTeleverser) boutonIcone(msgTeleverser, 'televerser');
+  if(msgEchange) boutonIcone(msgEchange, 'echange');
+
+  if(msgTeleverser && msgFichier){
+    msgTeleverser.addEventListener('click', function(){
+      msgFichier.value = '';   // sinon rechoisir le même fichier ne déclenche rien
+      msgFichier.click();
+    });
+    msgFichier.addEventListener('change', function(){
+      const f = msgFichier.files && msgFichier.files[0];
+      if(f) msgPrendreFichier(f);
+    });
+  }
+
+  // COLLER, parce que c'est le geste réel : on fait une capture, et on la colle.
+  // Passer par un sélecteur de fichiers obligerait à l'enregistrer d'abord.
+  if(msgTexte){
+    msgTexte.addEventListener('paste', function(e){
+      const items = (e.clipboardData && e.clipboardData.files) || [];
+      for(let i = 0; i < items.length; i++){
+        if(/^image\//.test(items[i].type)){
+          e.preventDefault();
+          msgPrendreFichier(items[i]);
+          return;
+        }
+      }
+    });
+  }
+
+  // GLISSER-DÉPOSER sur toute la colonne de droite, et non sur le seul champ :
+  // viser une zone de deux lignes de haut avec un fichier au bout du curseur est
+  // un exercice d'adresse, pas une interface.
+  const zone = document.querySelector('.msg-vue') || msgOverlay;
+  if(zone){
+    ['dragenter', 'dragover'].forEach(function(n){
+      zone.addEventListener(n, function(e){
+        if(!msgAvec) return;
+        e.preventDefault();
+        zone.classList.add('depose');
+      });
+    });
+    ['dragleave', 'drop'].forEach(function(n){
+      zone.addEventListener(n, function(e){
+        if(n === 'drop' && msgAvec){
+          e.preventDefault();
+          const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+          if(f) msgPrendreFichier(f);
+        }
+        zone.classList.remove('depose');
+      });
+    });
+  }
+
   if(msgPhotoBtn){
     msgPhotoBtn.addEventListener('click', function(){
       if(!msgPhotos) return;

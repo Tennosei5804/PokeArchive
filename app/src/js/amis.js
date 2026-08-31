@@ -303,7 +303,7 @@ function ligneAmi(a){
   const entraide = document.createElement('button');
   entraide.className = 'ami-entraide';
   entraide.type = 'button';
-  entraide.textContent = '🤝';
+  entraide.innerHTML = iconeHtml('poignee', 17);
   entraide.title = 'Ce que ' + a.pseudo + ' peut t\'apporter, et l\'inverse';
   entraide.setAttribute('aria-label', entraide.title);
   entraide.addEventListener('click', function(){ entraiderAvec(a); });
@@ -311,7 +311,7 @@ function ligneAmi(a){
   const retirer = document.createElement('button');
   retirer.className = 'ami-retirer';
   retirer.type = 'button';
-  retirer.textContent = '✕';
+  retirer.innerHTML = iconeHtml('croix', 15);
   retirer.title = 'Ne plus suivre ' + a.pseudo;
   retirer.setAttribute('aria-label', 'Ne plus suivre ' + a.pseudo);
   retirer.addEventListener('click', function(){ arreterDeSuivre(a.pseudo); });

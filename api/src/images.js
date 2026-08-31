@@ -76,8 +76,16 @@ const OCTETS_TOTAL_MAX = 40 * 1024 * 1024;
 
 // À quoi une photo peut être attachée. La colonne existait dès le premier jour
 // pour cela, et le défi du jour s'y est greffé sans migration : même dépôt, même
-// règle de visibilité, même quota. Les échanges pourront faire de même.
-const SUJETS = ['chasse', 'defi'];
+// règle de visibilité, même quota.
+//
+// « MESSAGE » EST LE SEUL QUI SORTE DE CETTE RÈGLE, et il fallait le dire ici
+// plutôt que de le découvrir plus bas. Une photo de chasse appartient à une
+// aventure et suit sa visibilité ; une image envoyée dans une conversation
+// n'appartient à aucune histoire — c'est la CONVERSATION qui dit qui la voit.
+// Deux conséquences, écrites là où elles s'appliquent : `servir` lui demande un
+// message plutôt qu'une aventure publique, et `menage` ne la balaie pas, car
+// aucune chasse ne la réclamera jamais.
+const SUJETS = ['chasse', 'defi', 'message'];
 
 // --- Lire les octets ---------------------------------------------------------
 
@@ -274,15 +282,37 @@ export async function deposer(dresseurId, profilId, sujet, octets) {
  */
 export async function servir(lecteurId, id) {
   const l = await une(
-    `SELECT i.fichier, i.mime, i.octets, i.dresseur_id, p.public
+    `SELECT i.fichier, i.mime, i.octets, i.dresseur_id, i.sujet, p.public
        FROM pa_images i JOIN pa_profils p ON p.id = i.profil_id
       WHERE i.id = ?`, [Number(id) || 0]);
   if (!l) throw new ErreurCompte('Photo introuvable.', 404);
-  if (l.dresseur_id !== lecteurId && l.public !== 1) {
+
+  // L'IMAGE D'UN MESSAGE SE LIT DANS SA CONVERSATION, pas dans une aventure.
+  // La rattacher à la visibilité d'un profil aurait deux défauts symétriques :
+  // privée, personne ne verrait ce qu'on vient tout juste d'envoyer ; publique,
+  // n'importe qui pourrait lire une image adressée à une seule personne.
+  if (l.sujet === 'message' && l.dresseur_id !== lecteurId) {
+    const vu = await une(
+      `SELECT 1 AS oui FROM pa_messages m
+         LEFT JOIN pa_echanges e ON e.id = m.echange_id
+        WHERE m.image_id = ?
+          AND (m.destinataire_id = ? OR m.auteur_id = ?
+            OR e.demandeur_id = ? OR e.receveur_id = ?)
+        LIMIT 1`,
+      [Number(id) || 0, lecteurId, lecteurId, lecteurId, lecteurId]);
+    if (!vu) throw new ErreurCompte('Photo introuvable.', 404);
+    return lireFichier(l);
+  }
+
+  if (l.sujet !== 'message' && l.dresseur_id !== lecteurId && l.public !== 1) {
     // 404 et non 403 : dire « elle existe mais pas pour toi » renseignerait sur
     // le contenu d'une aventure privée, ce que personne n'a à savoir.
     throw new ErreurCompte('Photo introuvable.', 404);
   }
+  return lireFichier(l);
+}
+
+async function lireFichier(l) {
   try {
     return { octets: await fs.readFile(path.join(DOSSIER, l.fichier)), mime: l.mime };
   } catch {
@@ -324,6 +354,13 @@ async function effacerFichier(nom) {
  */
 const PORTEURS = ['chasses', 'chassesFinies', 'defis'];
 
+// CE QU'ON A CHOISI PUIS ABANDONNÉ. Une image déposée pour un message part
+// avant que le message existe : entre les deux, elle n'est réclamée par rien.
+// Si l'on ferme la fenêtre sans envoyer, elle resterait pour toujours, comptée
+// au quota de quelqu'un qui ne l'a jamais envoyée. Une heure laisse tout le
+// temps d'écrire, et ne balaie que ce qui n'a servi à rien.
+const ABANDON_MS = 60 * 60 * 1000;
+
 export async function menage(profilId, donnees) {
   if (!donnees || !PORTEURS.some((c) => c in donnees)) return 0;
 
@@ -336,8 +373,18 @@ export async function menage(profilId, donnees) {
 
   // TOUS LES SUJETS, et non le seul 'chasse'. Le défi du jour porte lui aussi
   // une photo, et la balayer à part reviendrait à tenir deux ménages d'accord.
+  //
+  // SAUF CELLES DES MESSAGES, et c'est la seule exception. Aucune chasse ne les
+  // réclame — c'est un message qui les porte, et les messages ne sont pas dans
+  // la sauvegarde. Sans cette clause, envoyer une image dans une conversation
+  // puis cocher une capture l'aurait effacée : la photo disparaissait du fil
+  // quelques secondes après y être apparue.
   const toutes = await lire(
-    'SELECT id, fichier FROM pa_images WHERE profil_id = ?', [profilId]);
+    `SELECT id, fichier FROM pa_images
+      WHERE profil_id = ? AND (sujet <> 'message' OR (
+              NOT EXISTS (SELECT 1 FROM pa_messages m WHERE m.image_id = pa_images.id)
+              AND cree_le < ?))`,
+    [profilId, horodatage(new Date(Date.now() - ABANDON_MS))]);
   const orphelines = toutes.filter((i) => !gardees.has(i.id));
   if (!orphelines.length) return 0;
 

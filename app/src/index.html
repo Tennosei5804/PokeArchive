@@ -77,7 +77,8 @@
     <div class="cloche-coin">
       <button class="cloche-btn" id="clocheBtn" type="button"
               aria-haspopup="dialog" aria-expanded="false" title="Ce qui est arrivé">
-        🔔<span class="cloche-pastille" id="clochePastille" hidden></span>
+        <span class="cloche-dessin" id="clocheDessin"></span><span
+              class="cloche-pastille" id="clochePastille" hidden></span>
       </button>
       <div class="cloche-panneau" id="clochePanneau" role="dialog"
            aria-label="Ce qui est arrivé">
@@ -875,7 +876,7 @@
               <button class="toggle-btn msg-retour" id="msgRetour" type="button" hidden>←</button>
               <h3 class="msg-avec" id="msgTitre"></h3>
               <button class="toggle-btn msg-echange" id="msgEchange" type="button" hidden
-                      title="Comparer vos Pokédex et composer une proposition.">🤝 Proposer un échange</button>
+                      title="Comparer vos Pokédex et composer une proposition.">Proposer un échange</button>
             </div>
 
             <div class="msg-rien" id="msgRien">
@@ -889,12 +890,14 @@
             <div class="msg-jointe" id="msgJointe" hidden>
               <img id="msgJointeImg" alt="">
               <span id="msgJointeNom"></span>
-              <button type="button" id="msgJointeOter" title="Retirer">×</button>
+              <button class="msg-jointe-oter" type="button" id="msgJointeOter"
+                      title="Retirer" aria-label="Retirer le Pokémon joint"></button>
             </div>
-            <div class="msg-jointe" id="msgJointePhoto" hidden>
+            <div class="msg-jointe photo" id="msgJointePhoto" hidden>
               <img id="msgJointePhotoImg" alt="">
               <span id="msgJointePhotoNom"></span>
-              <button type="button" id="msgJointePhotoOter" title="Retirer">×</button>
+              <button class="msg-jointe-oter" type="button" id="msgJointePhotoOter"
+                      title="Retirer" aria-label="Retirer l’image jointe"></button>
             </div>
             <div class="msg-poke" id="msgPoke" hidden>
               <div class="msg-poke-haut">
@@ -905,19 +908,27 @@
               <div class="msg-poke-liste" id="msgPokeListe"></div>
             </div>
 
-            <!-- Les photos de l'aventure en cours. Le même tiroir que le
-                 sélecteur de Pokémon, à ceci près qu'il n'a rien à chercher :
-                 on n'a jamais mille photos. -->
+            <!-- Les images. Deux provenances dans un seul tiroir : l'ordinateur
+                 d'abord — c'est le geste attendu — puis les photos déjà posées
+                 sur les chasses, qu'on n'a pas à rechercher sur le disque. -->
             <div class="msg-poke msg-photos" id="msgPhotos" hidden>
+              <button class="msg-televerser" type="button" id="msgTeleverser">
+                Choisir une image sur mon ordinateur</button>
+              <p class="msg-photos-aide">Ou glisse-la dans la conversation, ou colle-la
+                 depuis le presse-papiers.</p>
               <div class="msg-photos-mot" id="msgPhotosMot"></div>
               <div class="msg-photos-liste" id="msgPhotosListe"></div>
             </div>
+            <input type="file" id="msgFichier" accept="image/png,image/jpeg,image/webp"
+                   hidden>
 
             <div class="discussion-ecrire" id="msgZone" hidden>
-              <button class="toggle-btn msg-joindre" id="msgJoindre" type="button"
-                      title="Joindre un Pokémon à ton message">➕</button>
-              <button class="toggle-btn msg-joindre" id="msgPhotoBtn" type="button"
-                      title="Joindre une photo de chasse">📷</button>
+              <button class="btn-ic msg-joindre" id="msgJoindre" type="button"
+                      title="Joindre un Pokémon à ton message"
+                      aria-label="Joindre un Pokémon"></button>
+              <button class="btn-ic msg-joindre" id="msgPhotoBtn" type="button"
+                      title="Joindre une image — de ton ordinateur ou d’une chasse"
+                      aria-label="Joindre une image"></button>
               <textarea id="msgTexte" rows="2" maxlength="1000"
                         placeholder="Ton message… (Entrée pour envoyer)"
                         aria-label="Ton message"></textarea>
@@ -1629,13 +1640,13 @@
                qu'on possède déjà — sauf si l'envie y est encore, pour pouvoir
                la retirer. Voir js/recherches.js. -->
           <button class="fiche-cherche" id="ficheCherche" type="button" hidden
-                  aria-pressed="false">&#128270; Je le cherche</button>
+                  aria-pressed="false">Je le cherche</button>
 
           <!-- L'envoyer a quelqu'un, depuis l'ecran ou l'on en parle. Sans ce
                bouton il fallait quitter la fiche, ouvrir les Messages, puis
                rechercher l'espece qu'on avait sous les yeux. -->
           <button class="fiche-cherche" id="ficheEnvoyer" type="button" hidden
-                  >&#128172; L&rsquo;envoyer &agrave; quelqu&rsquo;un</button>
+                  >L&rsquo;envoyer &agrave; quelqu&rsquo;un</button>
 
           <!-- La fiche de capture : ce que TON exemplaire a de particulier.
                Repliée par défaut, et absente tant que l'entrée n'est pas
@@ -1792,6 +1803,9 @@
      toujours. -->
 <script src="js/cache.js"></script>
 <script src="js/noyau.js"></script>
+<!-- Les icônes. Tôt : tout ce qui dessine un bouton s'en sert, et elles ne
+     dépendent de rien. -->
+<script src="js/icones.js"></script>
 <script src="js/confirmer.js"></script>
 <script src="js/maj.js"></script>
 <script src="js/nouveautes.js"></script>

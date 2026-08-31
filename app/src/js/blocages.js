@@ -26,13 +26,13 @@
 
 // Les catégories qui empêchent, et ce qu'on en dit.
 const BLOCAGES = [
-  { cle: 'absent', icone: '✖', titre: 'Absents de cette version',
+  { cle: 'absent', icone: 'croix', titre: 'Absents de cette version',
     quoi: 'Il faut les faire venir d’un autre jeu — par échange, ou par Pokémon '
-        + 'HOME. Voir 🧰 Outils → Transferts pour le chemin.' },
-  { cle: 'echange', icone: '⇄', titre: 'Par échange seulement',
+        + 'HOME. Voir Outils → Transferts pour le chemin.' },
+  { cle: 'echange', icone: 'echange', titre: 'Par échange seulement',
     quoi: 'Ils existent dans le jeu mais ne s’attrapent pas : il faut quelqu’un '
         + 'en face. C’est exactement ce à quoi sert « Je cherche ».' },
-  { cle: 'unique', icone: '🎁', titre: 'Un seul exemplaire',
+  { cle: 'unique', icone: 'cadeau', titre: 'Un seul exemplaire',
     quoi: 'Le scénario les donne une fois. Sans importance pour un Pokédex '
         + 'ordinaire ; décisif en Living Dex, qui les veut tous en même temps.' },
 ];
@@ -135,12 +135,17 @@ function familleBlocage(f, p){
   bloc.className = 'blocage-famille';
 
   const titre = document.createElement('div');
-  titre.className = 'blocage-titre';
-  titre.textContent = f.icone + '  ' + f.titre + '  ·  ' + p.manquants.length;
+  titre.className = 'blocage-titre avec-ic';
+  titre.innerHTML = iconeHtml(f.icone, 15) + '<span></span>';
+  // LE TEXTE VIT DANS LE <span>, ET NON DANS LE TITRE. Le dessin est un enfant
+  // du titre : écrire dans son `textContent` l'aurait emporté avec le reste,
+  // et la ligne aurait perdu son icône à la première famille entamée.
+  const mot = titre.querySelector('span');
+  mot.textContent = f.titre + '  ·  ' + p.manquants.length;
   // Ce qu'on a déjà franchi, dit en passant : « 4 sur 12 » vaut mieux que 4,
   // parce qu'il dit aussi le chemin parcouru.
   if(p.tous.length > p.manquants.length){
-    titre.textContent += ' sur ' + p.tous.length;
+    mot.textContent += ' sur ' + p.tous.length;
   }
   bloc.appendChild(titre);
 
@@ -173,7 +178,7 @@ function familleBlocage(f, p){
     if(typeof chercheDeja === 'function' && chercheDeja(e.name)){
       const marque = document.createElement('em');
       marque.className = 'blocage-cherche';
-      marque.textContent = '🔎';
+      marque.innerHTML = iconeHtml('loupe', 13);
       marque.title = 'Dans ta liste d’envies';
       l.appendChild(marque);
     }

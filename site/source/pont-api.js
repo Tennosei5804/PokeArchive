@@ -270,12 +270,22 @@
       return { ok: true };
     },
 
-    /** Une photo de chasse. Des octets bruts, pas du JSON. */
+    /**
+     * Une photo. Des octets bruts, pas du JSON.
+     *
+     * L'AVENTURE ET LE SUJET VOYAGENT DANS L'ADRESSE, comme le fait le Rust.
+     * Sans eux, le serveur retombait sur l'aventure PAR DÉFAUT et sur le sujet
+     * « chasse » : une photo posée depuis une seconde aventure atterrissait
+     * dans la première, où le ménage — qui ne la voyait réclamée par aucune de
+     * SES chasses — l'effaçait au prochain enregistrement.
+     */
     image_envoyer: async (a) => {
       const j = jeton();
       if(!j) throw new Error('SESSION_INVALIDE');
       const octets = new Uint8Array(a.octets || []);
-      const r = await fetch(API + '/api/images', {
+      const q = new URLSearchParams({ sujet: a.sujet || 'chasse' });
+      if(a.profil) q.set('profil', String(a.profil));
+      const r = await fetch(API + '/api/images?' + q.toString(), {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + j, 'Content-Type': a.mime || 'image/png' },
         body: octets,

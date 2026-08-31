@@ -1036,11 +1036,16 @@ function direErreurProfil(texte){
   profilErreur.classList.toggle('visible', !!texte);
 }
 
+// UN NOM D'ICONE, ET NON UN CARACTERE. Les trois boutons d'une ligne
+// d'aventure portaient « 👁 », « 🔒 », « ✎ » : deux emojis rendus par la police
+// du systeme, un caractere typographique rendu par celle du texte. Trois tailles,
+// trois couleurs, trois alignements — dans trois boutons de meme largeur.
+// Voir l'en-tete de icones.js.
 function boutonAction(icone, titre, classes, action){
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'profil-action ' + (classes || '');
-  b.textContent = icone;
+  b.innerHTML = iconeHtml(icone, 15);
   b.title = titre;
   b.setAttribute('aria-label', titre);
   b.addEventListener('click', function(e){ e.stopPropagation(); action(); });
@@ -1106,7 +1111,7 @@ function dessinerProfils(){
         agirSurProfil(invoke('modifier_profil', { id: p.id, parDefaut: true }));
       }));
 
-    actions.appendChild(boutonAction(p.public ? '👁' : '🔒',
+    actions.appendChild(boutonAction(p.public ? 'oeil' : 'cadenas',
       p.public ? 'Visible par les autres dresseurs — cliquer pour la rendre privée'
                : 'Privée — cliquer pour la partager',
       p.public ? 'active' : '',
@@ -1114,7 +1119,7 @@ function dessinerProfils(){
         agirSurProfil(invoke('modifier_profil', { id: p.id, public: !p.public }));
       }));
 
-    actions.appendChild(boutonAction('✎', 'Renommer', '', async function(){
+    actions.appendChild(boutonAction('crayon', 'Renommer', '', async function(){
       const propose = await demanderNouveauNom(p);
       if(propose === null) return;
       agirSurProfil(invoke('modifier_profil', { id: p.id, nom: propose }));
@@ -1601,11 +1606,15 @@ function dessinerAventures(){
     const actions = document.createElement('div');
     actions.className = 'av-actions';
 
-    const bouton = function(libelle, titreInfobulle, classes, action){
+    // `icone` est facultatif : tous ces boutons n'en meritent pas un, et en
+    // coller partout ferait une rangee de pictogrammes ou l'on ne distingue
+    // plus ce qui compte.
+    const bouton = function(libelle, titreInfobulle, classes, action, icone){
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'toggle-btn ' + (classes || '');
       b.textContent = libelle;
+      if(icone) boutonIcone(b, icone, libelle);
       b.title = titreInfobulle;
       b.addEventListener('click', action);
       return b;
@@ -1619,13 +1628,13 @@ function dessinerAventures(){
       actions.appendChild(bouton('★ Par défaut', 'Ouvrir celle-ci au lancement', '',
         function(){ agirSurPage(invoke('modifier_profil', { id: p.id, parDefaut: true })); }));
     }
-    actions.appendChild(bouton(p.public ? '🔒 Rendre privée' : '👁 Rendre publique',
+    actions.appendChild(bouton(p.public ? 'Rendre privée' : 'Rendre publique',
       p.public ? 'Elle n\'apparaîtra plus au classement ni chez les autres'
                : 'Elle apparaîtra au classement et sera consultable',
       '', function(){
         agirSurPage(invoke('modifier_profil', { id: p.id, public: !p.public }));
-      }));
-    actions.appendChild(bouton('✎ Renommer', 'Changer le nom de cette aventure', '',
+      }, p.public ? 'cadenas' : 'oeil'));
+    actions.appendChild(bouton('Renommer', 'Changer le nom de cette aventure', '',
       async function(){
         const propose = await demanderNouveauNom(p);
         if(propose === null) return;
