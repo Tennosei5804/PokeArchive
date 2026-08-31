@@ -468,8 +468,12 @@ async function ouvrirPhotoSeule(p){
   photoOuverte = null;
   photoApres = null;
   photoImage.removeAttribute('src');
-  photoLegende.textContent = ((typeof nomJournal === 'function') ? nomJournal(p.pokemon) : p.pokemon)
-    + (p.quand ? '  ·  ' + p.quand : '');
+  // UNE LÉGENDE TOUTE FAITE L'EMPORTE. La photo d'un message ne parle pas
+  // d'une capture mais d'une conversation : « Envoyée par Jack » y dit plus
+  // que le nom d'une espèce que la photo montre déjà.
+  photoLegende.textContent = p.legende
+    || (((typeof nomJournal === 'function') ? nomJournal(p.pokemon) : p.pokemon)
+        + (p.quand ? '  ·  ' + p.quand : ''));
   if(photoRetirer) photoRetirer.style.display = 'none';
   photoOverlay.style.display = 'flex';
   try{

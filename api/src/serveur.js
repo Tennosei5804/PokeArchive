@@ -507,7 +507,7 @@ app.get('/api/messages/:pseudo', route(async (req, res) => {
 app.post('/api/messages/:pseudo', route(async (req, res) => {
   const d = await exiger(req, res); if (!d) return;
   res.json(await messagerie.ecrireA(
-    d.id, req.params.pseudo, req.body?.texte, req.body?.espece));
+    d.id, req.params.pseudo, req.body?.texte, req.body?.espece, req.body?.image));
 }));
 
 // --- Les amis ---------------------------------------------------------------

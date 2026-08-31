@@ -313,6 +313,65 @@ verifier('La synchro',
     return 'format pokearchive-1, 2 aventures, dex et historique compris';
   });
 
+verifier('Le pont HTTP',
+  'Une photo revient en adresse `data:`, et non en objet',
+  async function(){
+    // LE BUG, ET IL TOUCHAIT TOUTES LES PHOTOS DU SITE. L'écran fait
+    // `img.src = await invoke('image_charger', …)` sans regarder ce qu'il
+    // reçoit : le Rust rend une adresse `data:`, le pont HTTP rendait un objet
+    // `{ mime, octets }`. Le navigateur écrivait donc « [object Object] » dans
+    // l'attribut et n'affichait rien — sans erreur, sans console, sans indice.
+    //
+    // ON CHARGE LE VRAI PONT, celui que le site livre, dans une fenêtre à part :
+    // le charger ici remplacerait `window.__TAURI__` sous les autres
+    // vérifications, qui parlent encore à l'ancien pont local.
+    const octets = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const f = document.createElement('iframe');
+    f.style.cssText = 'position:fixed;left:-9999px;top:0;border:0;width:10px;height:10px;';
+    f.srcdoc = '<!doctype html><meta charset="utf-8"><body></body>';
+    document.body.appendChild(f);
+    try{
+      await new Promise(function(r){ f.onload = r; });
+      const w = f.contentWindow;
+
+      // Le serveur simulé : on n'éprouve pas l'API ici, mais ce que le pont
+      // fait des octets qu'elle rend.
+      w.fetch = async function(){
+        return {
+          ok: true, status: 200,
+          headers: { get: function(n){
+            return /content-type/i.test(n) ? 'image/png' : null; } },
+          arrayBuffer: async function(){ return octets.buffer; },
+        };
+      };
+      w.localStorage.setItem('pokearchive-jeton', 'jeton-de-banc');
+
+      await new Promise(function(tenir, rejeter){
+        const s = w.document.createElement('script');
+        s.src = '/js/pont-api.js';
+        s.onload = tenir;
+        s.onerror = function(){ rejeter(new Error('pont-api.js absent de public/')); };
+        w.document.body.appendChild(s);
+      });
+
+      const rendu = await w.__TAURI__.core.invoke('image_charger', { id: 1 });
+      if(typeof rendu !== 'string'){
+        return 'échec : le pont rend un ' + typeof rendu + ' — img.src écrirait « [object Object] »';
+      }
+      if(rendu.indexOf('data:image/png;base64,') !== 0){
+        return 'échec : adresse inattendue — ' + rendu.slice(0, 40);
+      }
+      // Et les octets sont bien ceux du serveur, pas une chaîne tronquée.
+      if(w.atob(rendu.split(',')[1]).length !== octets.length){
+        return 'échec : les octets ne survivent pas au passage en base64';
+      }
+      return 'adresse data:image/png, ' + octets.length + ' octets intacts';
+    } finally {
+      try{ f.contentWindow.localStorage.removeItem('pokearchive-jeton'); }catch(e){ /* déjà partie */ }
+      f.remove();
+    }
+  });
+
 // ---- La mise en page --------------------------------------------------------
 //
 // Dans une iframe dimensionnée : les requêtes de média répondent à la taille de

@@ -393,7 +393,8 @@ function showPage(name){
   if(name === 'dresseurs' || name === 'profil' || name === 'chasse'
      || name === 'verrous' || name === 'strategie' || name === 'reproduction'
      || name === 'transferts' || name === 'amis' || name === 'lieux'
-     || name === 'parametres' || name === 'cadeaux' || name === 'messages'){
+     || name === 'parametres' || name === 'cadeaux' || name === 'messages'
+     || name === 'galerie' || name === 'releve'){
     currentPage = name;
     pageHomeEl.classList.remove('active');
     pageDexEl.classList.remove('active');
@@ -401,6 +402,8 @@ function showPage(name){
     if(pageDresseursEl) pageDresseursEl.classList.toggle('active', name === 'dresseurs');
     if(pageAmisEl) pageAmisEl.classList.toggle('active', name === 'amis');
     if(pageMessagesEl) pageMessagesEl.classList.toggle('active', name === 'messages');
+    if(pageGalerieEl) pageGalerieEl.classList.toggle('active', name === 'galerie');
+    if(pageReleveEl) pageReleveEl.classList.toggle('active', name === 'releve');
     // QUITTER L'ÉCRAN ARRÊTE SON SONDAGE RAPIDE. Il bat toutes les cinq
     // secondes — bien plus vite que la veille commune — et c'est acceptable
     // parce qu'il ne tourne QUE pendant qu'on parle. Sans cette ligne, il

@@ -2339,6 +2339,45 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 .msg-carte:disabled{ cursor:default; opacity:.7; }
 .msg-carte img{ width:34px; height:34px; object-fit:contain; flex-shrink:0; }
 
+/* ---- Joindre une photo de chasse --------------------------------------------
+   Le tiroir des photos emprunte le cadre du sélecteur de Pokémon (.msg-poke),
+   mais s'étale en GRILLE : une photo se reconnaît d'un coup d'œil, un nom de
+   Pokémon se lit. */
+.msg-photos-mot{
+  font-family:var(--font-body); font-size:12px; color:var(--ink-soft);
+  margin-bottom:6px; line-height:1.45;
+}
+.msg-photos-liste{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(92px, 1fr));
+  gap:6px; max-height:190px; overflow-y:auto;
+}
+.msg-photo-choix{
+  display:flex; flex-direction:column; gap:4px; padding:4px; cursor:pointer;
+  border-radius:8px; background:var(--screen); border:1px solid var(--card-border);
+  font-family:var(--font-body); font-size:11px; color:var(--ink);
+}
+.msg-photo-choix:hover{ border-color:var(--gold); }
+.msg-photo-choix img{
+  width:100%; height:62px; object-fit:cover; border-radius:5px;
+  background:var(--card-border);
+}
+.msg-photo-choix span{
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left;
+}
+/* La photo reçue, dans la bulle. Bornée en hauteur : une photo de téléphone
+   tenue en portrait remplirait le fil à elle seule. */
+.msg-photo{
+  display:block; width:100%; max-width:260px; margin:2px 0 5px;
+  padding:0; border:1px solid var(--card-border); border-radius:9px;
+  overflow:hidden; cursor:pointer; background:var(--card);
+}
+.msg-photo:hover{ border-color:var(--gold); }
+.msg-photo img{ display:block; width:100%; max-height:220px; object-fit:cover; }
+.msg-photo.vide{
+  padding:9px 11px; cursor:default; text-align:left;
+  font-family:var(--font-body); font-size:12px; color:var(--ink-soft);
+}
+
 /* « Écrire à « X » » quand la recherche ne trouve personne. Sans vignette — il
    n'y a pas d'avatar pour quelqu'un qu'on n'a pas trouvé — donc un retrait à
    gauche pour que le nom tombe où tombent les autres. */
@@ -2361,3 +2400,115 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   flex-shrink:0; font-family:var(--font-data); font-size:10px;
   color:var(--ink-faint); white-space:nowrap; padding-top:2px;
 }
+
+/* ---- Ce qui attend une reponse ---------------------------------------------
+   Un bandeau, pas une notification. La couleur d'attention est l'or et non le
+   rouge : personne n'a rien casse, quelqu'un attend. */
+.troc-rappels{ display:flex; flex-direction:column; gap:9px; margin-bottom:14px; }
+.troc-rappel{
+  display:flex; gap:12px; align-items:flex-start;
+  padding:12px 15px; border-radius:9px;
+  background:color-mix(in srgb, var(--gold) 9%, transparent);
+  border:1px solid color-mix(in srgb, var(--gold) 34%, transparent);
+}
+.troc-rappel-pict{ font-size:17px; line-height:1.3; flex-shrink:0; }
+.troc-rappel-txt{ flex:1; min-width:0; font-family:var(--font-body); font-size:13.5px; color:var(--ink); }
+.troc-rappel-actions{ display:flex; gap:7px; margin-top:9px; flex-wrap:wrap; }
+
+/* ---- Les echanges conclus --------------------------------------------------
+   Plus discrets que les vivants : on les consulte, on n'agit plus dessus. */
+.troc-historique{ display:flex; flex-direction:column; }
+.troc-histo-resume{
+  margin:0 0 10px; font-family:var(--font-body); font-size:12.5px;
+  color:var(--ink-soft);
+}
+.troc-histo-ligne{
+  display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+  padding:8px 0; border-bottom:1px solid var(--card-border);
+  font-family:var(--font-body); font-size:13px; color:var(--ink);
+}
+.troc-histo-quoi{ min-width:0; }
+.troc-histo-quand{
+  flex-shrink:0; font-family:var(--font-data); font-size:10px;
+  color:var(--ink-faint); white-space:nowrap;
+}
+
+/* ---- La galerie des chromatiques -------------------------------------------
+   Une grille de vignettes, pas une liste : c'est une collection qu'on regarde,
+   et l'image y compte plus que le chiffre. */
+.galerie-filtres{ display:flex; gap:7px; flex-wrap:wrap; margin-bottom:16px; }
+.galerie-puce{
+  font-family:var(--font-body); font-size:12px; padding:5px 12px;
+  border-radius:999px; cursor:pointer;
+  background:var(--screen); border:1px solid var(--card-border); color:var(--ink-soft);
+}
+.galerie-puce:hover{ border-color:var(--gold); }
+.galerie-puce.on{ border-color:var(--gold); color:var(--gold-deep); background:var(--card); }
+
+.galerie-grille{
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:12px;
+}
+.galerie-carte{
+  padding:0; cursor:pointer; text-align:left; overflow:hidden;
+  background:var(--card); border:1px solid var(--card-border); border-radius:10px;
+  transition:border-color 120ms;
+}
+.galerie-carte:hover{ border-color:var(--gold); }
+.galerie-carte:disabled{ cursor:default; opacity:.75; }
+.galerie-image{
+  position:relative; height:98px; display:grid; place-items:center;
+  background:linear-gradient(160deg,
+    color-mix(in srgb, var(--gold) 12%, transparent), var(--screen));
+}
+.galerie-image img{ max-width:82%; max-height:82%; object-fit:contain; }
+/* Une vignette de sprite au milieu de photos ressemble a une photo manquante.
+   C'est ce qu'elle est : autant l'ecrire plutot que de laisser deviner. */
+.galerie-sans{
+  position:absolute; bottom:5px; left:0; right:0; text-align:center;
+  font-family:var(--font-data); font-size:8.5px; color:var(--ink-faint);
+}
+.galerie-bas{ padding:8px 10px; }
+.galerie-nom{ font-family:var(--font-body); font-size:12.5px; color:var(--ink); }
+.galerie-chiffres{
+  font-family:var(--font-data); font-size:9.5px; color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;
+}
+
+/* ---- L'etat du releve ------------------------------------------------------
+   Un tableau, parce qu'on y compare des jeux entre eux : les cartes empechent
+   justement la comparaison colonne par colonne. */
+.releve-tableau{
+  background:var(--card); border:1px solid var(--card-border);
+  border-radius:10px; padding:14px 16px; overflow-x:auto;
+}
+.releve-tete, .releve-ligne{
+  display:grid; grid-template-columns:1.6fr repeat(4,64px) 1fr;
+  gap:10px; align-items:center; min-width:540px;
+}
+.releve-tete{
+  font-family:var(--font-data); font-size:9.5px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink-faint);
+  padding-bottom:8px; border-bottom:1px solid var(--card-border);
+}
+.releve-tete span:not(:first-child){ text-align:center; }
+.releve-ligne{ padding:8px 0; border-bottom:1px solid var(--screen-edge); }
+.releve-jeu{ font-family:var(--font-body); font-size:13px; color:var(--ink); }
+.releve-etat{
+  justify-self:center; width:17px; height:17px; border-radius:5px;
+  display:grid; place-items:center;
+  font-family:var(--font-data); font-size:9.5px; font-weight:700;
+}
+.releve-etat.oui{ background:var(--caught-soft); color:var(--caught); }
+.releve-etat.non{
+  background:color-mix(in srgb, var(--danger) 13%, transparent); color:var(--danger);
+}
+.releve-etat.sans-objet{ background:var(--screen); color:var(--ink-faint); }
+.releve-jauge{
+  height:5px; border-radius:999px; overflow:hidden;
+  background:color-mix(in srgb, var(--ink) 10%, transparent);
+}
+.releve-jauge i{ display:block; height:100%; background:var(--caught); }
+.releve-jauge.partiel i{ background:var(--gold); }
+.releve-jauge.vide i{ background:var(--danger); }
+.releve-legende{ margin-top:14px; font-size:12.5px; }
+.releve-legende b{ font-family:var(--font-data); color:var(--ink); }

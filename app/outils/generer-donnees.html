@@ -384,6 +384,10 @@
           <!-- Le calculateur. À côté du catalogue des verrous, et pour la même
                raison : la question se pose AVANT de lancer trois mille
                rencontres, pas pendant. -->
+          <button class="toggle-btn" id="galerieBtn" type="button"
+                  title="Tous tes chromatiques obtenus, avec leurs photos.">&#10024; Ma galerie</button>
+          <button class="toggle-btn" id="releveBtn" type="button"
+                  title="Ce qui est renseign&eacute; pour chaque jeu, et ce qui manque.">&#128202; &Eacute;tat du relev&eacute;</button>
           <button class="toggle-btn" id="calcBtn" type="button"
                   title="Le taux chromatique d'une situation : jeu, méthode et bonus cumulés, avec le détail du calcul et le nombre de rencontres pour 50, 90 et 99 %.">🧮 Calculateur de taux</button>
           <!-- L'overlay OBS. Masqué sur le site : un navigateur ne peut pas
@@ -782,11 +786,58 @@
         <p class="home-sub troc-preambule">Un accord, pas un transfert : Pok&eacute;Archive
            note qui donne quoi &agrave; qui, vous vous retrouvez ensuite dans le jeu pour le
            faire. Pour en proposer un, ouvre 🤝 en face d&rsquo;un ami.</p>
+        <!-- Ce qui attend une reponse DE MOI depuis plus d'une semaine. Un
+             bandeau et non une notification : un rappel qui sonne tout seul au
+             bout d'une semaine devient du harcelement a retardement. -->
+        <div class="troc-rappels" id="trocRappels" hidden></div>
+
         <div class="troc-liste" id="trocListe"></div>
+
+        <!-- Les conclus, ranges a part : ils ne demandent plus rien, mais les
+             perdre effacerait la seule trace qu'on a deja echange avec
+             quelqu'un. -->
+        <div id="trocHistoriqueBloc" hidden>
+          <div class="home-section-title">D&eacute;j&agrave; conclus</div>
+          <div class="troc-historique" id="trocHistorique"></div>
+        </div>
 
         <div class="home-section-title">Ce qu'ils attrapent</div>
         <div class="fil" id="amisFil"></div>
         <button class="load-more" id="amisPlus" type="button" style="display:none;">Afficher plus</button>
+      </section>
+
+      <section class="page" id="page-galerie">
+        <div class="home-hero">
+          <div class="home-eyebrow">Chromatiques</div>
+          <h2 class="home-title">Ma galerie</h2>
+          <p class="home-sub" id="galerieResume"></p>
+        </div>
+        <div class="galerie-filtres" id="galerieFiltres"></div>
+        <div class="galerie-grille" id="galerieGrille"></div>
+      </section>
+
+      <section class="page" id="page-releve">
+        <div class="home-hero">
+          <div class="home-eyebrow">Sous le capot</div>
+          <h2 class="home-title">&Eacute;tat du relev&eacute;</h2>
+          <p class="home-sub" id="releveResume"></p>
+        </div>
+        <!-- TROIS ETATS ET NON DEUX : renseigne, manquant, et sans objet. Rouge
+             et Bleu n'ont aucun chromatique — l'absence de taux n'y est pas un
+             trou a combler, et le compter comme tel ferait courir apres des
+             donnees qui n'existent pas. -->
+        <div class="releve-tableau">
+          <div class="releve-tete">
+            <span>Jeu</span><span>Lieux</span><span>Taux</span>
+            <span>M&eacute;thodes</span><span>Sprites</span><span>Couverture</span>
+          </div>
+          <div id="releveCorps"></div>
+        </div>
+        <p class="home-sub releve-legende">
+          <b>&#10003;</b> renseign&eacute; &nbsp;·&nbsp; <b>&#10005;</b> manquant
+          &nbsp;·&nbsp; <b>&mdash;</b> sans objet pour ce jeu, et ne compte pas
+          dans la couverture.
+        </p>
       </section>
 
       <section class="page" id="page-messages">
@@ -840,6 +891,11 @@
               <span id="msgJointeNom"></span>
               <button type="button" id="msgJointeOter" title="Retirer">×</button>
             </div>
+            <div class="msg-jointe" id="msgJointePhoto" hidden>
+              <img id="msgJointePhotoImg" alt="">
+              <span id="msgJointePhotoNom"></span>
+              <button type="button" id="msgJointePhotoOter" title="Retirer">×</button>
+            </div>
             <div class="msg-poke" id="msgPoke" hidden>
               <div class="msg-poke-haut">
                 <input type="search" id="msgPokeQ" autocomplete="off"
@@ -849,9 +905,19 @@
               <div class="msg-poke-liste" id="msgPokeListe"></div>
             </div>
 
+            <!-- Les photos de l'aventure en cours. Le même tiroir que le
+                 sélecteur de Pokémon, à ceci près qu'il n'a rien à chercher :
+                 on n'a jamais mille photos. -->
+            <div class="msg-poke msg-photos" id="msgPhotos" hidden>
+              <div class="msg-photos-mot" id="msgPhotosMot"></div>
+              <div class="msg-photos-liste" id="msgPhotosListe"></div>
+            </div>
+
             <div class="discussion-ecrire" id="msgZone" hidden>
               <button class="toggle-btn msg-joindre" id="msgJoindre" type="button"
                       title="Joindre un Pokémon à ton message">➕</button>
+              <button class="toggle-btn msg-joindre" id="msgPhotoBtn" type="button"
+                      title="Joindre une photo de chasse">📷</button>
               <textarea id="msgTexte" rows="2" maxlength="1000"
                         placeholder="Ton message… (Entrée pour envoyer)"
                         aria-label="Ton message"></textarea>
@@ -1710,97 +1776,100 @@
   </div>
 </div>
 
-<script src="../src/js/donnees.js?v=1788202821"></script>
+<script src="../src/js/donnees.js?v=1788205910"></script>
 <!-- Généré par outils/generer-donnees.html. Doit précéder cache.js, qui y
      puise quand le stockage local est vide. -->
-<script src="../src/js/donnees-embarquees.js?v=1788202821"></script>
+<script src="../src/js/donnees-embarquees.js?v=1788205910"></script>
 <!-- Les verrous chromatiques : des données seules, relevées à la source et
      datées. Doit précéder verrous.js, qui les affiche. -->
-<script src="../src/js/donnees-cadeaux.js?v=1788202821"></script>
-<script src="../src/js/donnees-verrous.js?v=1788202821"></script>
+<script src="../src/js/donnees-cadeaux.js?v=1788205910"></script>
+<script src="../src/js/donnees-verrous.js?v=1788205910"></script>
 <!-- Les notices du Pokédex, une par espèce et par jeu, relevées sur Poképédia
      par outils/relever-descriptions.py, ne sont PAS déclarées ici : fiche.js va
      les chercher à la première fiche ouverte, comme les attaques et les lieux.
      Une notice par jeu, c'est vingt-deux fois le texte d'une notice par espèce
      — de quoi allonger chaque démarrage pour une carte qu'on ne lit pas
      toujours. -->
-<script src="../src/js/cache.js?v=1788202821"></script>
-<script src="../src/js/noyau.js?v=1788202821"></script>
-<script src="../src/js/confirmer.js?v=1788202821"></script>
-<script src="../src/js/maj.js?v=1788202821"></script>
-<script src="../src/js/nouveautes.js?v=1788202821"></script>
+<script src="../src/js/cache.js?v=1788205910"></script>
+<script src="../src/js/noyau.js?v=1788205910"></script>
+<script src="../src/js/confirmer.js?v=1788205910"></script>
+<script src="../src/js/maj.js?v=1788205910"></script>
+<script src="../src/js/nouveautes.js?v=1788205910"></script>
 <!-- Le lexique. Autonome : il ne lit rien d'autre que ses propres définitions,
      et pose ses pastilles au DOMContentLoaded. -->
-<script src="../src/js/lexique.js?v=1788202821"></script>
-<script src="../src/js/serveur.js?v=1788202821"></script>
-<script src="../src/js/formes.js?v=1788202821"></script>
-<script src="../src/js/accueil.js?v=1788202821"></script>
-<script src="../src/js/dex.js?v=1788202821"></script>
-<script src="../src/js/fiche.js?v=1788202821"></script>
-<script src="../src/js/grille.js?v=1788202821"></script>
+<script src="../src/js/lexique.js?v=1788205910"></script>
+<script src="../src/js/serveur.js?v=1788205910"></script>
+<script src="../src/js/formes.js?v=1788205910"></script>
+<script src="../src/js/accueil.js?v=1788205910"></script>
+<script src="../src/js/dex.js?v=1788205910"></script>
+<script src="../src/js/fiche.js?v=1788205910"></script>
+<script src="../src/js/grille.js?v=1788205910"></script>
 <!-- Après dex.js et grille.js : les objectifs figent currentFiltered. -->
-<script src="../src/js/objectifs.js?v=1788202821"></script>
+<script src="../src/js/objectifs.js?v=1788205910"></script>
 <!-- Après grille.js : la fiche de capture complète la fenêtre d'aperçu. -->
-<script src="../src/js/capture.js?v=1788202821"></script>
+<script src="../src/js/capture.js?v=1788205910"></script>
 <!-- Après compte.js : la rareté demande la table à l'API. -->
-<script src="../src/js/rarete.js?v=1788202821"></script>
-<script src="../src/js/lieux.js?v=1788202821"></script>
-<script src="../src/js/filtres.js?v=1788202821"></script>
-<script src="../src/js/chasse.js?v=1788202821"></script>
+<script src="../src/js/rarete.js?v=1788205910"></script>
+<script src="../src/js/lieux.js?v=1788205910"></script>
+<script src="../src/js/filtres.js?v=1788205910"></script>
+<script src="../src/js/chasse.js?v=1788205910"></script>
 <!-- Apres chasse.js : il se sert de son modele de taux plutot que d'en
      porter une copie, qui divergerait a la premiere correction. -->
-<script src="../src/js/calculateur.js?v=1788202821"></script>
-<script src="../src/js/verrous.js?v=1788202821"></script>
-<script src="../src/js/cadeaux.js?v=1788202821"></script>
+<script src="../src/js/calculateur.js?v=1788205910"></script>
+<script src="../src/js/verrous.js?v=1788205910"></script>
+<script src="../src/js/cadeaux.js?v=1788205910"></script>
 <!-- Les règles de combat, puis l'écran qui s'appuie dessus. Tous deux après
      fiche.js (TYPE_RELATIONS, puceType, decoderBloc) et avant menus.js, qui
      stylise leurs menus déroulants. -->
-<script src="../src/js/combat.js?v=1788202821"></script>
-<script src="../src/js/strategie.js?v=1788202821"></script>
+<script src="../src/js/combat.js?v=1788205910"></script>
+<script src="../src/js/strategie.js?v=1788205910"></script>
 <!-- Après strategie.js : il lui emprunte creerSelecteur. -->
-<script src="../src/js/reproduction.js?v=1788202821"></script>
+<script src="../src/js/reproduction.js?v=1788205910"></script>
 <!-- Après donnees.js pour GAMES, et après reproduction.js par simple
      voisinage : les trois partagent la barre « Outils ». -->
-<script src="../src/js/transferts.js?v=1788202821"></script>
-<script src="../src/js/partage.js?v=1788202821"></script>
-<script src="../src/js/menus.js?v=1788202821"></script>
+<script src="../src/js/transferts.js?v=1788205910"></script>
+<script src="../src/js/partage.js?v=1788205910"></script>
+<script src="../src/js/menus.js?v=1788205910"></script>
 <!-- Redéfinit la couche de sauvegarde quand l'app tourne dans Tauri.
      Hors Tauri (serveur.py, ou fichier ouvert directement), il ne fait rien. -->
 
-<script src="../src/js/amis.js?v=1788202821"></script>
+<script src="../src/js/amis.js?v=1788205910"></script>
 <!-- Après partage.js, dont il complète le panneau d'entraide, et après
      compte.js pour nomJournal, libelleDex, avatarDiscord et dateLisible. -->
-<script src="../src/js/troc.js?v=1788202821"></script>
+<script src="../src/js/troc.js?v=1788205910"></script>
 <!-- Après amis.js (pontNotif, bullePermise) et troc.js (ouvrirDiscussion). -->
 <!-- Apres troc.js : il reprend ses bulles de discussion plutot que d'en
      redefinir un second jeu, qui aurait diverge. -->
-<script src="../src/js/messagerie.js?v=1788202821"></script>
-<script src="../src/js/notifs.js?v=1788202821"></script>
+<script src="../src/js/messagerie.js?v=1788205910"></script>
+<!-- Apres chasse.js et photos.js : il lit leurs donnees et reprend leur
+     vignette plutot que d'en ecrire une seconde. -->
+<script src="../src/js/tableaux.js?v=1788205910"></script>
+<script src="../src/js/notifs.js?v=1788205910"></script>
 <!-- Après chasse.js (nomDeChasse, dessinerTableauChasse) et compte.js
      (perdreSession, profilCourant). -->
-<script src="../src/js/photos.js?v=1788202821"></script>
+<script src="../src/js/photos.js?v=1788205910"></script>
 <!-- Après formes.js (speciesForVariant, poolEntries), accueil.js (semeur,
      hachage) et photos.js (vignettePhoto). -->
-<script src="../src/js/defi.js?v=1788202821"></script>
+<script src="../src/js/defi.js?v=1788205910"></script>
 <!-- Après compte.js (nomJournal, perdreSession) et amis.js. -->
-<script src="../src/js/recherches.js?v=1788202821"></script>
+<script src="../src/js/recherches.js?v=1788205910"></script>
 <!-- Après dex.js (obtentionDe) et recherches.js (chercheDeja). -->
-<script src="../src/js/blocages.js?v=1788202821"></script>
+<script src="../src/js/blocages.js?v=1788205910"></script>
 <!-- Après grille.js (BOITE_TAILLE, allerBoite, basculerBoites) et dex.js
      (trierEntrees). -->
-<script src="../src/js/rangement.js?v=1788202821"></script>
-<script src="../src/js/retrospective.js?v=1788202821"></script>
-<script src="../src/js/succes.js?v=1788202821"></script>
+<script src="../src/js/rangement.js?v=1788205910"></script>
+<script src="../src/js/retrospective.js?v=1788205910"></script>
+<script src="../src/js/succes.js?v=1788205910"></script>
 <!-- Après retrospective.js : la carte lit retroDonnees si elle est là, et se
      passe d'elle sinon. -->
-<script src="../src/js/carte.js?v=1788202821"></script>
+<script src="../src/js/carte.js?v=1788205910"></script>
 <!-- Après compte.js : le premier lancement lit profilCourant et profilsConnus. -->
-<script src="../src/js/depart.js?v=1788202821"></script>
-<script src="../src/js/donnees-perso.js?v=1788202821"></script>
-<script src="../src/js/presence.js?v=1788202821"></script>
+<script src="../src/js/depart.js?v=1788205910"></script>
+<script src="../src/js/donnees-perso.js?v=1788205910"></script>
+<script src="../src/js/presence.js?v=1788205910"></script>
 
-<script src="../src/js/selecteur-couleur.js?v=1788202821"></script>
-<script src="../src/js/apparence.js?v=1788202821"></script>
+<script src="../src/js/selecteur-couleur.js?v=1788205910"></script>
+<script src="../src/js/apparence.js?v=1788205910"></script>
 <script src="generer.js"></script>
 </body>
 </html>

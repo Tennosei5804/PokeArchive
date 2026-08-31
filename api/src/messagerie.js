@@ -73,7 +73,38 @@ function especeAttachee(v) {
   return s;
 }
 
-export async function ecrireA(dresseurId, pseudo, texte, espece = null) {
+/**
+ * La photo jointe, si elle a le droit de partir.
+ *
+ * UNE PHOTO SUIT LA VISIBILITÉ DE SON AVENTURE. Celle d'une aventure privée
+ * rend 404 pour tout autre lecteur : l'envoyer produirait un message portant
+ * une image que le destinataire ne verrait jamais, sans que ni l'un ni l'autre
+ * ne comprenne pourquoi.
+ *
+ * ON REFUSE DONC L'ENVOI, en le disant. C'est plus surprenant que de laisser
+ * partir — « pourquoi je ne peux pas envoyer ma propre photo ? » — mais un
+ * refus qui s'explique vaut mieux qu'une image muette.
+ */
+async function imageEnvoyable(dresseurId, imageId) {
+  const id = Number(imageId) || 0;
+  if (!id) return null;
+  const l = await une(
+    `SELECT i.id, i.dresseur_id, p.public
+       FROM pa_images i JOIN pa_profils p ON p.id = i.profil_id
+      WHERE i.id = ?`, [id]);
+  if (!l || l.dresseur_id !== dresseurId) {
+    throw new ErreurCompte('Cette photo n’est pas la tienne.', 403);
+  }
+  if (l.public !== 1) {
+    throw new ErreurCompte(
+      'Cette photo appartient à une aventure privée : ton correspondant ne '
+      + 'pourrait pas la voir. Rends l’aventure publique, ou envoie-la autrement.',
+      400);
+  }
+  return l.id;
+}
+
+export async function ecrireA(dresseurId, pseudo, texte, espece = null, image = null) {
   const autre = await dresseurParPseudo(pseudo);
   if (autre.id === dresseurId) {
     throw new ErreurCompte('Tu ne peux pas t’écrire à toi-même.', 400);
@@ -101,10 +132,12 @@ export async function ecrireA(dresseurId, pseudo, texte, espece = null) {
   }
 
   const attachee = especeAttachee(espece);
+  const photo = await imageEnvoyable(dresseurId, image);
   const t = String(texte || '').trim().slice(0, MESSAGE_MAX);
-  // UN POKEMON SEUL EST UN MESSAGE. Exiger du texte à côté obligerait à écrire
-  // « tiens » sous chaque carte, ce que personne ne fait deux fois.
-  if (!t && !attachee) throw new ErreurCompte('Le message est vide.', 400);
+  // UN POKEMON OU UNE PHOTO SEULS SONT UN MESSAGE. Exiger du texte à côté
+  // obligerait à écrire « tiens » sous chaque image, ce que personne ne fait
+  // deux fois.
+  if (!t && !attachee && !photo) throw new ErreurCompte('Le message est vide.', 400);
 
   // 2. Le filtre. Sans nommer le mot fautif : le dire, c'est apprendre quoi
   //    contourner.
@@ -130,8 +163,10 @@ export async function ecrireA(dresseurId, pseudo, texte, espece = null) {
 
   const quand = horodatage();
   const r = await ecrire(
-    `INSERT INTO pa_messages (destinataire_id, auteur_id, texte, espece, lu, cree_le)
-     VALUES (?, ?, ?, ?, 0, ?)`, [autre.id, dresseurId, t, attachee, quand]);
+    `INSERT INTO pa_messages
+       (destinataire_id, auteur_id, texte, espece, image_id, lu, cree_le)
+     VALUES (?, ?, ?, ?, ?, 0, ?)`,
+    [autre.id, dresseurId, t, attachee, photo, quand]);
 
   const moi = await une('SELECT pseudo FROM pa_dresseurs WHERE id = ?', [dresseurId]);
   await notifier(autre.id, {
@@ -144,7 +179,8 @@ export async function ecrireA(dresseurId, pseudo, texte, espece = null) {
     // n'aide pas à décider s'il faut ouvrir maintenant.
     // Une carte sans un mot n'a pas de détail à montrer : on dit ce qui arrive
     // plutôt que d'annoncer un message vide.
-    detail: t ? (t.length > 120 ? `${t.slice(0, 117)}…` : t) : 'Un Pokémon',
+    detail: t ? (t.length > 120 ? `${t.slice(0, 117)}…` : t)
+      : (photo ? 'Une photo' : 'Un Pokémon'),
   });
 
   return { id: r.insertId, quand };
@@ -244,7 +280,7 @@ export async function conversations(dresseurId) {
 export async function conversation(dresseurId, pseudo) {
   const autre = await dresseurParPseudo(pseudo);
   const lignes = await lire(
-    `SELECT m.id, m.texte, m.espece, m.cree_le, m.auteur_id, m.echange_id,
+    `SELECT m.id, m.texte, m.espece, m.image_id, m.cree_le, m.auteur_id, m.echange_id,
             e.offert, e.demande, e.dex, e.etat, e.demandeur_id
        FROM pa_messages m
        LEFT JOIN pa_echanges e ON e.id = m.echange_id
@@ -285,6 +321,7 @@ export async function conversation(dresseurId, pseudo) {
       id: m.id,
       texte: m.texte,
       espece: m.espece || null,
+      image: m.image_id || null,
       quand: m.cree_le,
       deMoi: m.auteur_id === dresseurId,
       // L'échange dont ce message parle, quand il en vient d'un. Les deux noms

@@ -2155,3 +2155,231 @@ verifier('Messagerie',
     fermerMessagerie();
     return 'brouillon retenu par personne, rendu à son retour, recherche trouvée';
   });
+
+// ---------------------------------------------------------------------------
+
+verifier('Les messages',
+  'Une photo se joint, se voit, et celle d’une aventure privée est refusée à l’écran',
+  async function(){
+    // LE PIÈGE. Une photo suit la visibilité de son aventure : celle d'une
+    // aventure privée rend 404 pour tout autre lecteur. Envoyée quand même,
+    // elle arriverait sous forme de cadre vide chez le destinataire — et
+    // l'expéditeur, qui la voit très bien de son côté, n'en saurait rien.
+    // Le serveur refuse ; ce qui se vérifie ICI, c'est que l'écran le MONTRE
+    // au lieu de vider le champ en silence.
+    const finiesAvant = chassesFinies.slice();
+    chassesFinies = [
+      { pokemon:'abra', dex:'rby', compteur:1200, fin:'2026-08-01', image:1 },
+      { pokemon:'machop', dex:'rby', compteur:300, fin:'2026-07-01' },
+    ];
+
+    ouvrirMessagerie('Ondine');
+    await new Promise(function(r){ setTimeout(r, 60); });
+
+    msgPhotoBtn.click();
+    if(msgPhotos.hidden) return 'échec : le tiroir des photos ne s’ouvre pas';
+
+    // ON REGARDE L'ÉCRAN, PAS LE DOCUMENT : le tiroir voisin est positionné
+    // au-dessus du champ, et une liste présente mais hors cadre ne sert à rien.
+    const choix = Array.prototype.filter
+      .call(msgPhotosListe.querySelectorAll('.msg-photo-choix'), function(b){
+        const r = b.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      });
+    // UNE SEULE : la chasse sans photo n'a rien à proposer. La proposer
+    // ouvrirait le sélecteur de fichiers depuis la messagerie, et créerait des
+    // images rattachées à rien que le quota compterait sans jamais les rendre.
+    if(choix.length !== 1){
+      return 'échec : ' + choix.length + ' photo(s) proposée(s), une seule attendue';
+    }
+
+    choix[0].click();
+    if(msgJointePhoto.hidden) return 'échec : la photo choisie ne s’affiche pas';
+    if(!msgPhotos.hidden) return 'échec : le tiroir reste ouvert après le choix';
+
+    msgTexte.value = 'regarde ça';
+    await msgEnvoyerTexte();
+    const parti = window.__appels.filter(function(a){ return a.cmd === 'messages_ecrire'; }).pop();
+    if(!parti || parti.args.image !== 1){
+      return 'échec : la photo ne part pas avec le message — ' + JSON.stringify(parti && parti.args);
+    }
+    if(!msgJointePhoto.hidden) return 'échec : la photo reste jointe après l’envoi';
+
+    // ET ELLE REVIENT DANS LE FIL, en cadre visible et non en pièce jointe
+    // muette : c'est la moitié de l'intérêt de l'envoyer.
+    await msgDessinerFil();
+    const recue = msgFil.querySelector('.msg-photo');
+    if(!recue) return 'échec : la photo n’apparaît pas dans la conversation';
+
+    // LE REFUS SE LIT. Sans cette ligne, l'envoi échouait et le champ se
+    // vidait : on croyait avoir envoyé.
+    msgPhoto = { id: 4242, nom: 'aventure privée' };
+    msgTexte.value = 'et celle-ci ?';
+    await msgEnvoyerTexte();
+    if(!/privée/.test(msgEtat.textContent)){
+      return 'échec : le refus ne se lit pas à l’écran — « ' + msgEtat.textContent + ' »';
+    }
+    // ET LE TEXTE RESTE : vider le champ sur un refus perdrait ce qu'on a écrit.
+    if(msgTexte.value !== 'et celle-ci ?'){
+      return 'échec : le message est perdu alors qu’il n’est pas parti';
+    }
+
+    msgPhoto = null;
+    msgTexte.value = '';
+    fermerMessagerie();
+    chassesFinies = finiesAvant;
+    return 'jointe, envoyée, revue dans le fil ; la privée refusée sans perdre le texte';
+  });
+
+// ---------------------------------------------------------------------------
+
+verifier('Les échanges',
+  'Les rappels ne montrent que ce qui attend MA réponse, et depuis assez longtemps',
+  async function(){
+    // CE QUE ÇA ÉVITE. Un rappel qui compte aussi ce qu'on a soi-même proposé
+    // dirait « 3 échanges attendent » à quelqu'un qui n'a rien à faire : il
+    // attend, lui. Le rappel ne vaut que s'il désigne un geste à accomplir.
+    const vieux = new Date(Date.now() - 12 * 86400000).toISOString().slice(0, 10);
+    const hier = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const liste = [
+      { id:11, sens:'recu', etat:'propose', quand:vieux, avec:{ pseudo:'Jack' },
+        dex:'rby', genre:'echange', jeDonne:'abra', jeRecois:'machop' },
+      // Reçu aussi, mais d'hier : on ne rappelle pas ce qui vient d'arriver.
+      { id:12, sens:'recu', etat:'propose', quand:hier, avec:{ pseudo:'Ondine' },
+        dex:'rby', genre:'echange', jeDonne:'psykokwak', jeRecois:'abra' },
+      // Vieux, mais c'est MOI qui l'ai proposé : je n'ai rien à répondre.
+      { id:13, sens:'propose', etat:'propose', quand:vieux, avec:{ pseudo:'Pierre' },
+        dex:'rby', genre:'echange', jeDonne:'onix', jeRecois:'racaillou' },
+    ];
+    // LA PAGE D'ABORD. Les rappels vivent avec les échanges, sur la page des
+    // amis : mesurés pendant qu'elle est cachée, ils font zéro pixel de haut
+    // et cette vérification passerait à côté de ce qu'elle regarde.
+    showPage('amis');
+    await new Promise(function(r){ setTimeout(r, 60); });
+    dessinerRappels(liste);
+
+    const lignes = Array.prototype.filter
+      .call(trocRappels.querySelectorAll('.troc-rappel'), function(l){
+        const r = l.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      });
+    if(lignes.length !== 1){
+      return 'échec : ' + lignes.length + ' rappel(s) visible(s), un seul attendu';
+    }
+    if(lignes[0].textContent.indexOf('Jack') === -1){
+      return 'échec : le rappel ne désigne pas qui attend — ' + lignes[0].textContent;
+    }
+    if(trocRappels.hidden) return 'échec : le bloc des rappels est caché';
+
+    // AUCUN RAPPEL N'EST PAS UN BLOC VIDE. Un cadre « Rappels » sans rien
+    // dedans donne l'impression d'un écran cassé.
+    dessinerRappels([]);
+    if(!trocRappels.hidden) return 'échec : le bloc reste quand il n’y a rien à rappeler';
+
+    showPage('accueil');
+    return 'un seul rappel, le mien et le vieux ; rien du tout quand il n’y a rien';
+  });
+
+// ---------------------------------------------------------------------------
+
+verifier('La galerie',
+  'Le compte reste juste : tous les chromatiques, avec ou sans photo',
+  async function(){
+    // LE PIÈGE QUE ÇA GARDE. Ne montrer que les chasses AVEC photo donnerait
+    // une galerie plus belle et un compte faux — « 4 obtenus » chez quelqu'un
+    // qui en a douze. Le filtre existe, mais le total ne le suit pas.
+    const avant = chassesFinies.slice();
+    chassesFinies = [
+      { pokemon:'abra', dex:'rby', compteur:1200, taux:4096, fin:'2026-08-01', image:1 },
+      { pokemon:'machop', dex:'rby', compteur:300, taux:4096, fin:'2026-07-01' },
+      { pokemon:'onix', dex:'rby', compteur:80, taux:512, fin:'2026-06-01' },
+    ];
+
+    ouvrirGalerie();
+    await new Promise(function(r){ setTimeout(r, 60); });
+
+    if(galerieResume.textContent.indexOf('3 obtenus') === -1){
+      return 'échec : le total ne compte pas tout — « ' + galerieResume.textContent + ' »';
+    }
+    if(galerieResume.textContent.indexOf('1 avec une photo') === -1){
+      return 'échec : le résumé ne dit pas combien portent une photo';
+    }
+
+    const vues = function(){
+      return Array.prototype.filter
+        .call(galerieGrille.querySelectorAll('.galerie-carte'), function(c){
+          const r = c.getBoundingClientRect();
+          return r.width > 0 && r.height > 0;
+        });
+    };
+    if(vues().length !== 3){
+      return 'échec : ' + vues().length + ' vignette(s) visible(s) sur 3';
+    }
+    // CELLES SANS PHOTO LE DISENT. Un sprite au milieu de photos ressemble à
+    // une photo qui n'a pas fini de charger.
+    if(galerieGrille.querySelectorAll('.galerie-sans').length !== 2){
+      return 'échec : les chasses sans photo ne s’annoncent pas comme telles';
+    }
+
+    galerieFiltre = 'photo';
+    dessinerGalerie();
+    if(vues().length !== 1) return 'échec : le filtre « avec photo » n’en garde pas une seule';
+    if(galerieResume.textContent.indexOf('3 obtenus') === -1){
+      return 'échec : filtrer a changé le total — c’est exactement le mensonge à éviter';
+    }
+
+    galerieFiltre = 'tous';
+    chassesFinies = avant;
+    dessinerGalerie();
+    return 'trois obtenus, une photo, et le filtre ne touche pas au total';
+  });
+
+// ---------------------------------------------------------------------------
+
+verifier('L’état du relevé',
+  '« Sans objet » n’est pas « manquant » : Rouge et Bleu n’ont pas de chromatiques',
+  async function(){
+    // LE PIÈGE. Confondre les deux ferait courir après des données qui
+    // n'existent pas : un écran qui réclame un taux de chromatiques pour Rouge
+    // et Bleu réclame l'impossible, et son pourcentage ne redescendra jamais.
+    ouvrirReleve();
+    await new Promise(function(r){ setTimeout(r, 60); });
+
+    const lignes = Array.prototype.filter
+      .call(releveCorps.querySelectorAll('.releve-ligne'), function(l){
+        const r = l.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      });
+    if(lignes.length !== GAMES.length){
+      return 'échec : ' + lignes.length + ' ligne(s) visible(s) pour ' + GAMES.length + ' jeux';
+    }
+
+    const sansChroma = GAMES.find(function(g){
+      return SANS_CHROMATIQUES.indexOf(g.key) !== -1;
+    });
+    if(!sansChroma) return 'ignoré : aucun jeu sans chromatiques dans la liste';
+    if(releveEtat(sansChroma, 'taux') !== 'sans-objet'){
+      return 'échec : ' + sansChroma.key + ' n’a pas de chromatiques et son taux est dit manquant';
+    }
+    if(releveEtat(sansChroma, 'methodes') !== 'sans-objet'){
+      return 'échec : ' + sansChroma.key + ' se voit réclamer des méthodes de chasse';
+    }
+
+    // ET LE SANS-OBJET NE PÉNALISE PAS LA COUVERTURE : la jauge d'un jeu dont
+    // tout le reste est renseigné doit être pleine, pas aux trois quarts.
+    const i = GAMES.indexOf(sansChroma);
+    const jauge = lignes[i].querySelector('.releve-jauge');
+    const etats = ['lieux', 'taux', 'methodes', 'sprites']
+      .map(function(c){ return releveEtat(sansChroma, c); });
+    const pertinents = etats.filter(function(e){ return e !== 'sans-objet'; });
+    const attendu = pertinents.length
+      ? Math.round(100 * pertinents.filter(function(e){ return e === 'oui'; }).length
+                   / pertinents.length) : 100;
+    if(jauge.title !== attendu + ' %'){
+      return 'échec : jauge à ' + jauge.title + ' au lieu de ' + attendu + ' %';
+    }
+
+    showPage('accueil');
+    return GAMES.length + ' jeux ; ' + sansChroma.key
+      + ' sans objet pour le taux, et sa jauge n’en souffre pas';
+  });

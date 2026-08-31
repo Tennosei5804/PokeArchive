@@ -546,6 +546,156 @@ function msgCarteEspece(nom){
   return carte;
 }
 
+
+// ---- Joindre une photo de chasse ---------------------------------------------
+//
+// UNE PHOTO SUIT LA VISIBILITÉ DE SON AVENTURE, et c'est toute la question de
+// cet écran. Le serveur rend 404 sur la photo d'une aventure privée à qui n'en
+// est pas l'auteur : envoyée quand même, elle arriverait chez l'autre sous
+// forme de cadre vide, sans que ni lui ni nous ne comprenions pourquoi.
+//
+// ON REFUSE DONC, EN LE DISANT — ici avant l'envoi, et de nouveau côté serveur
+// qui seul fait autorité. C'est plus surprenant que de laisser partir, mais un
+// refus qui s'explique vaut mieux qu'une image muette.
+//
+// PAS DE NOUVEL ENVOI DEPUIS LE DISQUE non plus : on choisit parmi les photos
+// DÉJÀ POSÉES sur ses chasses. Poser une photo depuis la messagerie créerait
+// des images rattachées à rien, que le quota compterait et que rien
+// n'effacerait jamais.
+
+const msgPhotoBtn = document.getElementById('msgPhotoBtn');
+const msgPhotos = document.getElementById('msgPhotos');
+const msgPhotosMot = document.getElementById('msgPhotosMot');
+const msgPhotosListe = document.getElementById('msgPhotosListe');
+const msgJointePhoto = document.getElementById('msgJointePhoto');
+const msgJointePhotoImg = document.getElementById('msgJointePhotoImg');
+const msgJointePhotoNom = document.getElementById('msgJointePhotoNom');
+const msgJointePhotoOter = document.getElementById('msgJointePhotoOter');
+
+// La photo attachée au prochain message : { id, nom }, ou null.
+let msgPhoto = null;
+
+/** Les chasses conclues qui portent une photo. */
+function msgPhotosPosees(){
+  if(typeof chassesFinies === 'undefined') return [];
+  return chassesFinies
+    .filter(function(c){ return Number.isInteger(c.image); })
+    .slice()
+    // La dernière posée en premier : c'est celle dont on vient parler.
+    .sort(function(a, b){ return String(b.fin || '').localeCompare(String(a.fin || '')); });
+}
+
+function msgNomChasse(c){
+  if(typeof nomDeChasse === 'function') return nomDeChasse(c);
+  return c.pokemon;
+}
+
+function msgFermerPhotos(){
+  if(msgPhotos) msgPhotos.hidden = true;
+}
+
+/** Montre — ou retire — la photo jointe, au-dessus du champ. */
+function msgMajJointePhoto(){
+  if(!msgJointePhoto) return;
+  msgJointePhoto.hidden = !msgPhoto;
+  if(!msgPhoto) return;
+  msgJointePhotoNom.textContent = msgPhoto.nom;
+  msgJointePhotoImg.removeAttribute('src');
+  if(typeof chargerPhoto === 'function'){
+    chargerPhoto(msgPhoto.id).then(function(url){ msgJointePhotoImg.src = url; },
+      function(){ /* la vignette reste vide ; l'envoi dira pourquoi */ });
+  }
+}
+
+function msgDessinerPhotos(){
+  if(!msgPhotosListe || !msgPhotosMot) return;
+  msgPhotosListe.innerHTML = '';
+
+  // L'AVERTISSEMENT AVANT LE CHOIX, pas après l'échec. Une aventure privée
+  // rend toutes ses photos inenvoyables : le dire d'abord évite de choisir
+  // une image pour se voir refuser ensuite.
+  const privee = (typeof profilCourant !== 'undefined')
+    && profilCourant && !profilCourant.public;
+  const liste = msgPhotosPosees();
+
+  if(privee){
+    msgPhotosMot.textContent = 'Cette aventure est privée : tes photos ne sont '
+      + 'visibles que par toi. Rends-la publique depuis le Profil pour pouvoir '
+      + 'en envoyer.';
+    return;
+  }
+  if(!liste.length){
+    msgPhotosMot.textContent = 'Aucune photo posée sur tes chasses pour '
+      + 'l’instant. Ajoute-la depuis le tableau de chasse, puis reviens.';
+    return;
+  }
+
+  msgPhotosMot.textContent = 'Une photo de tes chasses :';
+  liste.forEach(function(c){
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'msg-photo-choix';
+    const img = document.createElement('img');
+    img.alt = '';
+    b.appendChild(img);
+    const nom = document.createElement('span');
+    nom.textContent = msgNomChasse(c);
+    b.appendChild(nom);
+    // MÊME PARESSE QUE LE TABLEAU DE CHASSE : chaque photo est un aller-retour
+    // derrière un jeton, et l'on n'ouvre pas ce tiroir pour toutes les voir.
+    if(typeof chargerQuandVisible === 'function'){
+      chargerQuandVisible(b, function(){
+        chargerPhoto(c.image).then(function(url){ img.src = url; }, function(){});
+      });
+    }
+    b.addEventListener('click', function(){
+      msgPhoto = { id: c.image, nom: msgNomChasse(c) };
+      msgFermerPhotos();
+      msgMajJointePhoto();
+      if(msgTexte) msgTexte.focus();
+    });
+    msgPhotosListe.appendChild(b);
+  });
+}
+
+/**
+ * La photo d'un message, dans une bulle.
+ *
+ * Le cadre est posé vide et rempli après coup, comme partout ailleurs : la
+ * photo arrive du pont, et attendre chaque image avant d'afficher le moindre
+ * mot ferait clignoter la conversation entière à chaque battement de veille.
+ */
+function msgCartePhoto(id, deQui, quand){
+  const carte = document.createElement('button');
+  carte.type = 'button';
+  carte.className = 'msg-photo';
+  const img = document.createElement('img');
+  img.alt = '';
+  carte.appendChild(img);
+
+  const legende = 'Photo de ' + deQui + (quand ? '  ·  ' + quand : '');
+  carte.title = 'Voir en grand';
+
+  const remplir = function(){
+    chargerPhoto(id).then(function(url){ img.src = url; }, function(e){
+      if(String(e) === 'SESSION_INVALIDE'){ perdreSession(); return; }
+      // ELLE A PU DISPARAÎTRE DEPUIS : effacée, ou l'aventure repassée en
+      // privé. Le message reste lisible, et dit ce qui manque plutôt que de
+      // montrer un carré cassé.
+      carte.classList.add('vide');
+      carte.textContent = '📷 photo indisponible';
+      carte.disabled = true;
+    });
+  };
+  if(typeof chargerQuandVisible === 'function') chargerQuandVisible(carte, remplir);
+  else remplir();
+
+  carte.addEventListener('click', function(){
+    if(typeof ouvrirPhotoSeule === 'function') ouvrirPhotoSeule({ id: id, legende: legende });
+  });
+  return carte;
+}
+
 // ---- Le fil ------------------------------------------------------------------
 
 /**
@@ -597,8 +747,11 @@ function msgOuvrirFil(pseudo){
   // CE QU'ON ALLAIT JOINDRE APPARTIENT À LA CONVERSATION QU'ON QUITTE. Le
   // garder enverrait l'Abra préparé pour Jack à la figure d'Ondine.
   msgEspece = null;
+  msgPhoto = null;
   msgMajJointe();
+  msgMajJointePhoto();
   msgFermerPoke();
+  msgFermerPhotos();
   msgBasculer();
   if(msgTexte) msgTexte.value = msgBrouillons.get(pseudo) || '';
   msgDessinerFil();
@@ -688,6 +841,10 @@ async function msgDessinerFil(discret){
     // La carte AVANT le texte : « il te manque, non ? » n'a de sens qu'une fois
     // qu'on sait de qui l'on parle.
     if(m.espece) bulle.appendChild(msgCarteEspece(m.espece));
+    if(m.image){
+      bulle.appendChild(msgCartePhoto(m.image, m.deMoi ? 'toi' : msgAvec,
+        (typeof dateLisible === 'function') ? dateLisible(m.quand) : ''));
+    }
 
     if(m.echange){
       const sujet = document.createElement('span');
@@ -696,8 +853,8 @@ async function msgDessinerFil(discret){
       bulle.appendChild(sujet);
     }
 
-    // Un Pokémon seul EST un message : on n'ajoute pas de paragraphe vide,
-    // qui laisserait une ligne blanche sous la carte.
+    // Un Pokémon — ou une photo — seul EST un message : on n'ajoute pas de
+    // paragraphe vide, qui laisserait une ligne blanche sous la carte.
     if(m.texte) bulle.appendChild(texte);
     if(typeof dateLisible === 'function'){
       const quand = document.createElement('span');
@@ -714,19 +871,22 @@ async function msgDessinerFil(discret){
 async function msgEnvoyerTexte(){
   if(!msgTexte || !msgAvec) return;
   const texte = (msgTexte.value || '').trim();
-  if(!texte && !msgEspece) return;
+  if(!texte && !msgEspece && !msgPhoto) return;
 
   msgEnvoyer.disabled = true;
   msgEtat.textContent = '';
   try{
     await invoke('messages_ecrire',
-      { pseudo: msgAvec, texte: texte, espece: msgEspece });
+      { pseudo: msgAvec, texte: texte, espece: msgEspece,
+        image: msgPhoto ? msgPhoto.id : null });
     // On vide APRÈS l'envoi réussi. Vider avant perdrait le texte au moindre
     // refus — et le filtre en refuse, c'est son travail.
     msgTexte.value = '';
     msgBrouillons.delete(msgAvec);
     msgEspece = null;
+    msgPhoto = null;
     msgMajJointe();
+    msgMajJointePhoto();
     await msgDessinerFil();
   }catch(e){
     if(String(e) === 'SESSION_INVALIDE'){ await perdreSession(); return; }
@@ -856,8 +1016,23 @@ document.addEventListener('DOMContentLoaded', function(){
     msgJoindre.addEventListener('click', function(){
       if(!msgPoke) return;
       msgPoke.hidden = !msgPoke.hidden;
-      if(!msgPoke.hidden){ msgRemplirGenerations(); msgPokeQ.focus(); }
+      if(!msgPoke.hidden){ msgFermerPhotos(); msgRemplirGenerations(); msgPokeQ.focus(); }
       else msgFermerPoke();
+    });
+  }
+  if(msgPhotoBtn){
+    msgPhotoBtn.addEventListener('click', function(){
+      if(!msgPhotos) return;
+      msgPhotos.hidden = !msgPhotos.hidden;
+      // L'AUTRE TIROIR SE FERME : deux panneaux ouverts l'un sur l'autre
+      // repoussent le champ hors de l'écran sur une petite fenêtre.
+      if(!msgPhotos.hidden){ msgFermerPoke(); msgDessinerPhotos(); }
+    });
+  }
+  if(msgJointePhotoOter){
+    msgJointePhotoOter.addEventListener('click', function(){
+      msgPhoto = null;
+      msgMajJointePhoto();
     });
   }
   if(msgPokeQ) msgPokeQ.addEventListener('input', msgChercherPoke);

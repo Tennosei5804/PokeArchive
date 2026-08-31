@@ -203,11 +203,126 @@ async function chargerTroc(){
 
   const liste = (r && r.echanges) || [];
   trocListe.innerHTML = '';
-  if(!liste.length){
-    trocListe.innerHTML = '<div class="state-msg">Aucun échange pour l’instant.</div>';
-    return;
+
+  // CE QUI ATTEND UNE RÉPONSE DE MOI, D'ABORD. Une proposition reçue depuis
+  // plus d'une semaine n'est pas un élément de liste parmi d'autres : c'est
+  // quelqu'un qui attend, et qui ne sait pas s'il a été refusé ou oublié.
+  dessinerRappels(liste);
+
+  // LES CONCLUS SE RANGENT À PART. Ils ne demandent plus rien et n'ont pas à
+  // encombrer ce qui est encore vivant — mais les perdre effacerait la seule
+  // trace qu'on a déjà échangé avec quelqu'un.
+  const vivants = liste.filter(function(e){ return e.etat !== 'fait'; });
+  const conclus = liste.filter(function(e){ return e.etat === 'fait'; });
+
+  if(!vivants.length){
+    trocListe.innerHTML += '<div class="state-msg">Aucun échange en cours.</div>';
+  } else {
+    vivants.forEach(function(e){ trocListe.appendChild(ligneTroc(e)); });
   }
-  liste.forEach(function(e){ trocListe.appendChild(ligneTroc(e)); });
+  dessinerHistorique(conclus);
+}
+
+// ---- Ce qui attend une réponse ----------------------------------------------
+//
+// LE RAPPEL S'ADRESSE À CELUI QUI DOIT RÉPONDRE, pas à celui qui attend : c'est
+// lui qui peut débloquer la situation. Et il ne SONNE PAS — un bandeau vu en
+// ouvrant l'écran ne dérange personne, une notification qui se déclenche toute
+// seule au bout d'une semaine devient du harcèlement à retardement.
+
+const RAPPEL_JOURS = 7;
+
+function joursDepuis(quand){
+  const t = Date.parse(quand || '');
+  if(!t) return 0;
+  return Math.floor((Date.now() - t) / 86400000);
+}
+
+function dessinerRappels(liste){
+  if(!trocRappels) return;
+  const dus = liste.filter(function(e){
+    return e.etat === 'propose' && e.sens === 'recu'
+      && joursDepuis(e.quand) >= RAPPEL_JOURS;
+  });
+
+  trocRappels.innerHTML = '';
+  trocRappels.hidden = !dus.length;
+  if(!dus.length) return;
+
+  dus.forEach(function(e){
+    const bloc = document.createElement('div');
+    bloc.className = 'troc-rappel';
+
+    const pict = document.createElement('span');
+    pict.className = 'troc-rappel-pict';
+    pict.textContent = '⏳';
+    bloc.appendChild(pict);
+
+    const txt = document.createElement('div');
+    txt.className = 'troc-rappel-txt';
+    const qui = document.createElement('b');
+    qui.textContent = e.avec.pseudo;
+    txt.appendChild(qui);
+    txt.appendChild(document.createTextNode(
+      ' attend depuis ' + joursDepuis(e.quand) + ' jours  ·  '
+      + trocPhrase(e) + ', sur ' + trocJeuNom(e.dex)));
+
+    const actions = document.createElement('div');
+    actions.className = 'troc-rappel-actions';
+    actions.appendChild(boutonTroc('Accepter', 'primary', function(){
+      repondreTroc(e.id, 'accepte');
+    }));
+    actions.appendChild(boutonTroc('Refuser', '', function(){
+      repondreTroc(e.id, 'refuse');
+    }));
+    txt.appendChild(actions);
+    bloc.appendChild(txt);
+    trocRappels.appendChild(bloc);
+  });
+}
+
+// ---- Avec qui on a déjà échangé ---------------------------------------------
+//
+// « CONCLU » EST POSÉ À LA MAIN par l'un des deux : l'application ne constate
+// rien, elle enregistre une intention. On écrit donc « d'après lui » plutôt que
+// de présenter un fait — sans quoi ce compte deviendrait une réputation que
+// personne n'a vérifiée.
+
+function dessinerHistorique(conclus){
+  if(!trocHistorique || !trocHistoriqueBloc) return;
+  trocHistoriqueBloc.hidden = !conclus.length;
+  trocHistorique.innerHTML = '';
+  if(!conclus.length) return;
+
+  const gens = new Set(conclus.map(function(e){ return e.avec.pseudo; }));
+  const resume = document.createElement('p');
+  resume.className = 'troc-histo-resume';
+  resume.textContent = conclus.length + (conclus.length > 1 ? ' échanges conclus' : ' échange conclu')
+    + ' avec ' + gens.size + (gens.size > 1 ? ' dresseurs' : ' dresseur')
+    + '  ·  marqués faits à la main, de part ou d’autre';
+  trocHistorique.appendChild(resume);
+
+  conclus.forEach(function(e){
+    const ligne = document.createElement('div');
+    ligne.className = 'troc-histo-ligne';
+
+    const quoi = document.createElement('span');
+    quoi.className = 'troc-histo-quoi';
+    const qui = document.createElement('b');
+    qui.textContent = e.avec.pseudo;
+    quoi.appendChild(qui);
+    quoi.appendChild(document.createTextNode(
+      '  ·  ' + trocPhrase(e) + '  ·  ' + trocJeuNom(e.dex)));
+    ligne.appendChild(quoi);
+
+    if(typeof dateLisible === 'function'){
+      const quand = document.createElement('span');
+      quand.className = 'troc-histo-quand';
+      quand.textContent = dateLisible(e.majLe || e.quand);
+      ligne.appendChild(quand);
+    }
+    trocHistorique.appendChild(ligne);
+  });
 }
 
 function ligneTroc(e){

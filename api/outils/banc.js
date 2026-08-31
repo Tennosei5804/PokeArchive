@@ -683,11 +683,79 @@ async function tout(ids) {
     });
 
   await verifier(
+    'Une photo jointe part si l’aventure est publique, et jamais sinon',
+    async () => {
+      // LE PIÈGE QUE CETTE VÉRIFICATION GARDE. Une photo suit la visibilité de
+      // son aventure : servie 404 à qui n'en est pas l'auteur quand l'aventure
+      // est privée. Laisser partir une telle photo dans un message produirait
+      // chez le destinataire un cadre vide, sans que personne ne comprenne
+      // pourquoi — l'expéditeur la voit très bien de son côté.
+      //
+      // ON REFUSE DONC L'ENVOI, en le disant. C'est le seul endroit où le
+      // refus peut être formulé : après coup, il n'y a plus qu'un carré cassé.
+      const photo = await images.deposer(un, profilUn, 'chasse', jpegAvecExif());
+
+      const envoye = await ecrireA(un, 'BancDeux', 'regarde ça', null, photo.id);
+      if (!envoye?.id) return 'échec : la photo d’une aventure publique est refusée';
+
+      const fil = await conversation(deux, 'BancUn');
+      const avec = fil.messages.find((m) => m.image === photo.id);
+      if (!avec) return 'échec : la photo ne revient pas avec le message';
+      // ET LE DESTINATAIRE PEUT VRAIMENT LA CHARGER : c'est tout l'objet du
+      // refus qui suit. Vérifier la colonne sans vérifier l'accès laisserait
+      // passer exactement le défaut qu'on essaie d'éviter.
+      await images.servir(deux, photo.id);
+
+      // UNE PHOTO SEULE EST UN MESSAGE, comme un Pokémon seul.
+      const seule = await ecrireA(un, 'BancDeux', '', null, photo.id);
+      if (!seule?.id) return 'échec : une photo sans texte est refusée';
+
+      await ecrire('UPDATE pa_profils SET public = 0 WHERE id = ?', [profilUn]);
+      let refuse = null;
+      try { await ecrireA(un, 'BancDeux', 'et celle-ci ?', null, photo.id); }
+      catch (e) { refuse = e.message; }
+      await ecrire('UPDATE pa_profils SET public = 1 WHERE id = ?', [profilUn]);
+      if (!refuse) return 'échec : la photo d’une aventure privée est partie quand même';
+      if (!/privée/.test(refuse)) return `échec : refusé sans dire pourquoi — ${refuse}`;
+
+      // ET CELLE D'UN AUTRE N'EST PAS LA SIENNE À ENVOYER. Sans cette garde,
+      // n'importe quel identifiant d'image ferait l'affaire.
+      const profilDeux = await profilDe(deux);
+      const sienne = await images.deposer(deux, profilDeux, 'chasse', jpegAvecExif());
+      let vole = null;
+      try { await ecrireA(un, 'BancDeux', 'tiens', null, sienne.id); }
+      catch (e) { vole = e.code; }
+      if (vole !== 403) return `échec : la photo d’autrui part (code ${vole})`;
+
+      // EFFACER LA PHOTO N'EFFACE PAS LE MESSAGE. La clé étrangère est en
+      // ON DELETE SET NULL et non CASCADE : les mots restent, l'image s'en va.
+      // En CASCADE, vider son album emporterait des conversations entières.
+      await images.retirer(un, photo.id);
+      const apres = await conversation(deux, 'BancUn');
+      const survivant = apres.messages.find((m) => m.id === envoye.id);
+      if (!survivant) return 'échec : effacer la photo a emporté le message';
+      if (survivant.image) return 'échec : le message pointe encore une photo effacée';
+      if (survivant.texte !== 'regarde ça') return 'échec : le texte a changé';
+
+      return 'publique : elle part et se charge ; privée : refusée et expliquée ; '
+        + 'celle d’autrui : 403 ; effacée : le message reste';
+    });
+
+  await verifier(
     'Le compte de non lus voyage avec la veille',
     async () => {
       // IL MÉRITAIT UN ALLER-RETOUR TOUTES LES DEUX MINUTES, PAS UN À LUI SEUL.
       // La pastille du menu se nourrit de ce chiffre ; sans lui elle resterait
       // muette, ou coûterait une requête de plus à chaque battement.
+      //
+      // ELLE POSE SON PROPRE NON-LU. Elle héritait de ceux que les
+      // vérifications précédentes laissaient traîner, et la première d'entre
+      // elles à finir par une lecture la faisait échouer — sur un compte juste,
+      // pour une raison étrangère à ce qu'elle éprouve. La réponse de BancDeux
+      // d'abord : elle rouvre le monologue, borné à dix sans réponse.
+      await ecrireA(deux, 'BancUn', 'je te réponds, pour la forme');
+      await ecrireA(un, 'BancDeux', 'et un dernier mot qui attend d’être lu');
+
       const avant = await nonLus(deux);
       if (avant < 1) return `échec : ${avant} non lu, au moins un attendu ici`;
 

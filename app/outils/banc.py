@@ -65,6 +65,10 @@ const PROFILS = [
 let DERNIERE_IMAGE = 1;
 const IMAGES = new Map([[1, []]]);
 const PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+// Celle que le serveur refuse d'envoyer : elle appartient a une aventure
+// privee, que le destinataire ne pourrait pas ouvrir. Le pont la refuse
+// pareil, pour que l'ecran ait un refus a montrer.
+const PHOTO_PRIVEE = 4242;
 
 let DERNIER_TROC = 2;
 const ECHANGES = [
@@ -208,14 +212,27 @@ const REPONSES = {
                                { id:0, texte:'d’accord pour demain ?', quand:'', deMoi:false,
                                  echange:{ id:1, dex:'rby', etat:'accepte',
                                            jeDonne:'machop', jeRecois:'abra', don:false } },
-                               ...DIRECTS.map(m => ({ espece:null, ...m, echange:null })) ] }),
+                               ...DIRECTS.map(m => ({ espece:null, image:null, ...m, echange:null })) ] }),
   messages_ecrire: (a) => { const texte = (a&&a.texte)||'';
                             const espece = (a&&a.espece)||null;
+                            const image = (a&&a.image)||null;
                             // Le meme filtre qu'au serveur, en beaucoup plus
                             // simple : le banc n'eprouve pas le filtre ici, il
                             // eprouve que l'ecran affiche le refus.
                             if(/sale con/.test(texte)) throw new Error('Ton message ne passe pas. Reformule-le.');
-                            DIRECTS.push({ id: DIRECTS.length + 1, texte, espece,
+                            // LE REFUS DE LA PHOTO PRIVEE, comme au serveur :
+                            // c'est le seul moyen d'eprouver que l'ecran le
+                            // MONTRE au lieu de vider le champ en silence.
+                            if(image === PHOTO_PRIVEE){
+                              // MOT POUR MOT LE REFUS DU SERVEUR, accents
+                              // compris : c'est ce texte que l'ecran affiche,
+                              // et une imitation approximative ferait passer
+                              // une verification sur un message qui n'existe pas.
+                              throw new Error('Cette photo appartient à une aventure privée : '
+                                + 'ton correspondant ne pourrait pas la voir. Rends l’aventure '
+                                + 'publique, ou envoie-la autrement.');
+                            }
+                            DIRECTS.push({ id: DIRECTS.length + 1, texte, espece, image,
                                            quand:'', deMoi:true });
                             return { id: DIRECTS.length, quand:'' }; },
 

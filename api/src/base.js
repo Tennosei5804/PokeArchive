@@ -200,6 +200,7 @@ const TABLES = [
      auteur_id      BIGINT       NOT NULL,
      texte          VARCHAR(1000) NOT NULL,
      espece         VARCHAR(64)  NULL,
+     image_id       BIGINT       NULL,
      lu             TINYINT(1)   NOT NULL DEFAULT 0,
      cree_le        VARCHAR(64)  NOT NULL,
      CONSTRAINT fk_pa_messages_echange FOREIGN KEY (echange_id)
@@ -412,6 +413,7 @@ export async function creerSchema(journal = () => {}) {
   await migrerQuiPeutEcrire(journal);
   await migrerAuteurNotification(journal);
   await migrerEspeceMessage(journal);
+  await migrerImageMessage(journal);
   await migrerMotsEnMessages(journal);
   await migrerNomDiscord(journal);
   await migrerNotesProfil(journal);
@@ -610,6 +612,25 @@ async function migrerMotsEnMessages(journal) {
   // le jour du deploiement.
   const combien = (r && r[0] && r[0].affectedRows) || 0;
   if (combien) journal(`schema : ${combien} mot(s) de proposition repris en messages`);
+}
+
+async function migrerImageMessage(journal) {
+  const deja = await une(
+    `SELECT COUNT(*) AS n FROM information_schema.columns
+      WHERE table_schema = DATABASE() AND table_name = 'pa_messages'
+        AND column_name = 'image_id'`);
+  if (deja?.n) return;
+  // UNE PHOTO DANS UN MESSAGE. On ne recopie pas l'image : on pointe celle qui
+  // existe deja, avec sa fiche, son EXIF retire et ses droits. Une seconde
+  // copie aurait sa propre visibilite, et les deux auraient diverge.
+  //
+  // ON DELETE SET NULL et non CASCADE : effacer une photo ne doit pas effacer
+  // le message qui l'accompagnait. Les mots restent, l'image disparait.
+  await base().query('ALTER TABLE pa_messages ADD COLUMN image_id BIGINT NULL');
+  await base().query(
+    `ALTER TABLE pa_messages ADD CONSTRAINT fk_pa_messages_image
+       FOREIGN KEY (image_id) REFERENCES pa_images(id) ON DELETE SET NULL`);
+  journal('schema : colonne pa_messages.image_id ajoutee');
 }
 
 async function migrerIdSession(journal) {

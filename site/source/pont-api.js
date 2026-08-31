@@ -136,7 +136,7 @@
     messages_chercher:        ['GET',    a => '/api/messages-recherche?q=' + enc(a.q || '')],
     messages_avec:            ['GET',    a => '/api/messages/' + enc(a.pseudo)],
     messages_ecrire:          ['POST',   a => '/api/messages/' + enc(a.pseudo),
-                               a => ({ texte: a.texte, espece: a.espece })],
+                               a => ({ texte: a.texte, espece: a.espece, image: a.image })],
 
     notifications:            ['GET',    () => '/api/notifications'],
     notifications_lues:       ['POST',   () => '/api/notifications/lues', a => ({ jusqua: a.jusqua })],
@@ -289,10 +289,13 @@
     /**
      * Lire une photo.
      *
-     * L'APPLICATION ATTEND DES OCTETS, pas une adresse : le Rust les rapporte
-     * et l'écran en fait une image locale. On fait pareil plutôt que de rendre
-     * l'URL — l'image est derrière un jeton, une balise <img> ne saurait pas
-     * la demander.
+     * UNE ADRESSE `data:`, EXACTEMENT CE QUE REND LE RUST. L'écran pose le
+     * résultat dans un `img.src` sans le regarder : lui rendre un objet
+     * `{ mime, octets }` — ce que faisait cette ligne — donnait un
+     * « [object Object] » en guise d'image, sur toutes les photos du site.
+     *
+     * Le détour par le pont reste nécessaire : l'adresse exige le jeton, et
+     * une balise <img> ne sait pas le présenter.
      */
     image_charger: async (a) => {
       const j = jeton();
@@ -302,11 +305,15 @@
       });
       if(r.status === 401){ poserJeton(''); throw new Error('SESSION_INVALIDE'); }
       if(!r.ok) throw new Error('Image introuvable.');
-      const buf = await r.arrayBuffer();
-      return {
-        mime: r.headers.get('Content-Type') || 'image/png',
-        octets: Array.from(new Uint8Array(buf)),
-      };
+      const mime = r.headers.get('Content-Type') || 'image/png';
+      const octets = new Uint8Array(await r.arrayBuffer());
+      // PAR TRANCHES : `String.fromCharCode` prend ses octets en arguments, et
+      // une photo de deux méga-octets dépasse la pile d'appels d'un coup.
+      let brut = '';
+      for(let i = 0; i < octets.length; i += 8192){
+        brut += String.fromCharCode.apply(null, octets.subarray(i, i + 8192));
+      }
+      return 'data:' + mime + ';base64,' + btoa(brut);
     },
   };
 
