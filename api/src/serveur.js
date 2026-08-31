@@ -54,6 +54,40 @@ app.disable('x-powered-by');
 app.set('trust proxy', 1);
 
 app.use(helmet());
+
+/**
+ * L'entente CORS avec le site web.
+ *
+ * Le site parle à la même API que l'application, mais depuis un navigateur :
+ * sans cet en-tête, le navigateur refuse la réponse avant même que la page la
+ * voie. L'application, elle, n'en a pas besoin — une requête faite par le Rust
+ * n'a pas d'origine.
+ *
+ * ON NOMME L'ORIGINE, ON NE MET PAS D'ÉTOILE. Le jeton reste nécessaire, donc
+ * l'étoile ne donnerait accès à rien par elle-même ; mais elle laisserait une
+ * page tierce faire faire des requêtes au navigateur d'un joueur connecté, et
+ * il n'y a aucune raison de l'autoriser.
+ *
+ * PAS DE `credentials` : l'authentification passe par un en-tête Authorization
+ * que la page pose elle-même, jamais par un cookie. Le navigateur n'a donc rien
+ * à joindre d'office, et une page tierce ne peut rien emprunter.
+ */
+app.use((req, res, next) => {
+  const origine = req.get('Origin');
+  if (origine && config.siteOrigines.includes(origine.replace(/\/+$/, ''))) {
+    res.set('Access-Control-Allow-Origin', origine);
+    res.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+    res.set('Access-Control-Max-Age', '86400');
+    // VARY : sans lui, un cache intermédiaire servirait à une origine la
+    // réponse autorisée pour une autre.
+    res.set('Vary', 'Origin');
+  }
+  // Le pré-vol ne va pas plus loin : il ne demande que la permission.
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  return next();
+});
+
 app.use(express.json({ limit: '2mb' }));
 
 // Deux budgets, parce que les deux familles de routes ne coûtent pas pareil.
@@ -118,6 +152,10 @@ app.get('/auth/discord', (req, res) => {
     port: portApp(req.query.app),
     defi: opaque(req.query.defi),      // empreinte du vérifieur, jamais le vérifieur
     nonce: opaque(req.query.nonce),
+    // D'OÙ VIENT LA DEMANDE. L'application écoute sur un port local et se fait
+    // rediriger ; un navigateur, lui, a ouvert une fenêtre et attend un
+    // message. Le retour ne peut pas le deviner — il faut le lui dire ici.
+    web: req.query.web === '1',
     ne: Date.now(),
   });
   res.redirect(302, discord.urlDepart(etat));
@@ -165,11 +203,30 @@ app.get('/auth/discord/retour', async (req, res) => {
   etats.delete(String(req.query.state || ''));
   const port = attendu?.port || '';
 
-  const fin = (params) => port
-    ? res.redirect(302, `http://127.0.0.1:${port}/retour?${params}`)
-    : res.type('html').send(page(params.startsWith('erreur')
+  const fin = (params) => {
+    // LE SITE WEB : on répond dans la fenêtre surgissante, qui reparle à la
+    // page qui l'a ouverte. Rediriger la page entière ferait tout perdre — le
+    // Pokédex en cours, les filtres, la position dans la liste.
+    if (attendu?.web) {
+      // UN NONCE, PLUTOT QUE DE DESSERRER LA POLITIQUE GLOBALE. helmet pose
+      // `script-src 'self'`, qui interdit les scripts en ligne : cette page
+      // s'affichait, son script ne s'exécutait pas, et la fenêtre restait là
+      // sans jamais rien renvoyer. Le symptôme était « Connexion annulée »,
+      // c'est-à-dire le message qu'on donne quand l'utilisateur ferme lui-même.
+      //
+      // Le nonce n'autorise QUE ce script-ci, sur CETTE réponse. Ajouter
+      // 'unsafe-inline' à la configuration de helmet aurait ouvert toutes les
+      // pages du service pour une seule ligne.
+      const nonce = randomBytes(16).toString('base64');
+      res.set('Content-Security-Policy',
+        `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'`);
+      return res.type('html').send(pageWeb(params, nonce));
+    }
+    if (port) return res.redirect(302, `http://127.0.0.1:${port}/retour?${params}`);
+    return res.type('html').send(page(params.startsWith('erreur')
       ? ['✕', 'Connexion impossible', 'Relance la connexion depuis PokéArchive.']
       : ['✓', 'Connecté', 'Tu peux fermer cet onglet.']));
+  };
 
   // Le joueur a refusé l'autorisation : ce n'est pas une panne.
   if (req.query.error) return fin('erreur=refus');
@@ -221,6 +278,41 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0e0f1
    font-size:27px;margin:0 auto 18px}
 h1{font-size:21px;margin:0 0 8px}p{color:#a0a4b4;margin:0;line-height:1.6}
 </style></head><body><div><div class="r">${icone}</div><h1>${titre}</h1><p>${texte}</p></div></body></html>`;
+
+/**
+ * La page de retour d'une connexion venue du site.
+ *
+ * Elle ne fait qu'une chose : rendre le code à la fenêtre qui l'a ouverte, puis
+ * se fermer.
+ *
+ * ON NOMME CHAQUE ORIGINE AUTORISÉE, une par une, plutôt que de poster vers
+ * « * ». Un `postMessage` en étoile est lisible par n'importe quelle page ayant
+ * une référence sur cette fenêtre : le code d'échange y fuirait. Les origines
+ * sont celles de la configuration, les mêmes que pour CORS.
+ *
+ * Le code n'ouvre d'ailleurs rien à lui seul — il faut le vérifieur PKCE, qui
+ * n'a jamais quitté la page d'origine. Nommer l'origine reste la bonne
+ * pratique : deux verrous valent mieux qu'un.
+ */
+const pageWeb = (params, nonce) => {
+  const cible = JSON.stringify(config.siteOrigines);
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
+<title>PokéArchive</title><style>
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0e0f14;
+     color:#e8e9f0;font-family:"Segoe UI",system-ui,sans-serif;text-align:center;padding:24px}
+</style></head><body><p>Connexion en cours…</p><script nonce="${nonce}">
+(function(){
+  var p = new URLSearchParams(${JSON.stringify(params)});
+  var m = { pokearchive: 'auth', nonce: p.get('nonce') || '',
+            code: p.get('code') || '', erreur: p.get('erreur') || '' };
+  var cibles = ${cible};
+  if (window.opener) cibles.forEach(function(o){
+    try { window.opener.postMessage(m, o); } catch (e) {}
+  });
+  setTimeout(function(){ window.close(); }, 300);
+})();
+<\/script></body></html>`;
+};
 
 // --- API --------------------------------------------------------------------
 // L'application présente son jeton dans un en-tête Authorization.

@@ -24,17 +24,17 @@
 /**
  * La messagerie a-t-elle un sens ici ?
  *
- * NON SUR LE SITE, et c'est une question de fond plutôt que de plomberie. La
- * version web est délibérément sans compte — « tout ce que tu coches reste dans
- * ce navigateur » — donc il n'y a personne à qui écrire. Le pont y lèverait
- * « Commande absente du pont », ce qui est exact mais illisible pour qui clique.
+ * OUI PARTOUT OÙ IL Y A UN COMPTE, et c'est désormais le cas du site aussi : il
+ * parle à la même API que l'application, donc aux mêmes dresseurs et aux mêmes
+ * conversations.
  *
- * Même test que le bouton d'overlay OBS : `window.PONT_WEB` n'existe que sur le
- * site, et sa présence dit qu'on n'est pas dans Tauri quand bien même
- * `window.__TAURI__` est là — c'est le pont qui le pose.
+ * Cette fonction refusait autrefois sur le site, qui simulait tout dans le
+ * navigateur et n'avait personne à qui écrire. Elle ne garde que la condition
+ * de fond : un pont, quel qu'il soit. Sans lui — une page de génération, un
+ * fichier ouvert à la main — il n'y a pas de session, donc pas de messagerie.
  */
 function messagerieDisponible(){
-  return !!(window.__TAURI__ && !window.PONT_WEB);
+  return !!window.__TAURI__;
 }
 
 const msgOverlay = document.getElementById('msgOverlay');

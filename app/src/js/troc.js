@@ -54,10 +54,16 @@ function trocPhrase(e){
   // La phrase change de sens selon le côté où l'on se trouve, et c'est le seul
   // endroit de ce fichier où cela arrive : recevoir un don et en faire un ne se
   // racontent pas pareil, alors qu'un échange se raconte pareil des deux côtés.
-  if(e.don){
-    return e.jeRecois
-      ? trocNom(e.jeRecois) + ', offert'
-      : trocNom(e.jeDonne) + ', en cadeau';
+  // TROIS GENRES, ET LE POINT DE VUE COMPTE POUR DEUX D'ENTRE EUX. Un échange
+  // se raconte pareil des deux côtés ; un don et une demande, non — recevoir un
+  // cadeau et en faire un ne sont pas la même phrase.
+  if(e.genre === 'don'){
+    return e.jeRecois ? trocNom(e.jeRecois) + ', offert'
+                      : trocNom(e.jeDonne) + ', en cadeau';
+  }
+  if(e.genre === 'demande'){
+    return e.jeDonne ? trocNom(e.jeDonne) + ', demandé'
+                     : trocNom(e.jeRecois) + ', tu le demandes';
   }
   return trocNom(e.jeRecois) + ' contre ' + trocNom(e.jeDonne);
 }
@@ -110,33 +116,39 @@ function trocChoisir(cote, entry, ligne){
 function trocMajBarre(){
   if(!trocVeux || !trocDonne || !trocEnvoyer) return;
 
-  // CE QU'ON DONNE SUFFIT. Sans rien demander en face, c'est un don — et la
-  // colonne de droite liste justement ce que l'autre N'A PAS. Offrir depuis
-  // cet écran ne demandait donc aucune donnée de plus : seulement de cesser
-  // d'exiger la colonne de gauche.
-  const don = !trocSel.veux;
+  // L'UN OU L'AUTRE SUFFIT, ET LES DEUX SENS SE VALENT.
+  //
+  //   les deux    un échange ;
+  //   à droite    un DON — j'offre, je ne demande rien ;
+  //   à gauche    une DEMANDE — je demande, je n'offre rien.
+  //
+  // Seul le don existait, et l'asymétrie n'avait aucune raison d'être : « tu me
+  // le donnerais ? » est une proposition comme une autre.
+  const don = trocSel.donne && !trocSel.veux;
+  const demande = trocSel.veux && !trocSel.donne;
 
   trocVeux.textContent = trocSel.veux
     ? nomAffiche(trocSel.veux) : 'Sans rien demander en retour';
   trocVeux.classList.toggle('rempli', !!trocSel.veux);
 
   trocDonne.textContent = trocSel.donne
-    ? nomAffiche(trocSel.donne) : 'Choisis ce que tu donnes à droite';
+    ? nomAffiche(trocSel.donne) : 'Sans rien offrir en échange';
   trocDonne.classList.toggle('rempli', !!trocSel.donne);
 
   // « contre » n'a pas de sens quand il n'y a rien en face.
-  if(trocContre) trocContre.textContent = don ? '·' : 'contre';
+  if(trocContre) trocContre.textContent = (don || demande) ? '·' : 'contre';
 
-  // Le bouton dit LEQUEL DES DEUX GESTES on s'apprête à faire. « Proposer
-  // l'échange » sous un don serait faux, et c'est le dernier mot qu'on lit
-  // avant d'envoyer.
-  trocEnvoyer.textContent = don ? 'Offrir ce Pokémon' : 'Proposer l’échange';
-  trocEnvoyer.disabled = !trocSel.donne;
+  // Le bouton dit LEQUEL DES TROIS GESTES on s'apprête à faire. C'est le
+  // dernier mot qu'on lit avant d'envoyer ; « Proposer l'échange » sous une
+  // demande serait faux.
+  trocEnvoyer.textContent = don ? 'Offrir ce Pokémon'
+    : demande ? 'Demander ce Pokémon' : 'Proposer l’échange';
+  trocEnvoyer.disabled = !(trocSel.donne || trocSel.veux);
 }
 
 async function trocProposer(){
   if(!exigeCompte('proposer un échange')) return;
-  if(!trocSel.donne) return;
+  if(!trocSel.donne && !trocSel.veux) return;
   if(typeof amiProgression === 'undefined' || !amiProgression || !amiProgression.pseudo) return;
 
   trocEnvoyer.disabled = true;
@@ -147,13 +159,14 @@ async function trocProposer(){
       dex: (typeof currentTab !== 'undefined' && currentTab) ? currentTab : 'national',
       // Ce qu'IL me donne est ce que JE demande : les deux noms partent dans le
       // sens du demandeur, qui est moi puisque c'est moi qui propose.
-      offert: trocSel.donne.name,
-      // Vide : c'est un don. Le serveur l'accepte et le nomme ainsi.
+      // Vide d'un côté ou de l'autre : le serveur y lit un don ou une demande.
+      offert: trocSel.donne ? trocSel.donne.name : '',
       demande: trocSel.veux ? trocSel.veux.name : '',
       mot: (trocMot && trocMot.value.trim()) || null,
     });
     if(trocEtat) {
-      trocEtat.textContent = trocSel.veux ? 'Proposition envoyée.' : 'Don envoyé.';
+      trocEtat.textContent = !trocSel.veux ? 'Don envoyé.'
+        : !trocSel.donne ? 'Demande envoyée.' : 'Proposition envoyée.';
     }
     trocSel = { veux: null, donne: null };
     if(trocMot) trocMot.value = '';

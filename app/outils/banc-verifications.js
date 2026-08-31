@@ -966,7 +966,7 @@ function entreeDuBanc(nom){
 }
 
 verifier('Les échanges',
-  "Ce qu'on clique à gauche part en « demande », ce qu'on clique à droite en « offert »",
+  "Ce qu'on clique à gauche part en « offert », ce qu'on clique à droite en « demande »",
   async function(){
     const veux = entreeDuBanc('abra');
     const donne = entreeDuBanc('machop');
@@ -992,7 +992,60 @@ verifier('Les échanges',
       return 'échec : offert = ' + appel.args.offert + ' au lieu de machop';
     }
     if(appel.args.pseudo !== 'Amie_Test') return 'échec : mauvais destinataire';
-    return "je demande abra, j'offre machop, à Amie_Test";
+
+    // ET MAINTENANT PAR LES VRAIES COLONNES, ce qui est le seul moyen
+    // d'éprouver la DISPOSITION.
+    //
+    // Ce qui précède appelle trocChoisir('veux', …) par le nom du côté : cela
+    // vérifie le câblage, pas l'arrangement. On a permuté les deux colonnes —
+    // gauche = ce que je donne, droite = ce qu'il me donne — et cette
+    // vérification est restée verte d'un bout à l'autre. Un contrôle qui
+    // survit à l'inversion de ce qu'il prétend garder ne garde rien.
+    amiProgression = { joueur: 'Amie_Test', pseudo: 'Amie_Test', dex: 'national',
+                       mode: 'capture', niveau: 3,
+                       caught: new Set([veux.name]), shiny: new Set() };
+    activeSet().add(donne.name);
+    ouvrirEchanges();
+    await attendre(60);
+
+    const gauche = echangeLui.querySelector('.echange-ligne');
+    const droite = echangeMoi.querySelector('.echange-ligne');
+    if(!gauche || !droite){
+      amiProgression = avant;
+      activeSet().delete(donne.name);
+      return 'échec : une des deux colonnes est vide, rien à cliquer';
+    }
+
+    trocPreparer();
+    gauche.click();
+    const apresGauche = { veux: trocSel.veux && trocSel.veux.name,
+                          donne: trocSel.donne && trocSel.donne.name };
+    droite.click();
+    const apresDroite = { veux: trocSel.veux && trocSel.veux.name,
+                          donne: trocSel.donne && trocSel.donne.name };
+
+    fermerEchanges();
+    amiProgression = avant;
+    activeSet().delete(donne.name);
+
+    // ON ÉPROUVE LE SENS, PAS L'ESPÈCE. Quelle ligne arrive en tête dépend de
+    // ce que contient la collection du moment ; exiger un Pokémon précis
+    // ferait échouer cette vérification pour une raison étrangère à ce qu'elle
+    // garde — la DISPOSITION des deux colonnes.
+    if(!apresGauche.donne || apresGauche.veux){
+      return 'échec : la colonne de gauche ne remplit pas « je donne » — '
+        + JSON.stringify(apresGauche);
+    }
+    if(!apresDroite.veux){
+      return 'échec : la colonne de droite ne remplit pas « il me donne » — '
+        + JSON.stringify(apresDroite);
+    }
+    if(apresDroite.donne !== apresGauche.donne){
+      return 'échec : cliquer à droite a changé ce que je donne';
+    }
+
+    return "je demande abra, j'offre machop  ·  et par les colonnes : "
+      + 'gauche remplit « je donne », droite remplit « il me donne »';
   });
 
 verifier('Les échanges',

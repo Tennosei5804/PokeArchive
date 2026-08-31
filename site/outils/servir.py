@@ -17,6 +17,7 @@ import argparse
 import gzip
 import http.server
 import io
+import os
 import pathlib
 import sys
 import webbrowser
@@ -53,6 +54,78 @@ class Serveur(http.server.SimpleHTTPRequestHandler):
 
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=str(PUBLIC), **kw)
+
+    def do_GET(self):
+        if self.path.split("?")[0] == "/session":
+            return self.page_session()
+        return super().do_GET()
+
+    def page_session(self):
+        """Ouvrir une session d essai d un clic, sans passer par la console.
+
+        POURQUOI CETTE PAGE EXISTE. Le jeton se range dans le stockage du
+        navigateur, par origine : aucun outil exterieur ne peut l y ecrire, et
+        `peupler.js` ne pouvait que rendre une ligne a coller. Or Chrome refuse
+        desormais tout collage dans la console sans qu on tape d abord une
+        formule — la manoeuvre demandait donc deux gestes obscurs pour une
+        session d essai.
+
+        ELLE NE SERT QUE LE DEVELOPPEMENT LOCAL. Elle vit dans servir.py, pas
+        dans public/ : elle n est jamais livree, et le fichier qu elle lit vit
+        hors du depot, a cote de la session de l application.
+        """
+        jetons = self.jetons_dessai()
+        if not jetons:
+            corps = ("<p>Aucune session d’essai. Lance d’abord :</p>"
+                     "<pre>cd api &amp;&amp; node --env-file=.env outils/peupler.js</pre>")
+        else:
+            boutons = "".join(
+                '<button data-j="%s">Ouvrir la session de <b>%s</b></button>' % (j, p)
+                for p, j in jetons)
+            corps = ("<p>Choisis le compte d’essai à ouvrir dans CE navigateur.</p>"
+                     + boutons)
+        page = (
+            "<!DOCTYPE html><html lang=fr><head><meta charset=utf-8>"
+            "<title>Session d’essai</title><style>"
+            "body{margin:0;min-height:100vh;display:grid;place-items:center;"
+            "background:#0e0f14;color:#e8e9f0;font-family:system-ui,sans-serif;"
+            "text-align:center;padding:24px;gap:12px}"
+            "button{display:block;margin:8px auto;padding:11px 18px;border:0;"
+            "border-radius:9px;background:#5865f2;color:#fff;font-size:15px;"
+            "cursor:pointer}button:hover{background:#4752c4}"
+            "pre{background:#1a1c25;padding:10px 14px;border-radius:8px;font-size:12px}"
+            "</style></head><body><div><h1>Session d’essai</h1>" + corps +
+            "<script>document.querySelectorAll('button').forEach(function(b){"
+            "b.addEventListener('click',function(){"
+            "localStorage.setItem('pokearchive-jeton',b.dataset.j);"
+            "location.href='/';});});</script></div></body></html>")
+        octets = page.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(octets)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(octets)
+
+    @staticmethod
+    def jetons_dessai():
+        """Ce que peupler.js a laisse, hors du depot.
+
+        A COTE DE LA SESSION DE L APPLICATION, dans le dossier de configuration
+        du systeme : jamais dans public/, qui est livre, ni dans le depot, qui
+        est publie. Un jeton n a rien a faire dans l un ni dans l autre.
+        """
+        import json
+        base = os.environ.get("APPDATA") or os.path.expanduser("~/.config")
+        f = pathlib.Path(base) / "fr.tennosei.pokearchive" / "session-navigateur.json"
+        if not f.is_file():
+            return []
+        try:
+            d = json.loads(f.read_text(encoding="utf-8"))
+        except Exception:
+            return []
+        return [(c.get("pseudo", "?"), c.get("jeton", "")) for c in d.get("comptes", [])
+                if c.get("jeton")]
 
     def send_head(self):
         chemin = pathlib.Path(self.translate_path(self.path))

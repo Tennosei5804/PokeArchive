@@ -259,7 +259,7 @@ def batir() -> int:
     # dans le localStorage — sans collection, la moitie des ecrans n'affichent
     # que leur etat vide, et on ne verifie alors que des messages
     # d'indisponibilite.
-    for source, dest in [("pont.js", PUBLIC / "js" / "pont.js"),
+    for source, dest in [("pont-api.js", PUBLIC / "js" / "pont-api.js"),
                          ("site.css", PUBLIC / "css" / "site.css"),
                          ("essai.html", PUBLIC / "essai.html")]:
         f = SOURCE / source
@@ -277,7 +277,18 @@ def batir() -> int:
     if ancre not in html:
         print("L'ancre des scripts a change dans index.html : %s" % ancre)
         return 1
-    html = html.replace(ancre, '<script src="js/pont.js"></script>\n' + ancre, 1)
+    # L'ADRESSE DE L'API, POSEE A LA CONSTRUCTION. Le site local et le site de
+    # production ne parlent pas au meme serveur, et la deduire de
+    # window.location serait faux dans les deux cas : le site local tourne sur
+    # 8130 et l'API sur 8787, la production sur deux sous-domaines.
+    api = os.environ.get("POKEARCHIVE_API", "http://127.0.0.1:8787").rstrip("/")
+    injection = (
+        '<script>window.POKEARCHIVE_API = %s;</script>' % json.dumps(api)
+        + chr(10)
+        + '<script src="js/pont-api.js"></script>'
+        + chr(10))
+    html = html.replace(ancre, injection + ancre, 1)
+    print("  %-10s API visee : %s" % ("=", api))
 
     # 2. La feuille du site en DERNIER, pour qu'elle l'emporte a specificite
     #    egale sur celles de l'application.
@@ -286,13 +297,17 @@ def batir() -> int:
     # 3. Le bandeau, juste apres <body>. Il dit ou vivent les donnees, et ce
     #    n'est pas un detail : sans lui, on croit sa collection sauvegardee
     #    quelque part alors qu'elle tient dans un localStorage.
+    # Le bandeau disait  aucun compte a creer, tout reste dans ce navigateur .
+    # C'etait vrai du pont localStorage ; ca ne l'est plus. Le laisser serait
+    # mentir sur ce qui part au serveur, ce qu'aucun bandeau n'a le droit de
+    # faire.
     bandeau = (
         '<div class="site-bandeau" role="status">'
-        '<b>Version web — aucun compte à créer.</b> Tout ce que tu coches reste '
-        'dans ce navigateur : rien n\'est envoyé, rien n\'est partagé, et vider '
-        'les données du site efface la collection. Le bouton <b>Exporter mes '
-        "données</b> du Profil rend un fichier que l'application sait relire — "
-        "et depuis l'import, l'inverse est vrai aussi."
+        '<b>Version web — même compte, mêmes données que '
+        "l'application.</b> Connecte-toi avec Discord : tu retrouves tes "
+        "aventures, tes amis, tes échanges et tes messages. Seul l'overlay "
+        "OBS manque à l'appel — il demande une écoute locale, ce "
+        "qu'un navigateur ne sait pas faire."
         '</div>'
     )
     # Mesure : body est en display:flex, flex-direction:row, pour centrer le

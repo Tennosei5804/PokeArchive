@@ -45,12 +45,42 @@ class Banc(ServeurCompressant):
             return self.page()
         if self.path.split("?")[0] == "/outils/banc-site.js":
             return self.script()
+        if self.path.split("?")[0] == "/outils/pont-simule.js":
+            return self.pont()
         return super().do_GET()
+
+    def pont(self):
+        """L'ancien pont localStorage, servi depuis la source.
+
+        Il n'est plus copie dans public/ : le site en production parle a
+        l'API. Il n'a plus qu'un usage, celui-ci, et le servir d'ici plutot
+        que de le recopier evite d'avoir deux ponts dans le dossier livre.
+        """
+        corps = (ICI / "source" / "pont.js").read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/javascript; charset=utf-8")
+        self.send_header("Content-Length", str(len(corps)))
+        self.send_header("Cache-Control", "no-store, must-revalidate")
+        self.end_headers()
+        self.wfile.write(corps)
 
     def page(self):
         html = (PUBLIC / "index.html").read_text(encoding="utf-8")
         # Apres tous les scripts de l'application : les verifications se servent
         # de showPage, de invoke et du pont, qui doivent exister avant elles.
+        # LE PONT SIMULE REMPLACE LE PONT HTTP, et c'est ce qui rend ce banc
+        # possible. Depuis que le site parle a la vraie API, il n'a pas de
+        # session au chargement : il demande a se connecter, part chez Discord,
+        # et aucune verification ne peut s'executer.
+        #
+        # Le banc a besoin d'un monde clos, comme celui de l'application. C'est
+        # exactement ce que faisait l'ancien pont localStorage : il reste dans
+        # site/source, et sert desormais a cela.
+        # L'assembleur horodate chaque script — src="js/pont-api.js?v=123" —
+        # donc on vise par expression et non par egalite : chercher la chaine
+        # exacte ne trouvait rien, en silence.
+        html = re.sub(r'<script src="js/pont-api\.js[^"]*"></script>',
+                      '<script src="/outils/pont-simule.js"></script>', html, count=1)
         html = html.replace("</body>",
                             '<script src="/outils/banc-site.js"></script>\n</body>', 1)
         # Un horodatage neuf a chaque chargement : sans lui, le navigateur garde

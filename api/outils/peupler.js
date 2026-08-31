@@ -55,6 +55,16 @@ const FIGURANTS = [
   { discord: '99000000000000002', pseudo: 'Ondine',     nomDiscord: 'Ondine#0001' },
   { discord: '99000000000000003', pseudo: 'Pierre',     nomDiscord: 'Pierre#0002' },
   { discord: '99000000000000004', pseudo: 'Blue',       nomDiscord: 'Blue#0003' },
+  // LE SECOND JOUEUR, ET IL EXISTE POUR UNE SEULE RAISON : éprouver ce qui se
+  // passe ENTRE DEUX PERSONNES — messages, échanges, notifications — sans avoir
+  // à se connecter deux fois à Discord.
+  //
+  // L'application et le site ne rangent pas leur session au même endroit :
+  // l'une dans %APPDATA%, l'autre dans le navigateur. Deux sessions peuvent
+  // donc vivre en parallèle, ce qui était impossible tant qu'il n'y avait que
+  // la fenêtre.
+  { discord: '99000000000000005', pseudo: 'Toi_essai_2', nomDiscord: 'Toi (essai 2)',
+    second: true },
 ];
 
 const IDS = FIGURANTS.map((f) => f.discord);
@@ -296,7 +306,19 @@ async function poser() {
     'SELECT COUNT(*) AS n FROM pa_notifications WHERE dresseur_id = ? AND lu = 0', [moi]);
   journal(`${nonLues.n} notification(s) non lue(s) pour la cloche`);
 
-  return { jeton, pseudo: 'Toi_essai' };
+  // La session du second, pour le navigateur. Le même mécanisme : une ligne
+  // dans pa_sessions, le jeton en clair rendu à l'appelant et jamais stocké.
+  const deuxieme = await une(
+    "SELECT id FROM pa_dresseurs WHERE discord_id = '99000000000000005'");
+  let jeton2 = null;
+  if (deuxieme) {
+    jeton2 = randomBytes(32).toString('hex');
+    await ecrire(
+      'INSERT INTO pa_sessions (jeton_cle, dresseur_id, cree_le, expire_le) VALUES (?, ?, ?, ?)',
+      [cle(jeton2), deuxieme.id, horodatage(), horodatage(dans90Jours)]);
+  }
+
+  return { jeton, pseudo: 'Toi_essai', jeton2, pseudo2: 'Toi_essai_2' };
 }
 
 // --- La session côté fenêtre -------------------------------------------------
@@ -332,6 +354,23 @@ function poserSession(session) {
     api: 'http://127.0.0.1:8787',
   }, null, 2), 'utf8');
   journal(`session posée dans ${fichier}`);
+
+  // LES JETONS POUR LE NAVIGATEUR, dans un fichier à part.
+  //
+  // Le stockage d'un navigateur se range par origine, et rien d'extérieur n'y
+  // écrit : impossible de lui poser une session comme on le fait pour la
+  // fenêtre. On dépose donc les jetons ici, et `site/outils/servir.py` les
+  // propose sur sa page /session — un clic, pas une ligne à coller dans une
+  // console que Chrome verrouille désormais.
+  //
+  // HORS DU DÉPÔT, à côté de la session de l'application : ni dans public/ qui
+  // est livré, ni dans le dépôt qui est publié. Un jeton n'a rien à faire dans
+  // l'un ni dans l'autre.
+  const pourWeb = path.join(dossier, 'session-navigateur.json');
+  const comptes = [{ pseudo: session.pseudo, jeton: session.jeton }];
+  if (session.jeton2) comptes.push({ pseudo: session.pseudo2, jeton: session.jeton2 });
+  fs.writeFileSync(pourWeb, JSON.stringify({ comptes }, null, 2), 'utf8');
+  journal(`${comptes.length} session(s) navigateur dans ${path.basename(pourWeb)}`);
 }
 
 /** Remet la session réelle, si on l'avait mise de côté. */
@@ -341,6 +380,14 @@ function rendreSession() {
     : path.join(os.homedir(), '.config', IDENTIFIANT);
   const fichier = path.join(dossier, 'session.json');
   const garde = path.join(dossier, 'session.avant-essai.json');
+
+  // Les jetons du navigateur partent avec le reste : les laisser proposerait
+  // d'ouvrir des sessions dont les lignes n'existent plus en base.
+  const pourWeb = path.join(dossier, 'session-navigateur.json');
+  if (fs.existsSync(pourWeb)) {
+    fs.unlinkSync(pourWeb);
+    journal('sessions navigateur effacées');
+  }
 
   if (fs.existsSync(garde)) {
     fs.copyFileSync(garde, fichier);
@@ -366,10 +413,30 @@ if (nettoyage) {
   rendreSession();
   console.log('\nC’est propre. Relance la fenêtre.\n');
 } else {
+  // ON EFFACE D'ABORD, comme le banc de l'API. Relancer l'outil sur un décor
+  // déjà posé échouait sur « Tu lui as déjà proposé cet échange » — une erreur
+  // juste, au mauvais moment, et qui laissait la moitié du décor en place.
+  // Poser doit pouvoir se rejouer.
+  await nettoyer();
   const session = await poser();
   poserSession(session);
   console.log('\nC’est posé. FERME ET ROUVRE la fenêtre : elle relit sa session');
   console.log('au démarrage, et rien d’autre.\n');
+  // LE SECOND JOUEUR, POUR LE NAVIGATEUR. On ne peut pas lui ecrire un fichier
+  // de session : un navigateur range la sienne dans son propre stockage, par
+  // origine, et rien d'exterieur n'y accede. On rend donc la ligne a coller.
+  //
+  // C'est ce qui permet d'eprouver DEUX comptes a la fois : la fenetre tient
+  // Toi_essai, le navigateur tient Toi_essai_2, et ils se parlent pour de bon.
+  if (session.jeton2) {
+    console.log('Pour ouvrir un second compte DANS LE NAVIGATEUR :');
+    console.log('  ouvre http://127.0.0.1:8130/session et clique le compte voulu.');
+    console.log('');
+    console.log(`  La fenetre tient ${session.pseudo}, le navigateur tiendra`);
+    console.log(`  ${session.pseudo2} : deux comptes a la fois, pour s'ecrire.`);
+    console.log('');
+  }
+
   console.log('Pour tout enlever :  node --env-file=.env outils/peupler.js --nettoyer\n');
 }
 

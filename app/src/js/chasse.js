@@ -933,9 +933,12 @@ const overlayEtat = document.getElementById('overlayEtat');
 let overlayAdresse = '';
 
 function overlayPossible(){
-  // window.PONT_WEB n'existe que sur le site : sa présence dit qu'on n'est pas
-  // dans Tauri, quand bien même window.__TAURI__ est là — le pont le pose.
-  return !!(window.__TAURI__ && !window.PONT_WEB);
+  // UN NAVIGATEUR NE PEUT PAS OUVRIR D'ÉCOUTE LOCALE, et c'est la seule raison
+  // de ce test — pas une histoire de compte. Le pont du site le dit lui-même
+  // avec `overlayImpossible` plutôt que de laisser deviner : il sait ce qu'il
+  // ne sait pas faire, et le nomme.
+  const pont = window.PONT_HTTP || window.PONT_WEB;
+  return !!(window.__TAURI__ && !(pont && pont.overlayImpossible !== false));
 }
 
 function majBoutonOverlay(){
@@ -1045,9 +1048,9 @@ let raccourcisGlobaux = false;
 
 (function(){
   const T = window.__TAURI__;
-  // Le site n'a pas d'événements Tauri : window.PONT_WEB le dit, et .event
+  // Le site n'a pas d'événements Tauri : le pont web le dit, et .event
   // manque de toute façon. On se tait plutôt que d'échouer bruyamment.
-  if(!T || !T.event || window.PONT_WEB) return;
+  if(!T || !T.event || window.PONT_HTTP || window.PONT_WEB) return;
   try{
     T.event.listen('chasse-pas', function(e){
       const pas = Number(e && e.payload) || 0;

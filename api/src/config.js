@@ -34,6 +34,20 @@ export const config = {
   // par defaut, et le bon quand personne n'en a besoin.
   adminDiscordId: process.env.ADMIN_DISCORD_ID || '',
 
+  // D'OU LE SITE A LE DROIT D'APPELER. Le site web parle a la meme API que
+  // l'application, mais depuis un navigateur : il lui faut donc une entente
+  // CORS, et cette entente NOMME une origine.
+  //
+  // Pas d'etoile : « * » laisserait n'importe quelle page appeler l'API. Le
+  // jeton reste necessaire, donc l'etoile ne donne acces a rien — mais elle
+  // permettrait a un site tiers de faire faire des requetes au navigateur d'un
+  // joueur connecte, et il n'y a aucune raison de l'autoriser.
+  //
+  // Vide, aucune origine n'est acceptee et le site web ne fonctionne pas. C'est
+  // le reglage par defaut, et le bon tant qu'on ne sert pas de site.
+  siteOrigines: (process.env.SITE_ORIGINES || '')
+    .split(',').map((s) => s.trim().replace(/\/+$/, '')).filter(Boolean),
+
   discord: {
     clientId: process.env.DISCORD_CLIENT_ID || '',
     secret: process.env.DISCORD_SECRET || '',

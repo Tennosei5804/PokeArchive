@@ -264,8 +264,10 @@ function echangeFiltre(liste){
 }
 
 function echangeRedessiner(){
-  remplirColonne(echangeLui, echangeFiltre(echangeLuiTout), 'veux');
-  remplirColonne(echangeMoi, echangeFiltre(echangeMoiTout), 'donne');
+  // `donne` a gauche, `veux` a droite : le cote suit la PLACE, pas le nom de
+  // l'element — ceux-ci gardent leurs identifiants historiques.
+  remplirColonne(echangeLui, echangeFiltre(echangeLuiTout), 'donne');
+  remplirColonne(echangeMoi, echangeFiltre(echangeMoiTout), 'veux');
 }
 
 if(echangeQ) echangeQ.addEventListener('input', echangeRedessiner);
@@ -284,17 +286,27 @@ function ouvrirEchanges(){
 
   const forme = shinyView ? 'chromatique' : 'normale';
   echangeEyebrow.textContent = 'Entraide  ·  forme ' + forme;
-  echangeTitreLui.textContent = amiProgression.joueur + ' peut te donner  ·  ' + lui.length;
-  echangeTitreMoi.textContent = 'Tu peux lui donner  ·  ' + mien.length;
+  // GAUCHE : CE QUE JE DONNE. DROITE : CE QU'IL ME DONNE.
+  //
+  // L'inverse s'y trouvait, et se lisait mal : la phrase qu'on compose va de
+  // gauche à droite — « je te donne Magnéti CONTRE ton Abra » — alors que les
+  // colonnes disaient le contraire de la barre juste en dessous.
+  //
+  // Les listes ne changent pas de sens : `mien` reste ce que j'ai et qu'il n'a
+  // pas, `lui` ce qu'il a et que je n'ai pas. Seule leur PLACE change.
+  echangeTitreLui.textContent = 'Tu peux lui donner  ·  ' + mien.length;
+  echangeTitreMoi.textContent = amiProgression.joueur + ' peut te donner  ·  ' + lui.length;
   echangeNote.textContent = 'Sur ' + currentDexLabel() + '. '
     + 'Ces listes disent qui possède quoi, pas ce qui est échangeable : un '
     + 'Pokémon offert par le scénario ne se donne qu\'en double. '
     + (typeof trocChoisir === 'function' && amiProgression.pseudo
-        ? 'Clique un nom dans chaque colonne pour composer une proposition.'
+        ? 'Clique à gauche ce que tu donnes, à droite ce qu’il te donne — ou un '
+          + 'seul des deux, pour offrir ou demander.'
         : 'Clique un nom pour ouvrir sa fiche.');
 
-  echangeLuiTout = lui;
-  echangeMoiTout = mien;
+  // La colonne de gauche porte desormais MON surplus, celle de droite le sien.
+  echangeLuiTout = mien;
+  echangeMoiTout = lui;
   // La recherche se vide a chaque ouverture : garder « pika » d'une comparaison
   // precedente ferait croire que l'autre n'a rien a donner.
   if(echangeQ) echangeQ.value = '';

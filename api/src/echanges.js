@@ -123,9 +123,20 @@ export async function proposer(dresseurId, { pseudo, dex, offert, demande, mot }
 
   refuserSiInjurieux(mot, 'Ton mot d’accompagnement');
 
-  const donne = espece(offert, 'le Pokémon que tu proposes');
-  // Facultatif : sans lui, c'est un don. On offre, et l'on ne demande rien.
+  // LES DEUX SONT FACULTATIFS, MAIS PAS EN MÊME TEMPS.
+  //
+  //   les deux remplis  un échange ;
+  //   sans `demande`    un DON — j'offre, je ne demande rien ;
+  //   sans `offert`     une DEMANDE — je demande, je n'offre rien.
+  //
+  // Le don existait seul, et l'asymétrie n'avait aucune raison d'être : « tu me
+  // le donnerais ? » est une proposition comme une autre, que l'autre accepte
+  // ou refuse exactement pareil.
+  const donne = espece(offert, 'le Pokémon que tu proposes', true);
   const veut = espece(demande, 'le Pokémon que tu demandes', true);
+  if (!donne && !veut) {
+    throw new ErreurCompte('Dis au moins ce que tu offres ou ce que tu demandes.', 400);
+  }
   if (veut && donne === veut) {
     throw new ErreurCompte('Les deux Pokémon sont les mêmes.', 400);
   }
@@ -192,9 +203,11 @@ export async function proposer(dresseurId, { pseudo, dex, offert, demande, mot }
     // notifications.js, qui le renvoie avec.
     // Un don et un echange ne se lisent pas pareil, et la difference se joue
     // avant d'ouvrir : l'un demande une decision, l'autre offre quelque chose.
-    titre: veut
-      ? `${moi.pseudo} te propose un échange`
-      : `${moi.pseudo} veut t’offrir un Pokémon`,
+    // Les trois se lisent différemment avant même d'ouvrir : l'un demande une
+    // décision, l'autre offre, le troisième réclame.
+    titre: (donne && veut) ? `${moi.pseudo} te propose un échange`
+      : donne ? `${moi.pseudo} veut t’offrir un Pokémon`
+        : `${moi.pseudo} te demande un Pokémon`,
   });
 
   return { id: r.insertId, etat: 'propose' };
@@ -304,9 +317,14 @@ function vueEchange(l, moi) {
     dex: l.dex,
     jeDonne: jeSuisDemandeur ? l.offert : l.demande,
     jeRecois: jeSuisDemandeur ? l.demande : l.offert,
-    // Un cote vide veut dire « rien en retour ». L'ecran ne doit pas avoir a le
-    // deduire d'une chaine vide : il le lit ici.
-    don: !l.demande,
+    // CE QUE C'EST, dit une fois pour toutes. L'écran ne doit pas avoir à le
+    // déduire de deux chaînes vides, et surtout pas à le déduire DEUX FOIS —
+    // une par côté — au risque de le déduire différemment.
+    //
+    // Le genre décrit la LIGNE, pas le point de vue : c'est `jeDonne` et
+    // `jeRecois` qui portent le point de vue, et ils sont déjà retournés.
+    genre: (l.offert && l.demande) ? 'echange' : (l.demande ? 'demande' : 'don'),
+    don: !l.demande || !l.offert,
     etat: l.etat,
     mot: l.mot,
     messages: Number(l.messages) || 0,
