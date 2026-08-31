@@ -808,6 +808,12 @@
                      placeholder="À qui veux-tu écrire ?" aria-label="Chercher un dresseur">
               <div class="amis-propositions" id="msgPropositions"></div>
             </div>
+            <!-- Chercher dans TOUT ce qu'on s'est dit, pas seulement dans la
+                 conversation ouverte. C'est une seconde question que la
+                 premiere : « a qui ecrire » et « ou ai-je dit ca ». -->
+            <input type="search" id="msgRecherche" autocomplete="off"
+                   placeholder="Chercher dans les messages&hellip;"
+                   aria-label="Chercher dans les messages">
             <div class="msg-liste" id="msgListe"></div>
           </aside>
 
@@ -1558,6 +1564,12 @@
                la retirer. Voir js/recherches.js. -->
           <button class="fiche-cherche" id="ficheCherche" type="button" hidden
                   aria-pressed="false">&#128270; Je le cherche</button>
+
+          <!-- L'envoyer a quelqu'un, depuis l'ecran ou l'on en parle. Sans ce
+               bouton il fallait quitter la fiche, ouvrir les Messages, puis
+               rechercher l'espece qu'on avait sous les yeux. -->
+          <button class="fiche-cherche" id="ficheEnvoyer" type="button" hidden
+                  >&#128172; L&rsquo;envoyer &agrave; quelqu&rsquo;un</button>
 
           <!-- La fiche de capture : ce que TON exemplaire a de particulier.
                Repliée par défaut, et absente tant que l'entrée n'est pas

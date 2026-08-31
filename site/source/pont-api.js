@@ -133,6 +133,7 @@
                                a => ({ texte: a.texte })],
 
     messages_liste:           ['GET',    () => '/api/messages'],
+    messages_chercher:        ['GET',    a => '/api/messages-recherche?q=' + enc(a.q || '')],
     messages_avec:            ['GET',    a => '/api/messages/' + enc(a.pseudo)],
     messages_ecrire:          ['POST',   a => '/api/messages/' + enc(a.pseudo),
                                a => ({ texte: a.texte, espece: a.espece })],

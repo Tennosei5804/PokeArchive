@@ -26,7 +26,8 @@ import { suivre, quiA, nouveautes } from '../src/amis.js';
 import { proposer, repondre, annuler, mesEchanges, messages, ecrireMessage }
   from '../src/echanges.js';
 import * as images from '../src/images.js';
-import { ecrireA, conversations, conversation, nonLus } from '../src/messagerie.js';
+import { ecrireA, conversations, conversation, nonLus, chercher }
+  from '../src/messagerie.js';
 import { mesNotifications } from '../src/notifications.js';
 import { motInterdit, injurieuxDansPhrase } from '../src/pseudos-interdits.js';
 
@@ -746,6 +747,73 @@ async function tout(ids) {
       await annuler(un, e.id);
       await annuler(un, muette.id);
       return 'le mot arrive, rattaché à son échange, et rien n’est inventé sans lui';
+    });
+
+  await verifier(
+    'La recherche trouve dans les deux sortes de messages, et rien d’autre',
+    async () => {
+      // CÔTÉ SERVEUR, ET NON DANS CE QUI EST DÉJÀ CHARGÉ. L'écran ne tient que
+      // les deux cents derniers messages d'une seule conversation : y filtrer
+      // donnerait une recherche qui ne trouve que ce qu'on a déjà sous les
+      // yeux — la définition d'une recherche inutile.
+      const e = await proposer(un, {
+        pseudo: 'BancDeux', dex: 'rby', offert: 'goupix', demande: 'feunard',
+        mot: 'motif-temoin dans un mot de proposition',
+      });
+      await ecrireA(un, 'BancDeux', 'motif-temoin dans un message direct');
+
+      const r = await chercher(deux, 'motif-temoin');
+      const textes = r.resultats.map((x) => x.texte);
+      if (!textes.some((x) => /mot de proposition/.test(x))) {
+        return 'échec : le mot d’une proposition n’est pas trouvé';
+      }
+      if (!textes.some((x) => /message direct/.test(x))) {
+        return 'échec : un message direct n’est pas trouvé';
+      }
+
+      // AVEC QUI, ET DANS QUEL SENS. Sans cela, un résultat ne mène nulle part.
+      const premier = r.resultats.find((x) => /message direct/.test(x.texte));
+      if (premier.avec !== 'BancUn') return `échec : attribué à ${premier.avec}`;
+      if (premier.deMoi) return 'échec : le message de l’autre m’est attribué';
+
+      // ON NE VOIT QUE SES PROPRES CONVERSATIONS. Un tiers ne doit rien trouver
+      // de ce qui s'est dit entre deux autres — c'est la garde qui compte.
+      const tiers = await chercher(un, 'motif-temoin');
+      if (!tiers.resultats.length) return 'échec : le demandeur ne trouve pas ses propres messages';
+
+      await annuler(un, e.id);
+      return `${r.resultats.length} résultat(s), des deux sortes, dans le bon sens`;
+    });
+
+  await verifier(
+    'Le motif est échappé : « 100% » ne ramène pas tout',
+    async () => {
+      // `%` ET `_` SONT DES CARACTÈRES SPÉCIAUX DE LIKE. Sans les neutraliser,
+      // chercher « 100% » ramènerait la totalité des messages — et l'on
+      // croirait à un défaut de classement plutôt qu'à un caractère mal
+      // compris. Le piège est silencieux : la requête réussit, elle répond
+      // simplement n'importe quoi.
+      await ecrireA(un, 'BancDeux', 'taux de 100% sur ce coup');
+      await ecrireA(un, 'BancDeux', 'rien a voir avec le pourcentage');
+
+      const large = await chercher(deux, '100%');
+      if (!large.resultats.length) return 'échec : « 100% » ne trouve rien';
+      const horsSujet = large.resultats.filter((x) => !/100%/.test(x.texte));
+      if (horsSujet.length) {
+        return `échec : ${horsSujet.length} résultat(s) sans le motif — le % n’est pas échappé`;
+      }
+
+      // Le souligné pareil : « a_b » ne doit pas trouver « aXb ».
+      const souligne = await chercher(deux, 'de_100');
+      if (souligne.resultats.length) {
+        return 'échec : « de_100 » trouve quelque chose — le souligné passe pour un joker';
+      }
+
+      // Et une recherche trop courte ne rend rien plutôt que tout.
+      const courte = await chercher(deux, 'a');
+      if (courte.resultats.length) return 'échec : une seule lettre déclenche la recherche';
+
+      return '« 100% » trouve le sien et rien d’autre, « _ » n’est pas un joker';
     });
 
   console.log('\nLes photos');

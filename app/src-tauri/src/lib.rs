@@ -788,6 +788,17 @@ async fn messages_liste(etat: State<'_, Etat>) -> Result<serde_json::Value, Stri
     appeler(reqwest::Method::GET, "/api/messages", &jeton, None).await
 }
 
+/// Chercher dans tout ce qu'on s'est dit.
+#[tauri::command]
+async fn messages_chercher(
+    etat: State<'_, Etat>,
+    q: String,
+) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    let chemin = format!("/api/messages-recherche?q={}", urlencode(&q));
+    appeler(reqwest::Method::GET, &chemin, &jeton, None).await
+}
+
 /// Une conversation. La lire la marque lue, cote serveur.
 #[tauri::command]
 async fn messages_avec(
@@ -1266,6 +1277,7 @@ pub fn run() {
             changer_echanges_ouverts,
             changer_messages_de,
             messages_liste,
+            messages_chercher,
             messages_avec,
             messages_ecrire,
             amis,

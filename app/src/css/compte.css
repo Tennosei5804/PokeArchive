@@ -2343,3 +2343,21 @@ html[data-theme="light"] body{ background:#e9e7e0; }
    n'y a pas d'avatar pour quelqu'un qu'on n'a pas trouvé — donc un retrait à
    gauche pour que le nom tombe où tombent les autres. */
 .msg-exact{ padding-left:14px; font-style:italic; }
+
+/* Chercher dans les messages. Meme dessin que le champ  A qui ecrire  : deux
+   questions differentes, mais deux champs de meme nature. */
+#msgRecherche{
+  width:100%; padding:8px 11px; border-radius:8px; margin-bottom:10px;
+  border:1px solid var(--card-border); background:var(--screen); color:var(--ink);
+  font-family:var(--font-body); font-size:12.5px;
+}
+#msgRecherche:focus{ outline:none; border-color:var(--dex-red); }
+
+/* Un resultat n'est pas une conversation : il porte une date, et l'apercu peut
+   se derouler sur deux lignes puisque c'est lui qu'on est venu lire. */
+.msg-trouve{ align-items:flex-start; }
+.msg-trouve .msg-conv-apercu{ white-space:normal; overflow:visible; }
+.msg-trouve-quand{
+  flex-shrink:0; font-family:var(--font-data); font-size:10px;
+  color:var(--ink-faint); white-space:nowrap; padding-top:2px;
+}

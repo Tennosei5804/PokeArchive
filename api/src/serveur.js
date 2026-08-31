@@ -492,6 +492,13 @@ app.get('/api/messages', route(async (req, res) => {
   res.json(await messagerie.conversations(d.id));
 }));
 
+// AVANT /api/messages/:pseudo, sinon « recherche » serait pris pour un pseudo.
+// Express essaie les routes dans l'ordre de declaration.
+app.get('/api/messages-recherche', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json(await messagerie.chercher(d.id, req.query.q));
+}));
+
 app.get('/api/messages/:pseudo', route(async (req, res) => {
   const d = await exiger(req, res); if (!d) return;
   res.json(await messagerie.conversation(d.id, req.params.pseudo));

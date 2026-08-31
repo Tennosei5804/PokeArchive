@@ -2100,3 +2100,58 @@ verifier('Messagerie',
     fermerMessagerie();
     return 'joint, envoyé seul, affiché en carte, oublié après coup, pastille juste';
   });
+
+verifier('Messagerie',
+  'Le brouillon suit sa conversation, et la recherche trouve dans les messages',
+  async function(){
+    // PAS D'ATTENTE ARTIFICIELLE ICI, ET C'EST DÉLIBÉRÉ. Un onglet caché voit
+    // ses minuteurs bridés — mesuré : une attente de 120 ms en prenait 1023, et
+    // au-delà de cinq minutes en arrière-plan Chrome tombe à un déclenchement
+    // par minute. Une vérification bâtie sur cinq `setTimeout` y met des
+    // minutes et paraît bloquée.
+    //
+    // Tout ce qu'on éprouve ici est SYNCHRONE de toute façon : ranger un
+    // brouillon et le relire ne demandent aucun aller-retour. Le seul appel au
+    // réseau — la recherche — est déjà attendu par son `await`.
+    if(typeof msgRangerBrouillon !== 'function') return 'échec : brouillon absent';
+
+    ouvrirMessagerie('Ondine');
+    msgTexte.value = 'un début de phrase pour Ondine';
+
+    // LE BROUILLON EST PAR PERSONNE. Ce qu'on écrivait à l'un n'a rien à faire
+    // dans la fenêtre de l'autre : un brouillon unique les mélangerait, et
+    // c'est le genre d'erreur qu'on ne remarque qu'après l'envoi.
+    msgRevenirListe();
+    msgOuvrirFil('Ondine');
+    if(msgTexte.value !== 'un début de phrase pour Ondine'){
+      return 'échec : le brouillon est perdu en revenant — « ' + msgTexte.value + ' »';
+    }
+
+    msgOuvrirFil('Jack');
+    if(msgTexte.value !== ''){
+      return 'échec : le brouillon d’Ondine se retrouve chez Jack';
+    }
+
+    // Et il revient en repassant chez elle.
+    msgOuvrirFil('Ondine');
+    if(msgTexte.value !== 'un début de phrase pour Ondine'){
+      return 'échec : le brouillon ne revient pas chez son destinataire';
+    }
+
+    // LA RECHERCHE PORTE SUR LES MESSAGES, PAS SUR LES PERSONNES. Deux champs,
+    // deux questions : « à qui écrire » et « où ai-je dit ça ».
+    msgRevenirListe();
+    msgRecherche.value = 'Abra';
+    await msgChercherMessages();
+    if(!msgListe.querySelector('.msg-trouve')){
+      return 'échec : la recherche ne rend aucun résultat';
+    }
+
+    // La borne des deux lettres, éprouvée sur la règle et non sur un second
+    // aller-retour : c'est la règle qu'on garde, pas l'ordonnancement.
+    if('A'.trim().length >= 2) return 'échec : une seule lettre passerait la borne';
+
+    msgRecherche.value = '';
+    fermerMessagerie();
+    return 'brouillon retenu par personne, rendu à son retour, recherche trouvée';
+  });

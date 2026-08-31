@@ -30,6 +30,10 @@ import { injurieuxDansPhrase } from './pseudos-interdits.js';
 const MESSAGE_MAX = 1000;
 const CONVERSATION_PAGE = 200;
 
+// Une recherche n'est pas une liste : au-delà de quarante lignes on ne lit
+// plus, on reformule. Le plafond dit donc « affine » plutôt que de dérouler.
+const RECHERCHE_MAX = 40;
+
 // Combien de messages on peut envoyer à quelqu'un QUI N'A JAMAIS RÉPONDU.
 //
 // C'est la seule limite qui vaille : entre deux personnes qui se parlent, il
@@ -293,6 +297,61 @@ export async function conversation(dresseurId, pseudo) {
         jeRecois: m.demandeur_id === dresseurId ? m.demande : m.offert,
         don: !m.demande,
       } : null,
+    })),
+  };
+}
+
+/**
+ * Chercher dans tout ce qu'on s'est dit.
+ *
+ * CÔTÉ SERVEUR, ET NON DANS CE QUI EST DÉJÀ CHARGÉ. L'écran ne tient que les
+ * deux cents derniers messages d'une seule conversation : y filtrer donnerait
+ * une recherche qui ne trouve que ce qu'on a déjà sous les yeux, ce qui est la
+ * définition d'une recherche inutile.
+ *
+ * LE MOTIF EST ÉCHAPPÉ. `%` et `_` sont des caractères spéciaux de LIKE :
+ * chercher « 100% » sans les neutraliser ramènerait tout, et l'on croirait à
+ * un défaut du classement plutôt qu'à un caractère mal compris. Le piège est
+ * silencieux — la requête réussit, elle répond simplement n'importe quoi.
+ */
+export async function chercher(dresseurId, motif) {
+  const q = String(motif || '').trim();
+  if (q.length < 2) return { resultats: [] };
+  // LE POINT D'EXCLAMATION PLUTOT QUE LE BACKSLASH. Celui-ci est special
+  // trois fois — en JavaScript, dans la chaine SQL, et pour LIKE — et
+  // `ESCAPE '\'` finissait en chaine non terminee cote MariaDB. Le `!`
+  // n'est special nulle part : une couche d'echappement au lieu de trois.
+  const like = `%${q.replace(/[!%_]/g, (c) => `!${c}`)}%`;
+
+  const lignes = await lire(
+    `SELECT m.id, m.texte, m.cree_le, m.auteur_id, m.espece, m.echange_id,
+            d.pseudo AS autre
+       FROM pa_messages m
+       LEFT JOIN pa_echanges e ON e.id = m.echange_id
+       JOIN pa_dresseurs d
+         ON d.id = IF(m.destinataire_id IS NOT NULL,
+                      IF(m.auteur_id = ?, m.destinataire_id, m.auteur_id),
+                      IF(e.demandeur_id = ?, e.receveur_id, e.demandeur_id))
+      WHERE m.texte LIKE ? ESCAPE '!'
+        AND (
+          (m.destinataire_id IS NOT NULL
+            AND (m.auteur_id = ? OR m.destinataire_id = ?))
+          OR (m.echange_id IS NOT NULL
+            AND (e.demandeur_id = ? OR e.receveur_id = ?))
+        )
+      ORDER BY m.id DESC
+      LIMIT ${RECHERCHE_MAX}`,
+    [dresseurId, dresseurId, like,
+      dresseurId, dresseurId, dresseurId, dresseurId]);
+
+  return {
+    resultats: lignes.map((m) => ({
+      id: m.id,
+      texte: m.texte,
+      quand: m.cree_le,
+      avec: m.autre,
+      deMoi: m.auteur_id === dresseurId,
+      espece: m.espece || null,
     })),
   };
 }

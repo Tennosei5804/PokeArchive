@@ -355,6 +355,18 @@ function openPreview(entry, resolvedSrc){
   previewNo.textContent = '#' + String(entry.speciesId || entry.id).padStart(4, '0');
   dessinerPreviewImage(resolvedSrc);
   dessinerPreviewEtats();
+
+  // « L'envoyer à quelqu'un » : caché là où il n'y a personne à qui écrire —
+  // les pages de génération et un site sans compte n'ont pas de messagerie.
+  if(ficheEnvoyer){
+    const possible = typeof messagerieDisponible === 'function' && messagerieDisponible();
+    ficheEnvoyer.hidden = !possible;
+    ficheEnvoyer.onclick = function(){
+      closePreview();
+      envoyerEspeceAQuelquun(entry.name);
+    };
+  }
+
   // La fiche de capture se referme d'un Pokémon à l'autre : la laisser ouverte
   // donnerait l'impression que les champs du précédent sont ceux du suivant.
   if(typeof reinitCapture === 'function') reinitCapture();

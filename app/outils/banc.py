@@ -186,6 +186,15 @@ const REPONSES = {
   // --- La messagerie --------------------------------------------------------
   // Les messages directs vivent en memoire, comme le reste : le banc peut donc
   // en envoyer et les relire sans qu'aucune ligne ne parte au serveur.
+  messages_chercher: (a) => { const q = ((a&&a.q)||'').toLowerCase();
+                            // Le vrai service cherche en base ; ici on filtre
+                            // ce que le pont a en memoire. Ce qu'on eprouve a
+                            // l'ecran, c'est l'affichage des resultats.
+                            return { resultats: DIRECTS
+                              .filter(m => (m.texte||'').toLowerCase().includes(q))
+                              .map(m => ({ id:m.id, texte:m.texte, quand:'',
+                                           avec:'Ondine', deMoi:!!m.deMoi,
+                                           espece:m.espece||null })) }; },
   messages_liste:  () => ({ conversations: DIRECTS.length
                               ? [{ pseudo:'Ondine', avatar:null, discordId:'2',
                                    dernier: DIRECTS[DIRECTS.length - 1].texte,

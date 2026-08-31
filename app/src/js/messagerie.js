@@ -52,6 +52,18 @@ const msgTexte = document.getElementById('msgTexte');
 const msgEnvoyer = document.getElementById('msgEnvoyer');
 const msgEtat = document.getElementById('msgEtat');
 
+// Les brouillons, par interlocuteur.
+//
+// PAR PERSONNE ET NON PAR ÉCRAN. Ce qu'on écrivait à Jack n'a rien à faire dans
+// la fenêtre d'Ondine : garder un seul brouillon les mélangerait, et c'est
+// précisément le genre d'erreur qu'on ne remarque qu'après l'envoi.
+//
+// EN MÉMOIRE ET NON DANS LE STOCKAGE. Un brouillon vit le temps d'une session :
+// le poser sur le disque le ferait ressurgir des semaines plus tard, sous une
+// conversation dont on a oublié le contexte. Fermer l'application l'oublie,
+// et c'est le bon comportement.
+const msgBrouillons = new Map();
+
 // Avec qui la fenêtre est ouverte, ou null quand on est sur la liste.
 let msgAvec = null;
 let msgMinuteur = null;
@@ -154,6 +166,76 @@ async function msgDessinerListe(discret){
     }
 
     b.addEventListener('click', function(){ msgOuvrirFil(c.pseudo); });
+    msgListe.appendChild(b);
+  });
+}
+
+// ---- Chercher dans ce qu'on s'est dit ----------------------------------------
+//
+// DEUX QUESTIONS DIFFÉRENTES, DEUX CHAMPS. « À qui écrire » cherche des
+// personnes ; celui-ci cherche des mots. Les mêler dans un seul champ
+// obligerait à deviner laquelle des deux on pose, et à se tromper une fois
+// sur deux.
+//
+// La recherche remplace la liste des conversations le temps qu'elle dure : ce
+// sont deux façons de trouver la même chose, elles n'ont pas à cohabiter.
+
+async function msgChercherMessages(){
+  if(!msgListe || !msgRecherche) return;
+  const q = (msgRecherche.value || '').trim();
+  if(q.length < 2){ msgDessinerListe(); return; }
+
+  let r;
+  try{ r = await invoke('messages_chercher', { q: q }); }
+  catch(e){
+    if(String(e) === 'SESSION_INVALIDE'){ await perdreSession(); return; }
+    msgListe.innerHTML = '<div class="state-msg">' + String(e) + '</div>';
+    return;
+  }
+  // La frappe a pu continuer pendant l'aller-retour.
+  if((msgRecherche.value || '').trim() !== q) return;
+
+  const trouves = r.resultats || [];
+  msgListe.innerHTML = '';
+  if(!trouves.length){
+    msgListe.innerHTML = '<div class="state-msg">Rien avec « '
+      + q +' ».</div>';
+    return;
+  }
+
+  trouves.forEach(function(m){
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'msg-conv msg-trouve';
+
+    const corps = document.createElement('span');
+    corps.className = 'msg-conv-corps';
+
+    const qui = document.createElement('span');
+    qui.className = 'msg-conv-nom';
+    // AVEC QUI, ET DANS QUEL SENS. « Toi : » devant ses propres mots — sans
+    // cela on relit sa propre phrase en croyant que l'autre l'a écrite.
+    qui.textContent = (m.deMoi ? 'Toi → ' : '') + m.avec;
+    corps.appendChild(qui);
+
+    const extrait = document.createElement('span');
+    extrait.className = 'msg-conv-apercu';
+    extrait.textContent = m.espece && !m.texte ? 'Un Pokémon' : m.texte;
+    corps.appendChild(extrait);
+
+    b.appendChild(corps);
+
+    if(typeof dateLisible === 'function'){
+      const quand = document.createElement('span');
+      quand.className = 'msg-trouve-quand';
+      quand.textContent = dateLisible(m.quand);
+      b.appendChild(quand);
+    }
+
+    b.addEventListener('click', function(){
+      msgRecherche.value = '';
+      msgOuvrirFil(m.avec);
+    });
     msgListe.appendChild(b);
   });
 }
@@ -499,7 +581,18 @@ async function msgProposerEchange(){
   }
 }
 
+/** Range ce qu'on était en train d'écrire, sous le nom de son destinataire. */
+function msgRangerBrouillon(){
+  if(!msgAvec || !msgTexte) return;
+  const t = msgTexte.value;
+  if(t.trim()) msgBrouillons.set(msgAvec, t);
+  else msgBrouillons.delete(msgAvec);
+}
+
 function msgOuvrirFil(pseudo){
+  // AVANT DE CHANGER D'INTERLOCUTEUR : ce qui est dans le champ appartient
+  // encore au précédent.
+  msgRangerBrouillon();
   msgAvec = pseudo;
   // CE QU'ON ALLAIT JOINDRE APPARTIENT À LA CONVERSATION QU'ON QUITTE. Le
   // garder enverrait l'Abra préparé pour Jack à la figure d'Ondine.
@@ -507,12 +600,17 @@ function msgOuvrirFil(pseudo){
   msgMajJointe();
   msgFermerPoke();
   msgBasculer();
+  if(msgTexte) msgTexte.value = msgBrouillons.get(pseudo) || '';
   msgDessinerFil();
   msgSonder();
   if(msgTexte) setTimeout(function(){ msgTexte.focus(); }, 10);
 }
 
 function msgRevenirListe(){
+  msgRangerBrouillon();
+  // On revient à la LISTE, pas à d'anciens résultats : sans cela on retombe
+  // sur une sélection dont on a oublié le motif.
+  if(msgRecherche) msgRecherche.value = '';
   msgAvec = null;
   msgBasculer();
   msgDessinerListe();
@@ -626,6 +724,7 @@ async function msgEnvoyerTexte(){
     // On vide APRÈS l'envoi réussi. Vider avant perdrait le texte au moindre
     // refus — et le filtre en refuse, c'est son travail.
     msgTexte.value = '';
+    msgBrouillons.delete(msgAvec);
     msgEspece = null;
     msgMajJointe();
     await msgDessinerFil();
@@ -668,6 +767,7 @@ function ouvrirMessagerie(pseudo){
  * bouton « Fermer ». Une page se quitte par la barre, comme toutes les autres.
  */
 function fermerMessagerie(){
+  msgRangerBrouillon();
   // La pastille compte ce qu'on n'a pas lu. Sortir d'une conversation qu'on
   // vient d'ouvrir doit l'éteindre tout de suite, sans attendre les deux
   // minutes de la veille — sinon elle annonce des messages déjà lus.
@@ -715,6 +815,24 @@ function majPastilleMessages(combien){
   messagesPastille.textContent = n > 9 ? '9+' : String(n);
 }
 
+/**
+ * Ouvrir la messagerie avec un Pokémon déjà joint.
+ *
+ * DEPUIS L'ÉCRAN OÙ L'ON EN PARLE. Il fallait quitter la fiche, ouvrir les
+ * Messages, puis rechercher l'espèce qu'on avait sous les yeux — trois gestes
+ * pour dire « tiens, regarde ».
+ *
+ * On atterrit sur la LISTE et non dans un fil : le Pokémon est choisi, le
+ * destinataire ne l'est pas encore. C'est la seule question qui reste.
+ */
+function envoyerEspeceAQuelquun(nom){
+  if(!messagerieDisponible() || !nom) return;
+  ouvrirMessagerie();
+  msgEspece = nom;
+  msgMajJointe();
+  if(msgQ) setTimeout(function(){ msgQ.focus(); }, 60);
+}
+
 document.addEventListener('DOMContentLoaded', function(){
   // L'onglet, comme le reste : absent du site, qui n'a pas de compte.
   const onglet = document.querySelector('.page-tab[data-page="messages"]');
@@ -752,6 +870,7 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   if(msgEnvoyer) msgEnvoyer.addEventListener('click', msgEnvoyerTexte);
   if(msgQ) msgQ.addEventListener('input', msgChercher);
+  if(msgRecherche) msgRecherche.addEventListener('input', msgChercherMessages);
   if(msgTexte){
     msgTexte.addEventListener('keydown', function(e){
       // Entrée envoie, Maj+Entrée passe à la ligne : c'est ce que fait tout le
