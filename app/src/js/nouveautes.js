@@ -20,6 +20,34 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.35.0', date: '2026-08-31',
+    titre: 'Demander, offrir, et le site qui rejoint ton compte',
+    points: [
+      '**🙏 Tu peux demander un Pokémon sans rien offrir en retour.** Le don '
+      + 'existait déjà dans l’autre sens ; il manquait son miroir. Choisis '
+      + 'seulement ce que tu veux, et le bouton devient *Demander ce Pokémon* — '
+      + 'l’autre accepte ou refuse, exactement comme une proposition normale.',
+      '**Les deux colonnes ont changé de côté** dans le panneau d’entraide : à '
+      + 'gauche ce que **tu donnes**, à droite ce qu’**il te donne**. La phrase '
+      + 'se lit maintenant de gauche à droite, comme la barre juste en dessous — '
+      + 'les deux se contredisaient.',
+      '**🌐 Le site web utilise ton compte.** Jusqu’ici il gardait tout dans ton '
+      + 'navigateur, sans compte ni échanges. Il parle désormais au même serveur '
+      + 'que l’application : mêmes aventures, mêmes amis, mêmes échanges, mêmes '
+      + 'messages, d’un appareil à l’autre.',
+      '**Si tu avais une collection dans la version web**, elle vivait dans ton '
+      + 'navigateur et n’est pas rattachée à ton compte. Le bouton **Exporter '
+      + 'mes données** du Profil reste le pont : exporte depuis l’ancien '
+      + 'navigateur, importe une fois connecté. Seul l’overlay OBS manque à '
+      + 'l’appel sur le web — il demande une écoute locale.',
+      '**Les pastilles ne recouvrent plus le nom de l’onglet.** On lisait '
+      + '« Am12 » au lieu d’« Amis ». Elles ont leur place à côté, et sont un '
+      + 'peu plus grandes — celle de la cloche coupait ses chiffres.',
+      '**Le compte de messages en attente s’affiche dès l’ouverture**, au lieu '
+      + 'd’attendre jusqu’à deux minutes.',
+    ],
+  },
+  {
     version: '0.34.0', date: '2026-08-31',
     titre: 'Les messages ont leur page',
     points: [
