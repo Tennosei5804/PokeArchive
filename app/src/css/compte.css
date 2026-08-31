@@ -1287,15 +1287,27 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 
 /* La pastille de l'onglet. Le compte est dans un attribut : pas de noeud de
    plus a tenir a jour, et il disparait avec la classe. */
-.page-tab.a-du-neuf{ position:relative; }
+/* LA PASTILLE NE DOIT PAS COUVRIR LE LIBELLE. Elle se posait par-dessus, et
+   l'onglet se lisait « Am12 » au lieu d'« Amis ». On lui reserve sa place a
+   droite plutot que de la superposer — c'est la seule facon que les deux
+   restent lisibles quel que soit le nombre.
+
+   Le retrait vaut pour l'onglet qui PORTE une pastille, pas pour tous : sinon
+   les onze autres se decaleraient pour rien. */
+.page-tab.a-du-neuf{ position:relative; padding-right:32px; }
 .page-tab.a-du-neuf::after{
   content:attr(data-combien);
-  position:absolute; top:2px; right:2px;
-  min-width:15px; height:15px; padding:0 4px;
+  /* 18 px et non 15, police 10 et non 8,5. Le chiffre etait a l'etroit : la
+     pastille touchait le bord arrondi de l'onglet, et un « 12 » y paraissait
+     coupe. L'onglet fait une trentaine de pixels de haut, elle y tient
+     largement — c'est la police qui manquait de place, pas la place. */
+  /* Centree en hauteur, calee a droite dans le retrait qu'on vient d'ouvrir. */
+  position:absolute; top:50%; right:7px; transform:translateY(-50%);
+  min-width:18px; height:18px; padding:0 5px;
   display:flex; align-items:center; justify-content:center;
   border-radius:999px;
   background:var(--dex-red); color:#fff;
-  font-family:var(--font-data); font-size:8.5px; line-height:1;
+  font-family:var(--font-data); font-size:10px; line-height:1;
   font-variant-numeric:tabular-nums;
 }
 

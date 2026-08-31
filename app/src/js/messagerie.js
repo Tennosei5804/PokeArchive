@@ -689,6 +689,25 @@ function fermerMessagerie(){
  * Le compte vient de la veille commune, dans la même requête que le reste : il
  * méritait un aller-retour toutes les deux minutes, pas un à lui seul.
  */
+/**
+ * Le compte, demandé tout de suite plutôt qu'attendu.
+ *
+ * LA VEILLE BAT TOUTES LES DEUX MINUTES. C'est la bonne cadence pour un fond
+ * de tâche, et la mauvaise pour un premier affichage : la pastille restait
+ * éteinte jusqu'au premier battement, donc jusqu'à deux minutes après
+ * l'ouverture. On la voyait s'allumer sans raison apparente, ou pas du tout si
+ * l'on avait déjà fermé.
+ *
+ * Un appel au démarrage coûte un aller-retour, une fois par session.
+ */
+async function msgCompterAuDemarrage(){
+  if(!messagerieDisponible()) return;
+  try{
+    const r = await invoke('veille');
+    majPastilleMessages(r && r.messagesNonLus);
+  }catch(e){ /* hors ligne : la veille reprendra le relais */ }
+}
+
 function majPastilleMessages(combien){
   if(!messagesPastille) return;
   const n = Number(combien) || 0;
@@ -700,6 +719,9 @@ document.addEventListener('DOMContentLoaded', function(){
   // L'onglet, comme le reste : absent du site, qui n'a pas de compte.
   const onglet = document.querySelector('.page-tab[data-page="messages"]');
   if(onglet) onglet.hidden = !messagerieDisponible();
+
+  // Le compte, sans attendre le premier battement de la veille.
+  msgCompterAuDemarrage();
 
   if(menuMessages){
     // Cachée sur le site, comme les autres portes de la messagerie : il n'y a

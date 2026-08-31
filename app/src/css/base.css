@@ -905,12 +905,15 @@
   @media (prefers-reduced-motion:reduce){ .cloche-btn.sonne{ animation:none; } }
 
   .cloche-pastille{
-    position:absolute; top:-3px; right:-3px;
-    min-width:17px; height:17px; padding:0 4px;
+    position:absolute; top:-4px; right:-4px;
+    /* 20 px et non 17 : la hauteur valait exactement le line-height, donc le
+       chiffre touchait les deux bords et se coupait au moindre ecart de police.
+       Deux pixels de chaque cote suffisent a le poser. */
+    min-width:20px; height:20px; padding:0 5px;
     border-radius:999px;
     background:var(--danger); color:#fff;
-    font-family:var(--font-data); font-size:10px; font-weight:700;
-    line-height:17px; text-align:center;
+    font-family:var(--font-data); font-size:10.5px; font-weight:700;
+    line-height:20px; text-align:center;
     box-shadow:0 0 0 2px var(--dex-red, #b5211f);
   }
 
