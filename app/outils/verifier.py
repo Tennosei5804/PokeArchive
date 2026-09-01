@@ -474,6 +474,96 @@ def groupe_banc():
     return fautes
 
 
+def groupe_css():
+    """Les feuilles de style : commentaires fermes, accolades equilibrees.
+
+    POURQUOI CE GROUPE EXISTE. Un bloc de regles a ete insere DANS un
+    commentaire encore ouvert. Le premier « */ » du bloc a ferme le commentaire
+    d'accueil, la fin de celui-ci — deux lignes de prose — est devenue un
+    selecteur, et la regle qui suivait a ete avalee avec. La cloche de l'en-tete
+    a perdu tout son style et s'est affichee en carre blanc.
+
+    RIEN NE L'A SIGNALE. Le navigateur ne se plaint pas d'une regle qu'il ne
+    comprend pas : il la saute. Aucune erreur en console, aucun echec au banc,
+    aucun fichier en defaut — juste un bouton devenu blanc, qu'il faut voir de
+    ses yeux pour le savoir.
+
+    Les deux controles ci-dessous sont betes et c'est voulu : ils ne jugent pas
+    le style, ils constatent que le fichier a la forme qu'un fichier CSS doit
+    avoir.
+    """
+    print("Relecture des feuilles de style — la forme, pas le style.")
+    print()
+
+    fautes = 0
+    ouverts = []
+    desequilibres = []
+
+    for chemin in sorted((SRC / "css").glob("*.css")):
+        texte = chemin.read_text(encoding="utf-8")
+
+        # Un « /* » a l'interieur d'un commentaire deja ouvert : c'est
+        # exactement le defaut ci-dessus, et il n'y en a pas d'autre facon de
+        # l'ecrire — les commentaires CSS ne s'imbriquent pas.
+        profondeur = 0
+        i = 0
+        while i < len(texte) - 1:
+            deux = texte[i:i + 2]
+            if deux == "/*":
+                if profondeur:
+                    ouverts.append((chemin.name, texte.count("\n", 0, i) + 1))
+                profondeur += 1
+                i += 2
+                continue
+            if deux == "*/" and profondeur:
+                profondeur -= 1
+                i += 2
+                continue
+            i += 1
+        if profondeur:
+            ouverts.append((chemin.name, "fin de fichier"))
+
+        # Et les accolades, hors commentaires et hors chaines : une de trop ou
+        # une de moins et tout ce qui suit change de portee.
+        sans = []
+        profondeur = 0
+        i = 0
+        while i < len(texte):
+            deux = texte[i:i + 2]
+            if deux == "/*":
+                profondeur += 1
+                i += 2
+                continue
+            if deux == "*/" and profondeur:
+                profondeur -= 1
+                i += 2
+                continue
+            if not profondeur:
+                sans.append(texte[i])
+            i += 1
+        code = "".join(sans)
+        if code.count("{") != code.count("}"):
+            desequilibres.append((chemin.name, code.count("{"), code.count("}")))
+
+    print("— commentaires ouverts dans un autre commentaire")
+    if ouverts:
+        for nom, ou in ouverts:
+            print("    %s:%s" % (nom, ou))
+        fautes += len(ouverts)
+    else:
+        print("    rien")
+
+    print("— accolades desequilibrees")
+    if desequilibres:
+        for nom, o, f in desequilibres:
+            print("    %s  %d ouvrantes, %d fermantes" % (nom, o, f))
+        fautes += len(desequilibres)
+    else:
+        print("    rien")
+    print()
+    return fautes
+
+
 def main():
     if not (SRC / "index.html").exists():
         sys.exit("index.html introuvable sous %s — lance depuis le dossier app/." % SRC)
@@ -496,11 +586,12 @@ def main():
     fautes += groupe_api()
     fautes += groupe_pages(fichiers)
     fautes += groupe_banc()
+    fautes += groupe_css()
 
     if fautes:
         print("%d problème(s) qui casseront à l'exécution." % fautes)
         sys.exit(1)
-    print("Aucun identifiant ni appel introuvable, dans aucun des quatre groupes.")
+    print("Aucun identifiant ni appel introuvable, dans aucun des cinq groupes.")
 
 
 main()

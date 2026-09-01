@@ -716,7 +716,15 @@
    --card et 1.13 sur --screen, soit un ascenseur invisible au repos. --ink-soft
    donne 4.5 a 6.9 selon le fond et le theme, au-dessus du 3:1 attendu d un
    element d interface.
- .fiche-jeux-attaques:empty{ display:none; }
+   Pas de scrollbar-width : la ou la notation standard est comprise elle
+   l emporte sur les regles -webkit, et dessine deux chevrons qu elle ne permet
+   pas de retirer. */
+.fiche-jeux-attaques::-webkit-scrollbar{ height:6px; }
+.fiche-jeux-attaques::-webkit-scrollbar-track{ background:transparent; }
+.fiche-jeux-attaques::-webkit-scrollbar-thumb{
+  background:var(--ink-soft); border-radius:999px;
+}
+.fiche-jeux-attaques:empty{ display:none; }
 .jeu-onglet{
   flex:0 0 auto;
   font-family:var(--font-body); font-size:11.5px; font-weight:600;

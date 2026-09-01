@@ -873,12 +873,6 @@
   background:var(--dex-red); border:1px solid var(--card);
 }
 
-/* ---- La cloche ------------------------------------------------------------
-   Ce qui est arrivé POUR TOI — une proposition d'échange, une réponse, un
-   message. Elle reste seule dans l'en-tête quand tout le reste est parti dans
-   le menu du compte, et c'est voulu : c'est la seule chose de cette barre qui
-   puisse changer sans qu'on ait rien fait.
-
 /* ---- Les icones dessinees ---------------------------------------------------
    Voir l'en-tete de js/icones.js pour le pourquoi. Ici, les trois regles qui
    font qu'une icone se comporte comme une lettre et non comme une image :
@@ -912,6 +906,11 @@
 .btn-ic:disabled{ opacity:.45; cursor:default; }
 .btn-ic.on{ color:var(--gold); border-color:var(--gold); background:var(--screen); }
 
+/* ---- La cloche ------------------------------------------------------------
+   Ce qui est arrivé POUR TOI — une proposition d'échange, une réponse, un
+   message. Elle reste seule dans l'en-tête quand tout le reste est parti dans
+   le menu du compte, et c'est voulu : c'est la seule chose de cette barre qui
+   puisse changer sans qu'on ait rien fait.
 
    La pastille porte un chiffre plutôt qu'un point. « Trois » et « quarante »
    ne se décident pas pareil, et le point ne distinguait pas les deux. */

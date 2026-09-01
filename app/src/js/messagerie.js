@@ -1065,8 +1065,8 @@ document.addEventListener('DOMContentLoaded', function(){
   // LES DEUX BOUTONS DU COMPOSITEUR, dessinés et non écrits. Voir l'en-tête
   // de icones.js : un émoji est un caractère rendu par la police du système,
   // qui ne prend jamais la couleur du bouton et change de machine en machine.
-  if(msgJoindre) msgJoindre.innerHTML = iconeHtml('balle', 19);
-  if(msgPhotoBtn) msgPhotoBtn.innerHTML = iconeHtml('appareil', 19);
+  if(msgJoindre) msgJoindre.innerHTML = iconeHtml('balle', 20);
+  if(msgPhotoBtn) msgPhotoBtn.innerHTML = iconeHtml('appareil', 20);
   if(msgJointeOter) msgJointeOter.innerHTML = iconeHtml('croix', 15);
   if(msgJointePhotoOter) msgJointePhotoOter.innerHTML = iconeHtml('croix', 15);
   if(msgTeleverser) boutonIcone(msgTeleverser, 'televerser');

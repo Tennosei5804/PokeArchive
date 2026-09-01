@@ -27,9 +27,21 @@
 const ICONES = {
   // --- Les pièces jointes ---------------------------------------------------
   // La Poké Ball plutôt qu'un « + » : le bouton joint un POKÉMON, et un plus
-  // ne dit pas quoi. Deux arcs et un moyeu — le trait du milieu porte tout.
-  balle: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h5M15.5 12h5"/>'
-       + '<circle cx="12" cy="12" r="3"/>',
+  // ne dit pas quoi.
+  //
+  // LA SEULE ICONE À PORTER UN APLAT, et il a fallu deux essais pour l'admettre.
+  // Dessinée au trait comme les autres — un cercle, un petit cercle au milieu,
+  // deux barres sur les côtés — elle se lisait « réticule de visée » à vingt
+  // pixels : c'est exactement la même figure. Ce qui distingue une Poké Ball
+  // d'une mire, c'est que sa moitié HAUTE est pleine.
+  //
+  // Le trou du bouton est creusé dans l'aplat par `fill-rule="evenodd"` plutôt
+  // que rebouché avec une couleur de fond : on ne sait pas sur quel fond
+  // l'icône sera posée, et un rond peint en « blanc » se verrait en sombre.
+  balle: '<circle cx="12" cy="12" r="8.5"/>'
+       + '<path fill="currentColor" stroke="none" fill-rule="evenodd" '
+       + 'd="M3.5 12a8.5 8.5 0 0 1 17 0Z M15.2 12a3.2 3.2 0 1 0-6.4 0 3.2 3.2 0 1 0 6.4 0Z"/>'
+       + '<circle cx="12" cy="12" r="3.2"/>',
   appareil: '<path d="M4 8.5h3l1.5-2.5h7L17 8.5h3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4'
           + 'a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13.5" r="3.5"/>',
   image: '<rect x="3" y="5" width="18" height="14" rx="2"/>'
