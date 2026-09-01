@@ -95,18 +95,24 @@ function dessinerBoutonRecherche(){
 }
 
 /**
- * La carte des actions disparaît quand elle n'a plus rien à porter.
+ * La carte disparaît quand elle n'a plus rien à porter.
  *
- * SES DEUX BOUTONS SE CACHENT CHACUN POUR SA RAISON : « Je le cherche » sur ce
- * qu'on possède déjà, « L'envoyer à quelqu'un » là où il n'y a pas de
- * messagerie — le site, les pages de génération. Les deux peuvent donc tomber
- * en même temps, et un cadre vide serait pire que pas de cadre du tout.
+ * SES TROIS LIGNES SE CACHENT CHACUNE POUR SA RAISON : la rareté sous cinq
+ * collections publiques, « Je le cherche » sur ce qu'on possède déjà,
+ * « L'envoyer à quelqu'un » là où il n'y a pas de messagerie — le site, les
+ * pages de génération. Les trois peuvent donc tomber ensemble, et un cadre vide
+ * serait pire que pas de cadre du tout.
+ *
+ * ON COMPTE LES ENFANTS, pas les boutons. La rareté est un paragraphe : la
+ * chercher par `querySelectorAll('button')` l'aurait ignorée, et la carte se
+ * serait cachée sur un Pokémon rare qu'on possède déjà — emportant la seule
+ * ligne qui avait quelque chose à dire.
  */
 function majFicheActions(){
   const carte = document.getElementById('ficheActions');
   if(!carte) return;
   const vivants = Array.prototype.filter
-    .call(carte.querySelectorAll('button'), function(b){ return !b.hidden; });
+    .call(carte.children, function(el){ return !el.hidden; });
   carte.hidden = vivants.length === 0;
 }
 

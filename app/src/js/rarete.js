@@ -60,7 +60,16 @@ function dessinerRarete(entry){
   const cible = document.getElementById('ficheRarete');
   if(!cible) return;
   const r = partRarete(entry);
-  if(!r){ cible.hidden = true; cible.textContent = ''; return; }
+  // LA CARTE QUI LA CONTIENT DOIT L'APPRENDRE. Elle se cache quand ses trois
+  // lignes se cachent, et la rareté arrive APRÈS le dessin de la fiche — la
+  // table vient du réseau. Sans ce rappel, la carte resterait cachée sur un
+  // Pokémon dont la rareté est la seule chose à dire.
+  if(!r){
+    cible.hidden = true;
+    cible.textContent = '';
+    if(typeof majFicheActions === 'function') majFicheActions();
+    return;
+  }
 
   const m = motRarete(r.part);
   cible.hidden = false;
@@ -71,6 +80,7 @@ function dessinerRarete(entry){
     + (r.combien > 1 ? 's' : '') + ' sur ' + r.sur + '  ·  ' + pourcent;
   cible.title = 'Calculé sur les collections publiques des autres dresseurs, '
     + 'leur aventure principale seulement. Mis à jour deux fois par jour.';
+  if(typeof majFicheActions === 'function') majFicheActions();
 }
 
 /** Appelée par remplirFiche() : demande la table, puis dessine. */
