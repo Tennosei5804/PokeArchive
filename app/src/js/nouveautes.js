@@ -20,6 +20,18 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.36.2', date: '2026-09-01',
+    titre: 'Ce que les autres en ont, et ce que tu peux en faire',
+    points: [
+      '**« Personne d’autre ne l’a », « Je le cherche » et « L’envoyer à '
+      + 'quelqu’un » tiennent maintenant dans une seule carte**, sous celle '
+      + 'qui dit la boîte et à la même largeur qu’elle. Les trois parlent de '
+      + 'la même question — qui d’autre l’a, est-ce que je le cherche, à qui '
+      + 'je le montre — et traînaient en trois morceaux de largeurs '
+      + 'différentes.',
+    ],
+  },
+  {
     version: '0.36.1', date: '2026-09-01',
     titre: 'Deux pages ne se superposent plus, et la fiche se resserre',
     points: [
