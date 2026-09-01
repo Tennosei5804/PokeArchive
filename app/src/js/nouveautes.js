@@ -20,6 +20,43 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.36.0', date: '2026-09-01',
+    titre: 'Des images dans les messages, une galerie, et des icônes dessinées',
+    points: [
+      '**📷 Tu peux envoyer une image dans un message.** Trois façons, au '
+      + 'choix : le bouton **appareil photo** sous le champ, **Ctrl+V** pour '
+      + 'coller une capture que tu viens de faire, ou simplement **glisser le '
+      + 'fichier** dans la conversation. Le même tiroir propose aussi les '
+      + 'photos déjà posées sur tes chasses.',
+      '**Une photo de chasse suit la visibilité de son aventure.** Si ton '
+      + 'aventure est privée, ton correspondant ne pourrait pas l’ouvrir : '
+      + 'l’envoi est refusé et te le dit, plutôt que d’arriver chez lui en '
+      + 'cadre vide. Une image prise sur ton ordinateur, elle, part toujours — '
+      + 'elle n’appartient à aucune aventure.',
+      '**🖼 Une galerie de tes chromatiques**, depuis l’écran Chasse. Tous '
+      + 'ceux que tu as obtenus, avec ou sans photo — le compte reste juste, '
+      + 'et le filtre « avec photo » ne le change pas.',
+      '**📋 Un écran d’état du relevé** : pour chaque jeu, ce qui est '
+      + 'renseigné et ce qui manque — lieux, taux, méthodes, sprites. Il '
+      + 'distingue « pas relevé » de « sans objet » : Rouge et Bleu n’ont pas '
+      + 'de chromatiques, et leur en réclamer un taux n’aurait aucun sens.',
+      '**⏳ Les échanges qui attendent TA réponse** depuis plus d’une semaine '
+      + 'apparaissent en tête de la page des amis, avec de quoi accepter ou '
+      + 'refuser sur place. Un bandeau, pas une notification : un rappel qui '
+      + 'sonne tout seul au bout d’une semaine devient du harcèlement à '
+      + 'retardement. Et les échanges conclus se rangent à part, sans '
+      + 'disparaître.',
+      '**Toute l’interface change d’icônes.** Les boutons portaient des '
+      + 'émojis, dont le dessin appartient à la police de ton système : une '
+      + 'pastille brillante posée au milieu d’un boîtier mat, différente d’une '
+      + 'machine à l’autre. Ce sont maintenant des dessins, à deux couleurs, '
+      + 'qui suivent le thème.',
+      '**Correctif : les onglets de jeux de la fiche** n’avaient plus aucun '
+      + 'style — ni fond, ni bordure — depuis le 25 août. Un commentaire mal '
+      + 'refermé dans la feuille de style les avalait en silence.',
+    ],
+  },
+  {
     version: '0.35.0', date: '2026-08-31',
     titre: 'Demander, offrir, et le site qui rejoint ton compte',
     points: [
