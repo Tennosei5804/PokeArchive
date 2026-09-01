@@ -54,6 +54,11 @@
   background:linear-gradient(180deg, var(--teinte-voile), transparent 84%), var(--card);
   border-bottom:1px solid var(--card-border);
 }
+/* LA COLONNE DE GAUCHE. Le portrait est carre : dans une bande qui fait deux
+   fois sa hauteur, il laissait dessous une plage vide aussi grande que lui,
+   pendant que la colonne de droite s'allongeait. Elle sert maintenant. */
+.identite-cote{ display:flex; flex-direction:column; gap:11px; min-width:0; }
+
 .portrait{
   position:relative;
   aspect-ratio:1/1;
@@ -608,8 +613,18 @@ table.paliers-table{
    Trois boutons, un seul clic. C'est le champ qu'on met a jour le plus
    souvent — a chaque transfert — et il merite d'etre devant, pas au fond
    d'une fiche repliee. */
+/* DANS LA COLONNE DE GAUCHE, sous la carte. C'est un reglage de TON exemplaire,
+   comme les deux boutons au-dessus, et non une donnee de l'espece comme tout ce
+   que porte la colonne de droite.
+
+   Le titre prend sa ligne : sur 264 px, laisse en tete de rangee il poussait le
+   premier bouton a la ligne suivante et laissait un trou a cote de lui. */
 .capture-ou{
-  display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-top:10px;
+  display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-top:0;
+}
+.capture-ou .capture-ou-titre{
+  flex:0 0 100%; margin:0 0 1px;
+  display:flex; align-items:center; gap:5px;
 }
 .capture-ou[hidden]{ display:none; }
 .capture-ou-titre{
@@ -638,9 +653,13 @@ table.paliers-table{
   background:var(--gold); border-color:var(--gold); color:#231d05;
 }
 
+/* DANS LA COLONNE DE GAUCHE, en rangee pleine largeur comme les deux boutons
+   de la carte au-dessus. Elle etait une petite pilule alignee a gauche dans une
+   colonne large : ici elle serait la seule a ne pas aller au bout. */
 .capture-poignee{
-  align-self:flex-start; margin-top:9px;
-  padding:5px 11px 6px; cursor:pointer;
+  align-self:stretch; margin-top:0;
+  display:flex; align-items:center; gap:7px;
+  padding:7px 12px 8px; cursor:pointer;
   border:1px dashed var(--card-border); border-radius:999px;
   background:transparent; color:var(--ink-soft);
   font-family:var(--font-data); font-size:10.5px; letter-spacing:.03em;
@@ -655,7 +674,7 @@ table.paliers-table{
   margin-top:9px; padding:12px 13px 13px;
   background:var(--card); border:1px solid var(--card-border);
   border-left:3px solid var(--gold); border-radius:11px;
-  /* A GAUCHE, EXPLICITEMENT. .preview-card porte text-align:center — ce qui
+  /* A GAUCHE, EXPLICITEMENT. La carte se lisait centree — ce qui
      convient a un nom et a deux boutons, mais pas a un formulaire : les
      etiquettes se centraient au-dessus de champs alignes a gauche, et chaque
      ligne partait d'un endroit different. Le meme piege avait deja attrape le
@@ -866,34 +885,39 @@ table.attaques{
   background:var(--screen); border-radius:8px;
 }
 
-/* LES AUTRES ET TOI. Meme carte que le rangement juste au-dessus, et pour la
-   meme raison : trois choses qui parlent de la meme question — qui d'autre l'a,
-   est-ce que je le cherche, a qui je le montre — trainaient en trois morceaux de
-   largeurs differentes, une pastille de 297 px prise entre deux cartes de 444.
+/* LES AUTRES ET TOI, sous le portrait. Trois choses qui parlent de la meme
+   question — qui d'autre l'a, est-ce que je le cherche, a qui je le montre — et
+   qui trainaient en trois morceaux de largeurs differentes dans la colonne de
+   droite, deja la plus longue des deux. Elles tiennent dans une carte, posee
+   dans la plage vide que le portrait laissait sous lui.
 
-   Les boutons s'enroulent plutot que de deborder : « L'envoyer a quelqu'un »
-   est long, et la colonne se retrecit sur un ecran etroit. */
+   EMPILEES ET NON EN RANGEE : la colonne fait 264 px, et « L'envoyer a
+   quelqu'un » en demande a lui seul les deux tiers. Cote a cote, ils
+   s'enroulaient en deux lignes inegales.
+
+   `text-align:left` reste ecrit : la carte s'est alignee a gauche depuis, mais
+   une carte ne doit pas dependre du reglage d'un ancetre pour se lire droit. */
 .fiche-actions{
-  display:flex; flex-wrap:wrap; gap:8px;
-  margin-top:8px; padding:9px 11px;
-  background:var(--screen); border-radius:8px;
+  display:flex; flex-direction:column; align-items:stretch; gap:8px;
+  margin:0; padding:10px 11px;
+  background:var(--screen); border-radius:12px;
+  text-align:left;
 }
 /* Dans la carte, ils n'ont plus a se pousser eux-memes : c'est elle qui tient
-   l'ecart et le retrait. */
-.fiche-actions .fiche-cherche{ margin-top:0; align-self:auto; }
+   l'ecart et le retrait. Le contenu part a gauche — centre, un bouton pleine
+   largeur laisse son icone flotter au milieu de rien. */
+.fiche-actions .fiche-cherche{
+  margin-top:0; align-self:stretch; justify-content:flex-start;
+}
 
 /* LA RARETE PERD SA PASTILLE EN ENTRANT. Dehors, le cadre arrondi la
    distinguait du vide ; dedans, il ferait une bordure DANS une bordure — et sa
    couleur de fond, --card, se detacherait du --screen de la carte. Il ne reste
-   que la couleur du texte, qui est la seule chose qu'elle disait vraiment.
-
-   Elle prend toute la ligne : c'est un constat, les boutons sont des gestes, et
-   les melanger sur la meme rangee ferait passer le premier pour un troisieme
-   bouton. */
+   que la couleur du texte, qui est la seule chose qu'elle disait vraiment. */
 .fiche-actions .fiche-rarete{
-  flex:0 0 100%;
   margin:0; padding:0 1px;
   border:0; border-radius:0; background:none;
+  align-self:stretch; line-height:1.45;
 }
 .rangement-ou{
   font-family:var(--font-body); font-size:13.5px; font-weight:700; color:var(--ink);

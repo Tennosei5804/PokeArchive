@@ -51,13 +51,16 @@ const RUBANS = [
 // Un groupe de trois boutons plutôt qu'un menu : c'est le champ qu'on met à
 // jour le plus souvent — à chaque transfert — et un menu déroulant demande
 // trois gestes là où un bouton en demande un.
+// UN NOM D'ICONE, ET NON UN CARACTERE. Voir l'en-tete de icones.js : un emoji
+// est rendu par la police du systeme, qui le dessine autrement sur chaque
+// machine et ne lui donne jamais la couleur du bouton.
 const EMPLACEMENTS = [
-  { cle: 'jeu',    icone: '🎮', nom: 'Dans le jeu',
+  { cle: 'jeu',    icone: 'manette', nom: 'Dans le jeu',
     aide: 'Il est encore sur la cartouche ou la console d\'origine.' },
-  { cle: 'banque', icone: '🏦', nom: 'Banque Pokémon',
+  { cle: 'banque', icone: 'banque', nom: 'Banque Pokémon',
     aide: 'Déposé dans la Banque Pokémon. Le service s\'arrête : va voir '
         + 'Outils → Transferts pour le temps qu\'il reste.' },
-  { cle: 'home',   icone: '🏡', nom: 'Pokémon HOME',
+  { cle: 'home',   icone: 'maison', nom: 'Pokémon HOME',
     aide: 'Arrivé à destination — il ne bougera plus.' }
 ];
 
@@ -197,7 +200,7 @@ function dessinerEmplacement(){
 
   const titre = document.createElement('span');
   titre.className = 'capture-ou-titre';
-  titre.textContent = '📍 Où il est';
+  titre.innerHTML = iconeHtml('epingle', 13) + '<span>Où il est</span>';
   captureEmplacement.appendChild(titre);
 
   EMPLACEMENTS.forEach(function(e){
@@ -211,7 +214,7 @@ function dessinerEmplacement(){
       && typeof banqueFermee === 'function';
     b.className = 'capture-ou-btn' + (actuel === e.cle ? ' actif' : '')
       + (alerte ? (banqueFermee() ? ' bloque' : ' sursis') : '');
-    b.textContent = e.icone + ' ' + e.nom;
+    boutonIcone(b, e.icone, e.nom);
     b.setAttribute('aria-pressed', String(actuel === e.cle));
     b.title = e.aide;
     b.addEventListener('click', function(){
@@ -240,8 +243,8 @@ function majPoigneeCapture(){
   }
   dessinerEmplacement();
   const n = remplissageDetail(detailDe(cleDex, previewEntry.name));
-  captureOuvrir.textContent = '🎴 Fiche de capture'
-    + (n ? '  ·  ' + n + ' champ' + (n > 1 ? 's' : '') : '');
+  boutonIcone(captureOuvrir, 'fiche', 'Fiche de capture'
+    + (n ? '  ·  ' + n + ' champ' + (n > 1 ? 's' : '') : ''));
   captureOuvrir.setAttribute('aria-expanded', String(captureOuverte));
   captureOuvrir.title = 'Ball, nature, surnom, ruban… ce que cet exemplaire-là a '
     + 'de particulier. Enregistré dans ' + currentDexLabel() + '.';

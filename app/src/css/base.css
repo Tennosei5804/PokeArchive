@@ -472,7 +472,12 @@
     border:1px solid var(--card-border);
     border-radius:18px;
     box-shadow:var(--ombre);
-    text-align:center;
+    /* PLUS DE CENTRAGE PAR DEFAUT. La fiche est la seule carte de ce genre, et
+       elle se lit comme une page : un titre centre au-dessus de vingt blocs
+       alignes a gauche faisait deux mises en page dans le meme cadre. Ce qui
+       doit rester centre le dit desormais lui-meme — c'est plus bavard, et
+       c'est le seul moyen de savoir en lisant une regle ce qu'elle fait. */
+    text-align:left;
     animation:modal-pop 200ms cubic-bezier(.2,.9,.3,1.2);
     position:relative;
   }
@@ -928,6 +933,11 @@
 .ic-crayon{ --ic-teinte:var(--ic-violet); }
 .ic-poignee{ --ic-teinte:var(--caught); }
 .ic-disque{ --ic-teinte:var(--ink-soft); }
+.ic-epingle{ --ic-teinte:var(--dex-red); }
+.ic-manette{ --ic-teinte:var(--ic-violet); }
+.ic-banque{ --ic-teinte:var(--gold); }
+.ic-maison{ --ic-teinte:var(--caught); }
+.ic-fiche{ --ic-teinte:var(--ic-bleu); }
 
 /* LA OU LA TEINTE GENE, ON L'ETEINT. Deux endroits, deux raisons :
    · un bouton deja tout entier de sa couleur — la croix blanche sur le rouge

@@ -33,9 +33,25 @@ function chargerRarete(){
   return rareteEnVol;
 }
 
-/** La part des dresseurs qui possèdent cette entrée, ou null. */
+/**
+ * La part des dresseurs qui possèdent cette entrée, ou null.
+ *
+ * SOUS CINQ COLLECTIONS PUBLIQUES, LE SERVEUR NE CALCULE RIEN. Il rend le
+ * nombre de dresseurs mais un ensemble d'entrées VIDE, et une `note` qui dit
+ * pourquoi — « 1 sur 2 » n'est pas une rareté, c'est un hasard.
+ *
+ * CE CÔTÉ-CI NE LISAIT QUE `dresseurs`, et le trouvait à 3 : il calculait donc
+ * 0 sur 3 pour CHAQUE espèce, et affichait « Personne d'autre ne l'a » sur
+ * toutes, y compris les plus communes. Un chiffre juste par accident sur les
+ * espeaces que personne n'a, faux sur toutes les autres, et sans le moindre
+ * signe qu'il ne voulait rien dire.
+ *
+ * On rend donc la note plutôt qu'un compte : il y a quelque chose à lire, et
+ * ce quelque chose est vrai.
+ */
 function partRarete(entry){
   if(!rareteTable || !rareteTable.dresseurs) return null;
+  if(rareteTable.note) return { note: rareteTable.note };
   const n = rareteTable.entrees[entry.name] || 0;
   return { combien: n, sur: rareteTable.dresseurs, part: n / rareteTable.dresseurs };
 }
@@ -67,6 +83,18 @@ function dessinerRarete(entry){
   if(!r){
     cible.hidden = true;
     cible.textContent = '';
+    if(typeof majFicheActions === 'function') majFicheActions();
+    return;
+  }
+
+  // TROP PEU DE COLLECTIONS : on dit ça, et rien d'autre. En gris, parce que
+  // ce n'est pas un palier de rareté mais une absence de mesure.
+  if(r.note){
+    cible.hidden = false;
+    cible.className = 'fiche-rarete commun';
+    cible.textContent = r.note;
+    cible.title = 'La rareté se calcule sur les collections publiques des '
+      + 'autres dresseurs. En dessous de cinq, le chiffre ne dirait rien.';
     if(typeof majFicheActions === 'function') majFicheActions();
     return;
   }

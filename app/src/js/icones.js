@@ -119,6 +119,30 @@ const ICONES = {
   // ce qui nous lie, et ce qu'on peut s'apporter.
   poignee: '<circle class="teinte" cx="9" cy="12" r="5.2"/>'
          + '<circle cx="15" cy="12" r="5.2"/>',
+  // --- Où se trouve l'exemplaire -------------------------------------------
+  // Trois lieux et une épingle. Ils se lisent EN RANGÉE, l'un derrière l'autre :
+  // ce qui les distingue doit tenir dans la silhouette, pas dans le détail.
+  epingle: '<path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z"/>'
+         + '<circle class="aplat" cx="12" cy="10" r="2.6"/>',
+  // La manette : la cartouche, la console, le jeu d'origine.
+  manette: '<rect x="2.5" y="7.5" width="19" height="10" rx="4.5"/>'
+         + '<path d="M7 10.5v4M5 12.5h4"/>'
+         + '<circle class="aplat" cx="16" cy="11.5" r="1.3"/>'
+         + '<circle class="aplat" cx="18.5" cy="14" r="1.3"/>',
+  // Le fronton à colonnes : la Banque. Elle ferme, d'où le trait plein sous
+  // elle — c'est un bâtiment, pas un abri.
+  banque: '<path class="aplat" d="M3 9.5 12 4l9 5.5v1.2H3Z"/>'
+        + '<path d="M5.5 12v5.5M10 12v5.5M14 12v5.5M18.5 12v5.5"/>'
+        + '<path d="M3 20h18"/>',
+  // Le toit : HOME, là où il ne bougera plus.
+  maison: '<path d="M4 11 12 4l8 7v8a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19Z"/>'
+        + '<path class="aplat" d="M9.6 20.5v-6h4.8v6Z"/>',
+  // Deux cartes en éventail : la fiche de l'exemplaire, ce qu'il a de
+  // particulier — sa ball, sa nature, son surnom.
+  fiche: '<rect x="8.5" y="4" width="11" height="15" rx="2"/>'
+       + '<path d="M5.5 7.5A2 2 0 0 0 4.5 9.2v9.3A2.5 2.5 0 0 0 7 21h8"/>'
+       + '<path class="aplat" d="M11 8h6v1.6h-6zM11 11.4h6V13h-6z"/>',
+
   // Le disque plein de la forme normale, en face de l'étincelle. Il ne
   // représente pas un objet mais un état, et un cercle vide se serait lu
   // « non coché ».

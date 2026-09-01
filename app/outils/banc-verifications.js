@@ -2524,3 +2524,57 @@ verifier('La navigation',
     return PAGES.length + ' pages, ' + (PAGES.length * PAGES.length)
       + ' passages, jamais deux allumées';
   });
+
+// ---------------------------------------------------------------------------
+
+verifier('La rareté',
+  'Sous cinq collections publiques, on dit qu’on ne sait pas — pas « unique »',
+  async function(){
+    // LE DÉFAUT, VU SUR LA VRAIE APPLICATION. Le serveur refuse de calculer une
+    // rareté sous cinq collections publiques : il rend le nombre de dresseurs,
+    // un ensemble d’entrées VIDE, et une note qui dit pourquoi — « 1 sur 2 »
+    // n’est pas une rareté, c’est un hasard.
+    //
+    // L’écran ne lisait que le nombre de dresseurs. Il le trouvait à trois,
+    // calculait donc 0 sur 3 pour CHAQUE espèce, et affichait « Personne
+    // d’autre ne l’a » sur toutes — y compris sur celles que tout le monde a.
+    // Juste par accident là où c’était vrai, faux partout ailleurs, et sans le
+    // moindre signe que le chiffre ne voulait rien dire.
+    const avant = rareteTable;
+    const entree = allEntries[0];
+    // rarete.js le retrouve a chaque dessin plutot que de le retenir : on fait
+    // pareil, sinon cette verification tiendrait une reference qui n'existe
+    // nulle part ailleurs.
+    const ficheRarete = document.getElementById('ficheRarete');
+
+    // Ce que rend le serveur en dessous du seuil.
+    rareteTable = { dresseurs: 3, entrees: {}, note: 'Trop peu de collections '
+      + 'publiques pour en tirer une rareté.' };
+    dessinerRarete(entree);
+    const dit = ficheRarete.textContent;
+    if(/Personne d’autre ne l’a|Personne d'autre ne l'a/.test(dit)){
+      return 'échec : annonce une rareté que le serveur n’a pas calculée — « ' + dit + ' »';
+    }
+    if(!/Trop peu/.test(dit)){
+      return 'échec : ne dit pas pourquoi il n’y a pas de chiffre — « ' + dit + ' »';
+    }
+    if(ficheRarete.hidden) return 'échec : la ligne disparaît au lieu de s’expliquer';
+
+    // ET AU-DESSUS DU SEUIL, le compte revient tel quel.
+    rareteTable = { dresseurs: 8, entrees: {} };
+    rareteTable.entrees[entree.name] = 2;
+    dessinerRarete(entree);
+    const chiffre = ficheRarete.textContent;
+    if(!/2 dresseurs sur 8/.test(chiffre)){
+      return 'échec : le compte ne revient pas au-dessus du seuil — « ' + chiffre + ' »';
+    }
+
+    // ET RIEN DU TOUT quand la table n’a pas pu être lue : hors ligne, ou une
+    // API plus ancienne qui n’a pas cette route.
+    rareteTable = { dresseurs: 0, entrees: {} };
+    dessinerRarete(entree);
+    if(!ficheRarete.hidden) return 'échec : parle alors qu’aucune table n’a été lue';
+
+    rareteTable = avant;
+    return 'sous le seuil : la note ; au-dessus : le compte ; sans table : rien';
+  });
