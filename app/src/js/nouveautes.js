@@ -20,6 +20,27 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.36.3', date: '2026-09-01',
+    titre: 'La fiche se range, et la rareté cesse de dire n’importe quoi',
+    points: [
+      '**⚠️ La rareté annonçait « Personne d’autre ne l’a » sur des Pokémon '
+      + 'que tout le monde possède.** Le serveur refuse de calculer une rareté '
+      + 'tant qu’il y a moins de cinq collections publiques — « 1 sur 2 » n’est '
+      + 'pas une rareté, c’est un hasard — et l’application prenait ce refus '
+      + 'pour un « personne ne l’a ». Elle dit maintenant ce qu’il en est : '
+      + '*trop peu de collections publiques pour en tirer une rareté*.',
+      '**Tout ce qui parle de TON exemplaire est passé sous le portrait** : la '
+      + 'rareté, « Je le cherche », « L’envoyer à quelqu’un », « Où il est » et '
+      + 'la fiche de capture. La colonne de droite garde ce qui décrit '
+      + 'l’espèce — nom, types, gabarit, numéros, boîte. Elle laissait sous le '
+      + 'Pokémon une plage vide aussi grande que lui.',
+      '**La fiche se lit alignée à gauche.** Le nom se centrait au-dessus de '
+      + 'vingt blocs alignés à gauche : deux mises en page dans le même cadre.',
+      '**Les derniers émojis de la fiche sont dessinés** — l’épingle d’« Où il '
+      + 'est », la manette, la Banque, HOME, et la fiche de capture.',
+    ],
+  },
+  {
     version: '0.36.2', date: '2026-09-01',
     titre: 'Ce que les autres en ont, et ce que tu peux en faire',
     points: [
