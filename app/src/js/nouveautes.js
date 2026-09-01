@@ -20,6 +20,26 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.36.4', date: '2026-09-01',
+    titre: 'La connexion ne paraît plus figée, et la fiche de capture s’ouvre en grand',
+    points: [
+      '**🔑 La connexion Discord semblait bloquée si tu n’étais pas déjà '
+      + 'connecté.** L’application n’attendait que cinq minutes le retour du '
+      + 'navigateur — assez quand il suffit d’autoriser, pas quand Discord '
+      + 'réclame ton mot de passe, une double authentification ou un '
+      + 'changement de compte. Elle attend maintenant dix minutes, et te dit '
+      + 'ce qu’elle attend au lieu de griser son bouton en silence.',
+      '**Et « Annuler » coupe vraiment.** La tentative abandonnée revenait '
+      + 'parfois dix minutes plus tard écrire « délai dépassé » par-dessus '
+      + 'l’écran, ou te connecter alors que tu avais renoncé. Rouvrir la '
+      + 'fenêtre repart de zéro, au lieu d’un bouton grisé sans issue.',
+      '**📋 La fiche de capture s’ouvre en fenêtre.** Elle se dépliait dans la '
+      + 'colonne du Pokémon, où ses dix champs tenaient à l’étroit et '
+      + 'repoussaient tout le reste vers le bas. « Où il est » l’a rejointe : '
+      + 'c’est la même question sur le même exemplaire.',
+    ],
+  },
+  {
     version: '0.36.3', date: '2026-09-01',
     titre: 'La fiche se range, et la rareté cesse de dire n’importe quoi',
     points: [
