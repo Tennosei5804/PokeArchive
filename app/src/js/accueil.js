@@ -373,6 +373,30 @@ function vueShiny(valeur){
   if(typeof setShinyView === 'function') setShinyView(valeur);
 }
 
+/**
+ * Éteint toutes les pages SAUF celle qu'on s'apprête à montrer.
+ *
+ * CE QUE ÇA REMPLACE, ET LE DÉFAUT QUE ÇA CORRIGE. `showPage` éteignait à la
+ * main, avec TROIS listes distinctes — une par branche — qu'il fallait
+ * allonger à chaque page ajoutée. Elles ne l'ont pas été : les Messages, la
+ * Galerie, le Relevé, les Paramètres et six autres manquaient à deux d'entre
+ * elles. Quitter les Messages pour un Pokédex laissait donc les deux écrans
+ * EMPILÉS l'un sous l'autre, la grille au-dessus de la conversation.
+ *
+ * Une boucle sur `.page` n'a rien à tenir à jour : une page ajoutée demain
+ * s'éteindra sans qu'on ait à y penser. Les sous-écrans des Outils portent
+ * `strat-outil` et non `page` — ils ne sont pas concernés.
+ *
+ * ON GARDE LA CIBLE ALLUMÉE plutôt que de tout éteindre puis rallumer :
+ * `.page.active` porte une animation d'entrée, qui rejouerait à chaque appel
+ * sur la page déjà ouverte.
+ */
+function eteindreAutresPages(garde){
+  document.querySelectorAll('.page').forEach(function(p){
+    if(p.id !== garde) p.classList.remove('active');
+  });
+}
+
 function showPage(name){
   // Un objectif ouvert ne survit pas à un changement de page : sa liste est
   // figée pour UN Pokédex, et la garder ailleurs viderait la grille sans que
@@ -396,9 +420,7 @@ function showPage(name){
      || name === 'parametres' || name === 'cadeaux' || name === 'messages'
      || name === 'galerie' || name === 'releve'){
     currentPage = name;
-    pageHomeEl.classList.remove('active');
-    pageDexEl.classList.remove('active');
-    if(pageJeuxEl) pageJeuxEl.classList.remove('active');
+    eteindreAutresPages('page-' + name);
     if(pageDresseursEl) pageDresseursEl.classList.toggle('active', name === 'dresseurs');
     if(pageAmisEl) pageAmisEl.classList.toggle('active', name === 'amis');
     if(pageMessagesEl) pageMessagesEl.classList.toggle('active', name === 'messages');
@@ -444,25 +466,15 @@ function showPage(name){
   // La liste des jeux : le sommaire du Pokédex, pas un Pokédex lui-même.
   if(name === 'jeux'){
     currentPage = 'jeux';
-    pageHomeEl.classList.remove('active');
-    pageDexEl.classList.remove('active');
-    if(pageDresseursEl) pageDresseursEl.classList.remove('active');
-    if(pageAmisEl) pageAmisEl.classList.remove('active');
-    if(pageLieuxEl) pageLieuxEl.classList.remove('active');
+    eteindreAutresPages('page-jeux');
     if(pageJeuxEl) pageJeuxEl.classList.add('active');
     marquerOnglet('jeux');
     renderJeux();
     return;
   }
 
-  if(pageDresseursEl) pageDresseursEl.classList.remove('active');
-  if(pageAmisEl) pageAmisEl.classList.remove('active');
-  if(pageLieuxEl) pageLieuxEl.classList.remove('active');
-  if(pageProfilEl) pageProfilEl.classList.remove('active');
-  if(pageChasseEl) pageChasseEl.classList.remove('active');
-  if(pageJeuxEl) pageJeuxEl.classList.remove('active');
-
   const isHome = (name === 'home');
+  eteindreAutresPages(isHome ? 'page-home' : 'page-dex');
   // Changer de jeu réouvre toujours sur son Pokédex régional : garder la
   // variante du jeu précédent afficherait le mauvais Dex sans prévenir.
   if(name !== currentTab){

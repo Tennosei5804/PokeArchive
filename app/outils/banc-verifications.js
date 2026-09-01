@@ -2478,3 +2478,49 @@ verifier('Les icônes',
     if(avecEmoji.length) return 'échec : émoji revenu dans — ' + avecEmoji.join(', ');
     return COMMANDES.length + ' commandes, toutes dessinées, aucune émoji';
   });
+
+// ---------------------------------------------------------------------------
+
+verifier('La navigation',
+  'Une seule page allumée à la fois, dans les deux sens et depuis chacune',
+  async function(){
+    // LE DÉFAUT, VU À L'ÉCRAN. `showPage` éteignait à la main, avec TROIS
+    // listes distinctes — une par branche — qu'il fallait allonger à chaque
+    // page ajoutée. Elles ne l'ont pas été : les Messages, la Galerie, le
+    // Relevé et six autres manquaient à deux d'entre elles. On quittait les
+    // Messages pour un Pokédex et les deux écrans restaient EMPILÉS, la grille
+    // au-dessus de la conversation.
+    //
+    // ON ÉPROUVE TOUS LES COUPLES, et non un chemin choisi. Le défaut ne
+    // dépendait pas de la page d'arrivée mais de la branche empruntée : le
+    // vérifier sur un seul passage l'aurait manqué neuf fois sur dix.
+    const PAGES = ['home', 'jeux', 'rby', 'chasse', 'amis', 'messages',
+      'galerie', 'releve', 'lieux', 'dresseurs', 'profil', 'parametres',
+      'cadeaux', 'verrous', 'strategie', 'reproduction', 'transferts'];
+
+    const allumees = function(){
+      return Array.prototype.map
+        .call(document.querySelectorAll('.page.active'), function(p){ return p.id; });
+    };
+
+    const fautes = [];
+    for(const depart of PAGES){
+      showPage(depart);
+      for(const arrivee of PAGES){
+        showPage(arrivee);
+        const on = allumees();
+        if(on.length !== 1){
+          fautes.push(depart + ' → ' + arrivee + ' : ' + (on.join(' + ') || 'aucune'));
+          // Une seule suffit à dire le défaut ; les énumérer toutes rendrait un
+          // rapport de deux cents lignes pour une seule cause.
+          if(fautes.length >= 3) break;
+        }
+      }
+      if(fautes.length >= 3) break;
+    }
+
+    showPage('home');
+    if(fautes.length) return 'échec : ' + fautes.join('  ·  ');
+    return PAGES.length + ' pages, ' + (PAGES.length * PAGES.length)
+      + ' passages, jamais deux allumées';
+  });

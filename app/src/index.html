@@ -1626,6 +1626,11 @@
           <div class="surtitre" id="previewMeta"></div>
           <h1 class="nom" id="previewName"></h1>
           <p class="nom-autre" id="ficheNomAutre"></p>
+          <!-- LA FORME QU'ON REGARDE, SOUS LE NOM. Elle vivait en bas, apres le
+               gabarit et le rangement : on basculait en chromatique depuis un
+               bouton pose a six blocs du portrait qu'il change. Sous le nom,
+               elle est a cote de ce qu'elle commande. -->
+          <div class="etats" id="previewStates"></div>
           <div class="types" id="ficheTypes"></div>
           <dl class="gabarit" id="ficheGabarit"></dl>
           <!-- Les numéros régionaux. Le portrait affiche le numéro national ;
@@ -1641,19 +1646,29 @@
                publiques : « un dresseur sur deux » n'est pas une rareté.
                Voir js/rarete.js. -->
           <p class="fiche-rarete" id="ficheRarete" hidden></p>
-          <div class="etats" id="previewStates"></div>
 
-          <!-- « Je cherche » : une intention, pas un inventaire. Masqué sur ce
-               qu'on possède déjà — sauf si l'envie y est encore, pour pouvoir
-               la retirer. Voir js/recherches.js. -->
-          <button class="fiche-cherche" id="ficheCherche" type="button" hidden
-                  aria-pressed="false">Je le cherche</button>
+          <!-- CE QU'ON PEUT FAIRE DE CETTE ESPECE, dans une carte comme celle du
+               rangement juste au-dessus. Les deux boutons etaient poses nus l'un
+               sous l'autre, chacun sur sa ligne, dans la grande plage vide qui
+               suit le portrait : deux pilules perdues au milieu de rien. Une
+               carte les tient ensemble et occupe la place qu'ils laissaient.
 
-          <!-- L'envoyer a quelqu'un, depuis l'ecran ou l'on en parle. Sans ce
-               bouton il fallait quitter la fiche, ouvrir les Messages, puis
-               rechercher l'espece qu'on avait sous les yeux. -->
-          <button class="fiche-cherche" id="ficheEnvoyer" type="button" hidden
-                  >L&rsquo;envoyer &agrave; quelqu&rsquo;un</button>
+               Elle se cache quand les deux boutons se cachent — voir
+               majFicheActions() dans js/recherches.js : un cadre vide serait pire
+               que pas de cadre du tout. -->
+          <div class="fiche-actions" id="ficheActions" hidden>
+            <!-- « Je cherche » : une intention, pas un inventaire. Masqué sur ce
+                 qu'on possède déjà — sauf si l'envie y est encore, pour pouvoir
+                 la retirer. Voir js/recherches.js. -->
+            <button class="fiche-cherche" id="ficheCherche" type="button" hidden
+                    aria-pressed="false">Je le cherche</button>
+
+            <!-- L'envoyer a quelqu'un, depuis l'ecran ou l'on en parle. Sans ce
+                 bouton il fallait quitter la fiche, ouvrir les Messages, puis
+                 rechercher l'espece qu'on avait sous les yeux. -->
+            <button class="fiche-cherche" id="ficheEnvoyer" type="button" hidden
+                    >L&rsquo;envoyer &agrave; quelqu&rsquo;un</button>
+          </div>
 
           <!-- La fiche de capture : ce que TON exemplaire a de particulier.
                Repliée par défaut, et absente tant que l'entrée n'est pas

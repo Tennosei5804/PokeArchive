@@ -20,6 +20,24 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.36.1', date: '2026-09-01',
+    titre: 'Deux pages ne se superposent plus, et la fiche se resserre',
+    points: [
+      '**Correctif : deux écrans pouvaient s’afficher l’un sous l’autre.** '
+      + 'En quittant les Messages pour un Pokédex, la grille se dessinait '
+      + 'au-dessus de la conversation, qui restait là. L’application éteignait '
+      + 'les pages une par une, avec trois listes écrites à la main — et neuf '
+      + 'pages manquaient à deux d’entre elles. Elle les éteint désormais '
+      + 'toutes, sans liste à tenir à jour.',
+      '**Normal et Shiny remontent sous le nom**, juste à côté du portrait '
+      + 'qu’ils changent. Ils vivaient six blocs plus bas, après le gabarit et '
+      + 'le rangement.',
+      '**« Je le cherche » et « L’envoyer à quelqu’un » tiennent dans une '
+      + 'carte**, comme celle qui dit la boîte. Ils étaient posés nus l’un '
+      + 'sous l’autre au milieu de la grande plage vide qui suit le portrait.',
+    ],
+  },
+  {
     version: '0.36.0', date: '2026-09-01',
     titre: 'Des images dans les messages, une galerie, et des icônes dessinées',
     points: [

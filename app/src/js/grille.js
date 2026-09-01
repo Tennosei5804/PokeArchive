@@ -368,6 +368,8 @@ function openPreview(entry, resolvedSrc){
     if(!ficheEnvoyer.classList.contains('avec-ic')) boutonIcone(ficheEnvoyer, 'bulle');
     const possible = typeof messagerieDisponible === 'function' && messagerieDisponible();
     ficheEnvoyer.hidden = !possible;
+    // La carte qui les contient suit ses deux boutons : voir majFicheActions().
+    if(typeof majFicheActions === 'function') majFicheActions();
     ficheEnvoyer.onclick = function(){
       closePreview();
       envoyerEspeceAQuelquun(entry.name);

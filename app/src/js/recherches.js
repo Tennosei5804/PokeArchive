@@ -79,6 +79,7 @@ function dessinerBoutonRecherche(){
   const possede = (typeof activeSet === 'function') && activeSet().has(nom);
   if(possede && !chercheDeja(nom)){
     ficheCherche.hidden = true;
+    majFicheActions();
     return;
   }
 
@@ -90,6 +91,23 @@ function dessinerBoutonRecherche(){
   ficheCherche.title = veut
     ? 'Retirer de ta liste d’envies'
     : 'L’inscrire dans ta liste d’envies, sur la page des amis';
+  majFicheActions();
+}
+
+/**
+ * La carte des actions disparaît quand elle n'a plus rien à porter.
+ *
+ * SES DEUX BOUTONS SE CACHENT CHACUN POUR SA RAISON : « Je le cherche » sur ce
+ * qu'on possède déjà, « L'envoyer à quelqu'un » là où il n'y a pas de
+ * messagerie — le site, les pages de génération. Les deux peuvent donc tomber
+ * en même temps, et un cadre vide serait pire que pas de cadre du tout.
+ */
+function majFicheActions(){
+  const carte = document.getElementById('ficheActions');
+  if(!carte) return;
+  const vivants = Array.prototype.filter
+    .call(carte.querySelectorAll('button'), function(b){ return !b.hidden; });
+  carte.hidden = vivants.length === 0;
 }
 
 // ---- Sur la page des amis ---------------------------------------------------
