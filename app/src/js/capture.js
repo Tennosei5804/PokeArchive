@@ -235,7 +235,9 @@ function majPoigneeCapture(){
   // Tant que l'entrée n'est pas cochée, la poignée n'existe pas : on ne remplit
   // pas la fiche d'un Pokémon qu'on n'a pas.
   captureOuvrir.hidden = !possede;
-  if(captureEmplacement) captureEmplacement.hidden = !possede;
+  // L'emplacement vit DANS la fenetre : c'est elle qui le montre en s'ouvrant.
+  // Le cacher ici le ferait disparaitre sous les yeux de qui la tient ouverte.
+  if(captureEmplacement && !captureOuverte) captureEmplacement.hidden = !possede;
   if(!possede){
     captureBloc.hidden = true;
     captureOuverte = false;
@@ -246,6 +248,7 @@ function majPoigneeCapture(){
   boutonIcone(captureOuvrir, 'fiche', 'Fiche de capture'
     + (n ? '  ·  ' + n + ' champ' + (n > 1 ? 's' : '') : ''));
   captureOuvrir.setAttribute('aria-expanded', String(captureOuverte));
+  captureOuvrir.classList.toggle('actif', captureOuverte);
   captureOuvrir.title = 'Ball, nature, surnom, ruban… ce que cet exemplaire-là a '
     + 'de particulier. Enregistré dans ' + currentDexLabel() + '.';
 }
@@ -301,14 +304,56 @@ function dessinerCapture(){
   }
 }
 
-if(captureOuvrir){
-  captureOuvrir.addEventListener('click', function(){
-    captureOuverte = !captureOuverte;
-    captureBloc.hidden = !captureOuverte;
-    if(captureOuverte) dessinerCapture();
-    majPoigneeCapture();
+// ---- La fenetre -------------------------------------------------------------
+//
+// ELLE ETAIT DEPLIEE DANS LA FICHE, et cela ne tenait plus : une dizaine de
+// champs pousses dans une colonne de 264 px, qui repoussaient vers le bas tout
+// ce qui suivait. Une fenetre lui donne la largeur qu'un formulaire demande, et
+// rend a la fiche sa hauteur.
+
+const captureOverlay = document.getElementById('captureOverlay');
+const captureFermer = document.getElementById('captureFermer');
+const captureSous = document.getElementById('captureSous');
+
+function ouvrirCapture(){
+  if(!captureOverlay || !previewEntry) return;
+  captureOuverte = true;
+  // LE NOM DE L'ESPECE ET LE DEX, dans la fenetre. Sortie de la fiche, elle ne
+  // dit plus d'elle-meme de QUI elle parle : deux fiches ouvertes coup sur coup
+  // donneraient deux fois le meme formulaire sans qu'on sache lequel on remplit.
+  if(captureSous){
+    captureSous.textContent = (typeof nomAffiche === 'function'
+      ? nomAffiche(previewEntry) : previewEntry.name)
+      + '  ·  ' + currentDexLabel();
+  }
+  dessinerEmplacement();
+  if(captureEmplacement) captureEmplacement.hidden = false;
+  captureBloc.hidden = false;
+  dessinerCapture();
+  captureOverlay.style.display = 'flex';
+  majPoigneeCapture();
+  setTimeout(function(){ if(captureFermer) captureFermer.focus(); }, 10);
+}
+
+function fermerCapture(){
+  captureOuverte = false;
+  if(captureOverlay) captureOverlay.style.display = 'none';
+  majPoigneeCapture();
+}
+
+if(captureOuvrir) captureOuvrir.addEventListener('click', ouvrirCapture);
+if(captureFermer) captureFermer.addEventListener('click', fermerCapture);
+if(captureOverlay){
+  // LE FOND FERME, LA CARTE NON. Sans ce test, un clic dans le formulaire
+  // refermait la fenetre qu'on venait d'ouvrir.
+  captureOverlay.addEventListener('click', function(e){
+    if(e.target === captureOverlay) fermerCapture();
   });
 }
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && captureOverlay
+     && captureOverlay.style.display === 'flex') fermerCapture();
+});
 
 /**
  * Appelé à l'ouverture d'une fiche, et à chaque fois qu'on coche depuis elle.
@@ -318,6 +363,9 @@ if(captureOuvrir){
  */
 function reinitCapture(){
   captureOuverte = false;
+  // LA FENETRE SE FERME AVEC LA FICHE. Laissee ouverte d'un Pokemon a l'autre,
+  // elle presenterait les champs du precedent sous le nom du suivant.
+  if(captureOverlay) captureOverlay.style.display = 'none';
   if(captureBloc){ captureBloc.hidden = true; captureBloc.innerHTML = ''; }
   majPoigneeCapture();
 }

@@ -444,8 +444,13 @@ function avatarDiscord(discordId, hash, taille){
 
 // ---- Modale de connexion ----------------------------------------------------
 function ouvrirAuthModal(message){
+  // ON REPART D'UNE FEUILLE BLANCHE. Rouvrir la fenêtre pendant qu'une
+  // tentative court laissait un bouton grisé marqué « Validation dans ton
+  // navigateur… », sans moyen de relancer : la fenêtre paraissait morte.
+  authTentative++;
   authErreur.textContent = message || '';
   authErreur.classList.toggle('visible', Boolean(message));
+  authErreur.classList.remove('patiente');
   authConnexion.disabled = false;
   authLibelle.textContent = 'Se connecter avec Discord';
   authOverlay.style.display = 'flex';
@@ -466,12 +471,37 @@ function marquerSansCompte(){
   document.body.classList.toggle('sans-compte', !sessionOuverte);
 }
 
+/**
+ * Le numero de la tentative en cours.
+ *
+ * POURQUOI UN COMPTEUR. « Annuler » ferme la fenêtre mais n'arrête pas
+ * l'écoute : elle vit dans le Rust et attend son retour jusqu'au bout. La
+ * promesse abandonnée finissait donc par retomber, dix minutes plus tard, sur
+ * une interface qui était passée à autre chose — en écrivant « délai
+ * dépassé » par-dessus une session peut-être ouverte entre-temps, ou en
+ * connectant quelqu'un qui avait renoncé.
+ *
+ * Chaque tentative prend un numéro ; celles qui ne portent plus le dernier se
+ * taisent en revenant.
+ */
+let authTentative = 0;
+
 authConnexion.addEventListener('click', async function(){
+  const mienne = ++authTentative;
   authConnexion.disabled = true;
   authLibelle.textContent = 'Validation dans ton navigateur…';
-  authErreur.classList.remove('visible');
+  // CE QUI SE PASSE, ET COMBIEN DE TEMPS ON ATTEND. Le bouton se grisait sans
+  // un mot : si Discord demandait de se connecter d'abord — mot de passe,
+  // double authentification, changement de compte — l'application paraissait
+  // figée pendant tout ce temps.
+  authErreur.textContent = 'Discord peut te demander de te connecter d’abord : '
+    + 'prends le temps qu’il faut, PokéArchive attend dix minutes. Reviens ici '
+    + 'une fois l’autorisation donnée.';
+  authErreur.classList.add('visible', 'patiente');
   try{
     await invoke('connexion');
+    if(mienne !== authTentative) return;   // annulée, ou doublée par une autre
+    authErreur.classList.remove('patiente');
     const data = await invoke('moi');
     appliquerDresseur(data.dresseur);
     // Le dex du compte fait foi : c'est celui qu'on a laissé en partant du
@@ -482,6 +512,8 @@ authConnexion.addEventListener('click', async function(){
     renderList(true);
     updateHome();
   }catch(e){
+    if(mienne !== authTentative) return;   // on a renoncé : on ne dit rien
+    authErreur.classList.remove('patiente');
     authErreur.textContent = String(e);
     authErreur.classList.add('visible');
     authConnexion.disabled = false;
@@ -1270,8 +1302,13 @@ document.getElementById('menuReset').addEventListener('click', async function(){
 // Discord n'a pas répondu, et l'application paraît bloquée alors qu'elle
 // attend simplement une validation dans le navigateur.
 document.getElementById('authAnnuler').addEventListener('click', function(){
+  // LA TENTATIVE EN COURS EST ABANDONNEE. L'écoute Rust continue jusqu'à son
+  // terme — on ne peut pas l'interrompre d'ici — mais son retour ne touchera
+  // plus à rien : le numéro qu'elle porte n'est plus le dernier.
+  authTentative++;
   fermerAuthModal();
   authConnexion.disabled = false;
+  authErreur.classList.remove('patiente');
   authLibelle.textContent = 'Se connecter avec Discord';
   // Sans compte il n'y a rien à enregistrer : on le dit dans le bandeau plutôt
   // que de laisser croire à une application prête à l'emploi.

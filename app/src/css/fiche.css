@@ -613,17 +613,15 @@ table.paliers-table{
    Trois boutons, un seul clic. C'est le champ qu'on met a jour le plus
    souvent — a chaque transfert — et il merite d'etre devant, pas au fond
    d'une fiche repliee. */
-/* DANS LA COLONNE DE GAUCHE, sous la carte. C'est un reglage de TON exemplaire,
-   comme les deux boutons au-dessus, et non une donnee de l'espece comme tout ce
-   que porte la colonne de droite.
-
-   Le titre prend sa ligne : sur 264 px, laisse en tete de rangee il poussait le
-   premier bouton a la ligne suivante et laissait un trou a cote de lui. */
+/* DANS LA FENETRE, en tete. « Ou il est » et « ce qu'il a de particulier » sont
+   deux reponses sur le meme exemplaire : les separer obligeait a les tenir a
+   jour a deux endroits de l'ecran. */
 .capture-ou{
-  display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-top:0;
+  display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:0;
+  padding-bottom:12px; border-bottom:1px solid var(--card-border);
 }
 .capture-ou .capture-ou-titre{
-  flex:0 0 100%; margin:0 0 1px;
+  flex:0 0 100%; margin:0 0 2px;
   display:flex; align-items:center; gap:5px;
 }
 .capture-ou[hidden]{ display:none; }
@@ -653,16 +651,28 @@ table.paliers-table{
   background:var(--gold); border-color:var(--gold); color:#231d05;
 }
 
-/* DANS LA COLONNE DE GAUCHE, en rangee pleine largeur comme les deux boutons
-   de la carte au-dessus. Elle etait une petite pilule alignee a gauche dans une
-   colonne large : ici elle serait la seule a ne pas aller au bout. */
-.capture-poignee{
-  align-self:stretch; margin-top:0;
-  display:flex; align-items:center; gap:7px;
-  padding:7px 12px 8px; cursor:pointer;
-  border:1px dashed var(--card-border); border-radius:999px;
-  background:transparent; color:var(--ink-soft);
-  font-family:var(--font-data); font-size:10.5px; letter-spacing:.03em;
+/* LA FENETRE DE LA FICHE DE CAPTURE. Plus large que la colonne ou vivait le
+   formulaire, et bornee en hauteur : une dizaine de champs sur un portable
+   depassent l'ecran, et un formulaire qu'on ne peut pas faire defiler est un
+   formulaire qu'on ne peut pas finir.
+
+   AU-DESSUS DE LA FICHE, ET IL FAUT LE DIRE. Toutes les modales partagent le
+   meme z-index ; a egalite, c'est l'ordre du document qui tranche, et celle-ci
+   est declaree avant la fiche. Elle s'ouvrait donc DERRIERE elle : le clic
+   marchait, la fenetre existait, on ne voyait rien. Elle s'ouvre depuis la
+   fiche, elle passe devant. */
+#captureOverlay{ z-index:60; }
+.capture-fenetre{
+  width:100%; max-width:560px;
+  max-height:88vh; overflow-y:auto;
+  text-align:left; position:relative;
+}
+.capture-fenetre .modal-note{ margin:0 0 14px; }
+/* Dans la fenetre, le bloc n'a plus de liseré : il EST la fenetre, et un cadre
+   dans un cadre ne dit rien de plus. */
+.capture-fenetre .capture-bloc{
+  margin-top:12px; padding:0;
+  background:none; border:0; border-left:0;
 }
 .capture-poignee:hover{ border-color:var(--gold); color:var(--gold); }
 .capture-poignee:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }

@@ -1597,6 +1597,31 @@
   </div>
 </div>
 
+<!-- LA FICHE DE CAPTURE, EN FENÊTRE. Elle vivait dépliée dans la fiche : une
+     dizaine de champs poussés dans une colonne de 264 px, qui repoussaient tout
+     ce qui suivait. Une fenêtre lui donne la largeur qu'un formulaire demande,
+     et rend à la fiche sa hauteur.
+
+     L'EMPLACEMENT EST DEDANS, en tête : « où il est » et « ce qu'il a de
+     particulier » sont deux réponses sur le même exemplaire, et les séparer
+     obligeait à les tenir à jour à deux endroits de l'écran. -->
+<div class="modal-overlay" id="captureOverlay" style="display:none;" role="dialog"
+     aria-modal="true" aria-labelledby="captureTitre">
+  <div class="modal-card capture-fenetre">
+    <button class="preview-close" id="captureFermer" type="button" aria-label="Fermer">✕</button>
+    <div class="modal-eyebrow">Ton exemplaire</div>
+    <h3 class="modal-title" id="captureTitre">Fiche de capture</h3>
+    <p class="modal-note" id="captureSous"></p>
+
+    <!-- Où l'exemplaire se trouve EN CE MOMENT : dans le jeu, dans la Banque, ou
+         déjà dans HOME. Un clic, pas un menu — c'est ce qu'on met à jour le plus
+         souvent. Rempli par dessinerEmplacement(). -->
+    <div class="capture-ou" id="captureEmplacement" hidden></div>
+
+    <div class="capture-bloc" id="captureBloc" hidden></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="previewOverlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="previewName">
   <div class="preview-card fiche">
     <button class="preview-close fiche-fermer" id="previewClose" type="button" aria-label="Fermer">✕</button>
@@ -1653,30 +1678,17 @@
                  rechercher l'espece qu'on avait sous les yeux. -->
             <button class="fiche-cherche" id="ficheEnvoyer" type="button" hidden
                     >L&rsquo;envoyer &agrave; quelqu&rsquo;un</button>
+
+            <!-- La fiche de capture : ce que TON exemplaire a de particulier.
+                 Absente tant que l'entrée n'est pas cochée — un débutant ne doit
+                 jamais la croiser. Elle ouvre une FENÊTRE : dépliée sur place,
+                 elle poussait tout le reste de la colonne vers le bas et se
+                 lisait sur 264 px, alors que c'est un formulaire d'une dizaine
+                 de champs. Voir js/capture.js. -->
+            <button class="fiche-cherche" id="captureOuvrir" type="button" hidden
+                    aria-haspopup="dialog" aria-expanded="false"
+                    aria-controls="captureOverlay">Fiche de capture</button>
           </div>
-
-          <!-- Où l'exemplaire se trouve EN CE MOMENT : dans le jeu, dans la
-               Banque, ou déjà dans HOME. Un clic, pas un menu — c'est ce qu'on
-               met à jour le plus souvent. Rempli par dessinerEmplacement().
-
-               SOUS LA CARTE, DANS LA COLONNE DE GAUCHE : c'est un réglage de TON
-               exemplaire, comme les deux boutons juste au-dessus, et non une
-               donnée de l'espèce comme tout ce que porte la colonne de droite. -->
-          <div class="capture-ou" id="captureEmplacement" hidden></div>
-
-          <!-- La fiche de capture : ce que TON exemplaire a de particulier.
-               Repliée par défaut, et absente tant que l'entrée n'est pas
-               cochée — un débutant ne doit jamais la croiser.
-               Voir js/capture.js.
-
-               ELLE SUIT SON BOUTON DANS LA COLONNE DE GAUCHE. Le laisser à
-               droite aurait mis la poignée d'un côté et ce qu'elle ouvre de
-               l'autre. Le formulaire s'y range sans mal : ses champs sont en
-               `auto-fit` à partir de 140 px, ils passent d'eux-mêmes sur une
-               seule colonne. -->
-          <button class="capture-poignee" id="captureOuvrir" type="button" hidden
-                  aria-expanded="false" aria-controls="captureBloc">Fiche de capture</button>
-          <div class="capture-bloc" id="captureBloc" hidden></div>
         </div>
 
         <div class="identite-corps">

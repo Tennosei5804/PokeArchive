@@ -520,6 +520,11 @@
     line-height:1.35;
   }
   .modal-error.visible{ display:block; }
+  /* UNE ATTENTE N'EST PAS UNE ERREUR. Le meme element porte les deux — il n'y
+     en a qu'un dans cette fenetre — mais « Discord peut te demander de te
+     connecter d'abord » en rouge vif se lit comme un echec, alors que tout se
+     passe bien. En gris, c'est ce que c'est : une explication. */
+  .modal-error.patiente{ color:var(--ink-soft); font-weight:500; }
   .modal-card input.invalid{ border-color:var(--danger); }
   .modal-sub strong{ color:var(--ink); font-weight:700; }
   .modal-sub code{

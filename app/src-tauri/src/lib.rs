@@ -37,7 +37,18 @@ const PORT_MAX: u16 = 8749;
 /// Au-delà, on suppose que la personne a renoncé devant Discord. Cinq minutes
 /// et non trois : il faut le temps de basculer sur le navigateur, de s'y
 /// connecter si ce n'est pas déjà fait, et de lire l'écran d'autorisation.
-const ATTENTE_MAX: Duration = Duration::from_secs(300);
+/// DIX MINUTES, ET NON CINQ. Le compte a rebours partait a l'ouverture du
+/// navigateur, et cinq minutes suffisent tant qu'on est deja connecte a
+/// Discord : on clique, on autorise, c'est fini. Elles ne suffisent pas quand
+/// Discord demande de SE CONNECTER d'abord — mot de passe, double
+/// authentification, parfois un changement de compte. L'ecoute abandonnait
+/// pendant que la personne tapait son mot de passe, et le retour de Discord
+/// arrivait sur un port que plus personne n'ecoutait : la fenetre du navigateur
+/// affichait une erreur de connexion, l'application un delai depasse.
+///
+/// Dix minutes, c'est aussi la duree de vie de l'etat cote API : attendre plus
+/// longtemps ne servirait a rien, le serveur aurait deja oublie la demande.
+const ATTENTE_MAX: Duration = Duration::from_secs(600);
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Session {
