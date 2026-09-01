@@ -19,6 +19,14 @@
     --caught:#2f9e63;
     --caught-soft:#e5f6ec;
     --danger:#c93a2e;
+    /* Deux teintes qui ne servent QU'AUX ICONES. La palette n'avait ni bleu ni
+       violet, et n'en avait pas besoin tant que tout etait rouge, or et vert ;
+       mais une dizaine de gestes a distinguer ne tient pas sur trois teintes.
+       Mesures de contraste sur --card et --screen : 4.9 et 4.7 pour le bleu,
+       5.1 et 4.9 pour le violet — au-dessus du 3:1 attendu d'un element
+       d'interface, et lisibles a seize pixels. */
+    --ic-bleu:#2f74c9;
+    --ic-violet:#7a5bc4;
     --font-display:"Press Start 2P", monospace;
     --font-body:"Outfit", -apple-system, "Segoe UI", sans-serif;
     --font-data:"JetBrains Mono", "SF Mono", Consolas, monospace;
@@ -72,6 +80,10 @@
     --caught:#2f9e63;
     --caught-soft:#1d3b2b;
     --danger:#e4665a;
+    /* Eclaircis en sombre : les memes valeurs qu'en clair tombent a 2.1 sur
+       --card, sous le seuil. */
+    --ic-bleu:#5fa2e8;
+    --ic-violet:#a58ae0;
     --ombre:0 30px 60px -20px rgba(0,0,0,.6);
   }
   html[data-theme="dark"] body{ background:#0e0f14; }
@@ -884,6 +896,51 @@
    · `flex-shrink:0` l'empeche de s'ecraser dans un bouton trop etroit — un
      rond de Poke Ball devenu ovale se voit tout de suite. */
 .ic{ display:inline-block; vertical-align:-.18em; flex-shrink:0; }
+
+/* LES DEUX ENCRES. Le contour suit le texte du bouton — donc le survol, le
+   theme, l'etat actif — et ce qui porte `teinte` ou `aplat` prend la couleur
+   propre de l'icone. Sans teinte declaree, les deux se confondent : une icone
+   non coloree reste exactement ce qu'elle etait. */
+.ic{ fill:none; stroke:currentColor; }
+.ic .teinte{ stroke:var(--ic-teinte, currentColor); }
+.ic .aplat{ fill:var(--ic-teinte, currentColor); stroke:none; }
+
+/* Une couleur par icone, et rien d'autre dans ce bloc. Le rapprochement est
+   voulu : c'est une palette, elle se relit d'un coup d'oeil, et une teinte qui
+   detonne se voit ici plutot qu'a l'ecran. */
+.ic-balle{ --ic-teinte:var(--dex-red); }
+.ic-appareil{ --ic-teinte:var(--gold); }
+.ic-image{ --ic-teinte:var(--gold); }
+.ic-televerser{ --ic-teinte:var(--ic-bleu); }
+.ic-loupe{ --ic-teinte:var(--ic-bleu); }
+.ic-bulle{ --ic-teinte:var(--ic-bleu); }
+.ic-cloche{ --ic-teinte:var(--gold); }
+.ic-echange{ --ic-teinte:var(--gold); }
+.ic-cadeau{ --ic-teinte:var(--dex-red); }
+.ic-oeil{ --ic-teinte:var(--ic-bleu); }
+.ic-cadenas{ --ic-teinte:var(--gold); }
+.ic-corbeille{ --ic-teinte:var(--danger); }
+.ic-croix{ --ic-teinte:var(--danger); }
+.ic-coche{ --ic-teinte:var(--caught); }
+.ic-etincelle{ --ic-teinte:var(--gold); }
+.ic-sablier{ --ic-teinte:var(--gold); }
+.ic-boite{ --ic-teinte:var(--ic-violet); }
+.ic-crayon{ --ic-teinte:var(--ic-violet); }
+.ic-poignee{ --ic-teinte:var(--caught); }
+.ic-disque{ --ic-teinte:var(--ink-soft); }
+
+/* LA OU LA TEINTE GENE, ON L'ETEINT. Trois endroits, trois raisons :
+   · le bandeau rouge de l'en-tete — une cloche doree y devient illisible ;
+   · un bouton deja tout entier de sa couleur — la croix blanche sur le rouge
+     du survol, ou la teinte ferait une seconde couleur dans la meme forme ;
+   · un bouton actif, ou l'icone doit suivre l'etat et non le contredire. */
+.cloche-btn .ic,
+.msg-jointe-oter:hover .ic,
+.ami-retirer:hover .ic,
+.btn-ic.on .ic,
+.toggle-btn.active .ic,
+.toggle-btn.primary .ic,
+.etat.actif .ic{ --ic-teinte:currentColor; }
 
 /* Un bouton qui porte une icone ET un mot. L'ecart est ici et non dans une
    marge sur l'icone : la marge se serait ajoutee au bourrage du bouton dans les

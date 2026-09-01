@@ -1795,12 +1795,27 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 /* Sans photo : une invitation discrete. Elle ne doit pas attirer l'oeil plus
    que la ligne elle-meme — on vient lire un tableau de chasse, pas remplir un
    album. */
-/* Elle porte maintenant un dessin et non un caractere : plus de font-size a
-   regler, et le trait prend la couleur du texte comme partout ailleurs. */
+/* LA CASE VIDE EST UNE INVITATION, PAS UN TROU. Elle etait un cadre en
+   pointilles a moitie transparent : un manque, et rien d'autre. Elle porte
+   maintenant un fond degrade et un appareil photo dont l'objectif est dore —
+   assez pour qu'on sache qu'on peut cliquer, assez discret pour ne pas voler la
+   ligne, qui reste un tableau de chasse et non un album.
+
+   PAS D'OPACITE GLOBALE : elle eteignait la teinte de l'objectif avec le reste.
+   La discretion vient du fond et de la bordure, pas d'un voile pose dessus. */
 .chasse-photo.vide{
-  border-style:dashed; color:var(--ink-soft); opacity:.5;
+  border-style:dashed; border-color:var(--card-border);
+  color:var(--ink-faint);
+  background:linear-gradient(140deg,
+    color-mix(in srgb, var(--gold) 7%, var(--screen)) 0%,
+    var(--screen) 62%);
 }
-.chasse-photo.vide:hover{ opacity:1; transform:none; }
+.chasse-photo.vide:hover{
+  transform:none; border-color:var(--gold); color:var(--ink-soft);
+  background:linear-gradient(140deg,
+    color-mix(in srgb, var(--gold) 16%, var(--screen)) 0%,
+    var(--screen) 70%);
+}
 
 /* La visionneuse. Fond noir plutot que la carte habituelle : une capture de jeu
    se regarde sur du sombre, et le cadre clair lui volerait ses couleurs. */
@@ -2417,9 +2432,12 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   font-family:var(--font-body); font-size:11px; color:var(--ink);
 }
 .msg-photo-choix:hover{ border-color:var(--gold); }
+/* Le cadre est pose AVANT que la photo arrive — chaque vignette est un
+   aller-retour derriere un jeton. Un degrade plutot qu'un gris plat : on voit
+   qu'une image se prepare, au lieu d'un carre mort. */
 .msg-photo-choix img{
   width:100%; height:62px; object-fit:cover; border-radius:5px;
-  background:var(--card-border);
+  background:linear-gradient(140deg, var(--card-border), var(--screen));
 }
 .msg-photo-choix span{
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left;
@@ -2433,10 +2451,17 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 }
 .msg-photo:hover{ border-color:var(--gold); }
 .msg-photo img{ display:block; width:100%; max-height:220px; object-fit:cover; }
+/* La photo qu'on ne peut plus ouvrir : effacee depuis, ou l'aventure repassee
+   en privee. Une carte a part entiere plutot qu'une ligne de texte — le message
+   parlait d'une image, et son absence merite la meme place qu'elle. */
 .msg-photo.vide{
-  display:flex; align-items:center; gap:7px;
-  padding:9px 11px; cursor:default; text-align:left;
-  font-family:var(--font-body); font-size:12px; color:var(--ink-soft);
+  display:flex; align-items:center; gap:8px;
+  padding:11px 13px; cursor:default; text-align:left;
+  border-style:dashed; color:var(--ink-faint);
+  background:linear-gradient(140deg,
+    color-mix(in srgb, var(--ink-soft) 6%, var(--card)) 0%,
+    var(--card) 70%);
+  font-family:var(--font-body); font-size:12px;
 }
 
 /* La colonne de droite pendant qu'un fichier la survole. Un liseré, pas un
