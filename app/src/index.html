@@ -923,12 +923,19 @@
                    hidden>
 
             <div class="discussion-ecrire" id="msgZone" hidden>
-              <button class="btn-ic msg-joindre" id="msgJoindre" type="button"
-                      title="Joindre un Pokémon à ton message"
-                      aria-label="Joindre un Pokémon"></button>
-              <button class="btn-ic msg-joindre" id="msgPhotoBtn" type="button"
-                      title="Joindre une image — de ton ordinateur ou d’une chasse"
-                      aria-label="Joindre une image"></button>
+              <!-- LES DEUX PIÈCES JOINTES DANS UN SEUL CADRE. Elles font le même
+                   geste — accrocher quelque chose au message — et posées côte à
+                   côte sans rien autour, elles flottaient sous un champ dont
+                   elles n'atteignaient pas la hauteur. Le cadre s'étire sur
+                   toute la rangée ; chaque bouton garde le sien à l'intérieur. -->
+              <div class="msg-outils">
+                <button class="btn-ic msg-joindre" id="msgJoindre" type="button"
+                        title="Joindre un Pokémon à ton message"
+                        aria-label="Joindre un Pokémon"></button>
+                <button class="btn-ic msg-joindre" id="msgPhotoBtn" type="button"
+                        title="Joindre une image — de ton ordinateur ou d’une chasse"
+                        aria-label="Joindre une image"></button>
+              </div>
               <textarea id="msgTexte" rows="2" maxlength="1000"
                         placeholder="Ton message… (Entrée pour envoyer)"
                         aria-label="Ton message"></textarea>

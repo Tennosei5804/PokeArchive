@@ -929,12 +929,10 @@
 .ic-poignee{ --ic-teinte:var(--caught); }
 .ic-disque{ --ic-teinte:var(--ink-soft); }
 
-/* LA OU LA TEINTE GENE, ON L'ETEINT. Trois endroits, trois raisons :
-   · le bandeau rouge de l'en-tete — une cloche doree y devient illisible ;
+/* LA OU LA TEINTE GENE, ON L'ETEINT. Deux endroits, deux raisons :
    · un bouton deja tout entier de sa couleur — la croix blanche sur le rouge
      du survol, ou la teinte ferait une seconde couleur dans la meme forme ;
    · un bouton actif, ou l'icone doit suivre l'etat et non le contredire. */
-.cloche-btn .ic,
 .msg-jointe-oter:hover .ic,
 .ami-retirer:hover .ic,
 .btn-ic.on .ic,
@@ -947,18 +945,26 @@
    cas ou il n'y a pas de mot. */
 .avec-ic{ display:inline-flex; align-items:center; gap:7px; }
 
-/* ---- Le bouton nu, celui qui ne porte qu'une icone --------------------------
-   Carre, pose sur rien, et qui ne se dessine qu'au survol. Il en existe une
-   demi-douzaine dans l'application — joindre, retirer, l'entraide — et ils
-   avaient chacun leur taille et leur bordure. */
+/* ---- Le bouton a icone seule ------------------------------------------------
+   Il en existe une demi-douzaine dans l'application — joindre un Pokemon, une
+   image — et ils avaient chacun leur taille et leur bordure.
+
+   IL PORTE SON CADRE AU REPOS, et c'etait une erreur de le lui retirer. Pose
+   sur rien, il ne se dessinait qu'au survol : deux dessins flottant sous le
+   champ, que rien ne designait comme cliquables tant qu'on ne passait pas
+   dessus par hasard. Une icone n'est pas un bouton ; c'est le cadre qui le dit.
+
+   Le meme fond et la meme bordure que le champ de saisie a cote : ils
+   appartiennent a la meme rangee, et deux traitements differents les auraient
+   separes en deux objets. */
 .btn-ic{
   display:inline-grid; place-items:center;
   width:34px; height:34px; padding:0; flex-shrink:0;
-  border:1px solid transparent; border-radius:10px;
-  background:transparent; color:var(--ink-soft); cursor:pointer;
+  border:1px solid var(--card-border); border-radius:10px;
+  background:var(--screen); color:var(--ink-soft); cursor:pointer;
   transition:color 120ms, background 120ms, border-color 120ms;
 }
-.btn-ic:hover{ color:var(--ink); background:var(--screen); border-color:var(--card-border); }
+.btn-ic:hover{ color:var(--ink); border-color:var(--gold); }
 .btn-ic:focus-visible{ outline:2px solid var(--dex-red); outline-offset:2px; }
 .btn-ic:disabled{ opacity:.45; cursor:default; }
 .btn-ic.on{ color:var(--gold); border-color:var(--gold); background:var(--screen); }
@@ -988,6 +994,12 @@
     transition:background 120ms;
   }
   .cloche-dessin{ display:grid; place-items:center; }
+  /* L'ORANGE DE LA CLOCHE EST UNE VALEUR FIXE, et non le jeton --gold. Elle est
+     posee sur le bandeau, dont le rouge et le blanc ne suivent pas le theme :
+     un jeton qui s'assombrit en mode clair y perdrait le peu de contraste qu'il
+     a. La mesure est faite sur le fond reel du bouton — rgba(0,0,0,.18) sur le
+     rouge — et non sur --card. */
+  .cloche-btn .ic{ --ic-teinte:#ffb43a; }
   .cloche-btn:hover{ background:rgba(0,0,0,.32); }
   .cloche-btn:focus-visible{ outline:2.5px solid #fff; outline-offset:2px; }
   .cloche-btn.sonne{ animation:cloche-secoue 620ms ease-in-out; }

@@ -2322,11 +2322,24 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 /* ---- Joindre un Pokémon à un message ----------------------------------------
    Le joint et sa recherche vivent AU-DESSUS du champ, pas dedans : on doit voir
    ce qu'on s'apprête à envoyer avant de l'envoyer, et pouvoir le retirer. */
-/* Les deux boutons de piece jointe. Ils etaient des `toggle-btn` — un cadre
-   plein, de la hauteur d'« Envoyer », pour un seul caractere. Ils sont
-   maintenant nus, alignes EN BAS du champ : le champ grandit avec le texte, et
-   des boutons centres se seraient mis a flotter en son milieu. */
-.msg-joindre{ align-self:flex-end; }
+/* LE CADRE COMMUN DES PIECES JOINTES. Il s'etire sur toute la hauteur de la
+   rangee — donc du champ de saisie, qui la fixe — et les deux boutons s'y
+   centrent. Poses seuls, ils flottaient sous un champ dont ils n'atteignaient
+   pas la hauteur : deux petits carres et un grand rectangle, trois objets pour
+   une seule rangee.
+
+   Meme bordure et meme rayon que le champ : c'est un bloc de la rangee, pas une
+   piece rapportee. Le fond, lui, est celui de la CARTE et non de l'ecran, pour
+   que les boutons qu'il contient — eux sur --screen — s'en detachent. */
+.msg-outils{
+  display:flex; align-items:center; gap:6px;
+  align-self:stretch; flex-shrink:0;
+  padding:0 6px; border-radius:8px;
+  border:1px solid var(--card-border); background:var(--card);
+}
+/* Un peu plus petits que le bouton a icone ordinaire : ils vivent DANS un
+   cadre, et la taille pleine ne laissait plus de marge autour d'eux. */
+.msg-joindre{ width:30px; height:30px; border-radius:7px; }
 .msg-joindre,
 .msg-jointe-oter{ -webkit-appearance:none; appearance:none; }
 .msg-joindre .ic{ vertical-align:0; }
