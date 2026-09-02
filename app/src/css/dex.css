@@ -1216,6 +1216,14 @@
   object-fit:fill;
   align-self:center;
 }
+/* Le rendu HOME anime est decoupe au sujet lui aussi — 437 x 449 pour Pikachu,
+   545 x 1081 pour l'entree n° 1000 — et porte donc sa taille dans ses
+   dimensions. Meme traitement, sans `pixelated` : ce sont des modeles 3D, pas
+   du pixel art, et les agrandir au plus proche voisin les rendrait crenele. */
+.card img[data-stage="home-anime"]{
+  object-fit:fill;
+  align-self:center;
+}
 /* QUI A DEMANDE MOINS DE MOUVEMENT NE DOIT PAS EN TROUVER ICI. Le reglage est
    deja consulte pour decider de l'etat de depart du bouton, mais quelqu'un peut
    l'activer apres coup, ou changer d'avis en cours de session. On ne peut pas

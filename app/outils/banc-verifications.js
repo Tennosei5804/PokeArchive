@@ -2823,12 +2823,10 @@ verifier('Le style des images',
     // independants dont rien ne disait qu'ils se croisaient ; deux des quatre
     // combinaisons ne se devinaient pas.
     //
-    // ET LE QUATRIEME NE SE POSE PAS COMME LES AUTRES, pour une raison mesuree :
-    // le rendu HOME anime pese 731 Ko pour Pikachu et 3 568 Ko pour l'entree
-    // n° 1000, contre 77 Ko pour le fixe. Cinquante-cinq vignettes visibles, ce
-    // sont des dizaines de megaoctets et autant de decodages en boucle — la
-    // charge continue qu'on vient justement de chasser de cette application.
-    // La grille pose donc le fixe et n'echange qu'au survol.
+    // ET LES DEUX ANIMES PORTENT LEUR ECHELLE, chacun rapporte a sa propre
+    // reference : un sprite de combat tient dans 166 pixels, un rendu HOME en
+    // demande 1081. Les rapporter au meme maximum rendrait les sprites
+    // minuscules — d'ou deux nombres et non un.
     const avant = styleSprite;
     const jeuAvecSprites = GAMES.find(function(g){ return !!spritesDuJeu(g.key); });
     const jeuSans = GAMES.find(function(g){ return !spritesDuJeu(g.key); });
@@ -2938,6 +2936,32 @@ verifier('Le style des images',
       return 'échec : ce n’est pas le rendu animé — ' + img.src;
     }
 
+    // L'ECHELLE DU HOME ANIME SE VERIFIE SUR LE CALCUL, et non en chargeant la
+    // grille : ces rendus pesent des megaoctets piece, et un banc n'a pas a en
+    // tirer trente. Les tailles ci-dessous sont relevees chez PokeOS —
+    // Pikachu 437 x 449, l'entree n° 1000 545 x 1081.
+    if(HOME_ANIME_REF <= ANIME_REF){
+      styleSprite = avant; renderList(true);
+      return 'échec : une seule référence pour deux découpes — ' + ANIME_REF
+        + ' et ' + HOME_ANIME_REF;
+    }
+    const mesure = function(l, h, ref){
+      const faux = { naturalWidth: l, naturalHeight: h, style: {} };
+      poserEchelleAnime(faux, ref);
+      return parseFloat(faux.style.width) || 0;
+    };
+    const pika = mesure(437, 449, HOME_ANIME_REF);
+    const mille = mesure(545, 1081, HOME_ANIME_REF);
+    if(!pika || !mille || pika >= mille){
+      styleSprite = avant; renderList(true);
+      return 'échec : le rendu HOME animé n’est pas mis à l’échelle — 437px à '
+        + pika + '%, 545px à ' + mille + '%';
+    }
+    if(mesure(166, 96, ANIME_REF) !== 100){
+      styleSprite = avant; renderList(true);
+      return 'échec : le plus grand sprite de combat ne remplit plus sa case';
+    }
+
     img.loading = 'eager';
     img.src = 'https://s3.pokeos.com/pokeos-uploads/assets/pokemon/home/animated/999999.gif';
     await new Promise(function(r){ setTimeout(r, 3000); });
@@ -2946,7 +2970,35 @@ verifier('Le style des images',
       return 'échec : un rendu animé absent laisse la carte vide';
     }
 
+    // ET LE DESSIN NE SE RAPPELLE PAS LUI-MEME. Le menu du style est un
+    // <select> cache double d'un menu stylise ; pour les tenir d'accord, on a
+    // un temps simule un « change » sur le cache. Mais majMenuStyle() est
+    // appelee par renderList() a chaque dessin : l'evenement reveillait
+    // l'ecouteur du menu, qui rappelle renderList(), qui rappelle
+    // majMenuStyle(). Un seul changement d'onglet empilait quarante-quatre
+    // dessins de grille, et le site — qui recharge sa page plusieurs fois de
+    // suite — tombait en « Maximum call stack size exceeded ».
+    //
+    // On compte donc les appels : un changement d'onglet en vaut une poignee,
+    // pas quarante.
+    const vraiMaj = window.majMenuStyle;
+    let appels = 0;
+    window.majMenuStyle = function(){ appels++; return vraiMaj.apply(this, arguments); };
+    try{
+      showPage(jeuAvecSprites.key);
+      await new Promise(function(r){ setTimeout(r, 250); });
+    } finally {
+      window.majMenuStyle = vraiMaj;
+    }
+    if(appels > 8){
+      styleSprite = avant; renderList(true);
+      return 'échec : le dessin se rappelle lui-même — ' + appels
+        + ' passages dans le menu du style pour un seul changement d’onglet';
+    }
+
     styleSprite = avant;
     renderList(true);
-    return 'quatre styles, gen5ani sur son Pokédex, échelle rendue, HOME animé en continu';
+    return 'quatre styles, gen5ani sur son Pokédex, les deux échelles, '
+      + 'HOME animé en continu, et ' + appels + ' dessin' + (appels > 1 ? 's' : '')
+      + ' par onglet';
   });

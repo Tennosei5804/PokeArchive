@@ -820,8 +820,18 @@ function majMenuStyle(){
     }
   });
   menu.value = styleSprite;
-  // Le menu stylise recopie l'etat du <select> cache : il faut le prevenir.
-  menu.dispatchEvent(new Event('change', { bubbles: false }));
+  // LE MENU STYLISE RECOPIE L'ETAT DU <select> CACHE, et on le lui dit par
+  // syncSelects() — surtout pas en simulant un « change ».
+  //
+  // UN « change » SIMULE ICI FAISAIT UNE BOUCLE. Cette fonction est appelee par
+  // renderList() a chaque dessin ; l'evenement reveillait l'ecouteur d'en
+  // dessous, qui rappelle renderList(), qui rappelle cette fonction. Un simple
+  // changement d'onglet empilait quarante-quatre dessins de grille, et le site
+  // — qui recharge sa page plusieurs fois de suite — finissait en
+  // « Maximum call stack size exceeded ». C'est exactement pour ce cas que
+  // menus.js expose syncSelects() : une valeur posee par le code se
+  // resynchronise a la demande, sans faire croire a personne qu'on a clique.
+  if(typeof syncSelects === 'function') syncSelects();
 }
 
 (function(){
@@ -848,6 +858,15 @@ function majMenuStyle(){
 // en occupe le quart. C'est le rapport qu'ils ont dans le jeu.
 const ANIME_REF = 166;
 
+// ET CELLE DU RENDU HOME ANIME, releve de la meme facon : n° 1000 en 545 x 1081,
+// n° 1008 en 695 x 1051, Meloetta 959 x 635, Pikachu 437 x 449.
+//
+// DEUX REFERENCES ET NON UNE : les deux jeux d'images sont decoupes au sujet,
+// mais pas a la meme resolution. Un sprite de combat tient dans 166 pixels, un
+// rendu HOME en demande 1081 ; les rapporter au meme maximum rendrait les
+// sprites minuscules.
+const HOME_ANIME_REF = 1081;
+
 /**
  * Rend au sprite anime son echelle, une fois le fichier arrive.
  *
@@ -857,11 +876,11 @@ const ANIME_REF = 166;
  * les cartes retrecissent avec la fenetre, et des pixels figes ici auraient
  * debordé sur un ecran etroit.
  */
-function poserEchelleAnime(img){
+function poserEchelleAnime(img, ref){
   const l = img.naturalWidth, h = img.naturalHeight;
   if(!l || !h) return;
-  img.style.width = (100 * l / ANIME_REF) + '%';
-  img.style.height = (100 * h / ANIME_REF) + '%';
+  img.style.width = (100 * l / ref) + '%';
+  img.style.height = (100 * h / ref) + '%';
 }
 
 function majBoutonSprites(){
@@ -1038,16 +1057,23 @@ function renderCard(entry){
   // le dossier de quelqu'un qui l'a vraiment rempli.
   img.addEventListener('load', function(){
     if(img.dataset.stage === 'local') noterSpriteLocal(true);
-    // L'echelle n'appartient qu'aux sprites de combat : les rendus HOME sont
-    // tous cadres pareil, et leur en imposer une les rapetisserait sans raison.
-    if(img.dataset.stage === 'anime') poserEchelleAnime(img);
+    // L'echelle appartient aux images DECOUPEES AU SUJET : le sprite de combat
+    // et le rendu HOME anime, qui portent tous deux leur taille dans leurs
+    // dimensions. Le rendu HOME FIXE, lui, est en 512 x 512 avec le Pokemon
+    // centre et deja mis a l'echelle par son producteur : lui en imposer une le
+    // rapetisserait sans raison.
+    if(img.dataset.stage === 'anime') poserEchelleAnime(img, ANIME_REF);
+    if(img.dataset.stage === 'home-anime') poserEchelleAnime(img, HOME_ANIME_REF);
   });
 
   img.addEventListener('error', function(){
     if(img.dataset.stage === 'home-anime'){
       // Pas de rendu anime pour cette entree : le fixe prend sa place, et la
-      // carte ne reste pas vide.
+      // carte ne reste pas vide. L'echelle posee pour l'anime s'en va avec :
+      // le fixe est cadre comme tous les autres.
       img.dataset.stage = 'pokeos';
+      img.style.width = '';
+      img.style.height = '';
       img.src = pokeosHomeUrl(entry.id, shinyView);
     } else if(img.dataset.stage === 'anime'){
       // Pas d'anime pour cette espece : on reprend la chaine a son debut, et
