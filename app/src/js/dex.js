@@ -739,27 +739,33 @@ const LEGENDE_OBTENTION = '🌿 capturable ici · ⬆ par évolution · 🎁 off
   + '⇄ par échange · 🥚 par œuf · ✖ ne se capture pas · ✨ shiny-lock';
 
 let legendeOuverte = false;
-let spritesEpoque = false;
+// ---- Le style des images ----------------------------------------------------
+//
+// UNE QUESTION, QUATRE REPONSES. C'etaient deux interrupteurs independants —
+// « sprites du jeu » et « animes » — dont rien ne disait qu'ils se croisaient :
+// il fallait les combiner de tete pour obtenir ce qu'on voulait, et deux des
+// quatre combinaisons ne se devinaient pas. Un menu les nomme.
+//
+//   home        le rendu HOME fixe, 77 Ko. C'est le defaut, et ca le reste.
+//   home-anime  le meme, anime. Voir plus bas : il ne s'anime qu'au survol.
+//   jeu         le sprite d'epoque du jeu ouvert, jusqu'a Noir 2 / Blanc 2.
+//   jeu-anime   le sprite anime de Showdown, et gen5ani sur un Pokedex de
+//               cinquieme generation, ou l'animation EST celle du jeu.
+//
+// POURQUOI LE HOME ANIME NE S'ANIME QU'AU SURVOL. Mesure, sur ces fichiers-la :
+// 731 Ko pour Pikachu, 3 568 Ko pour l'entree n° 1000, contre 77 Ko pour le
+// rendu fixe. Cinquante-cinq vignettes visibles, ce sont des dizaines de
+// megaoctets et autant de decodages en boucle — de quoi geler la machine qu'on
+// vient justement de degeler. La grille pose donc le fixe, et remplace par
+// l'anime celui que le curseur designe : on voit l'animation ou l'on regarde,
+// et une seule a la fois. La fiche, elle, garde ses propres boutons.
+const STYLE_CLE = 'pokearchive-style-sprite';
+const STYLES_CONNUS = ['home', 'home-anime', 'jeu', 'jeu-anime'];
 
-// ---- Les sprites animes ------------------------------------------------------
-//
-// CE QUE C'EST. Showdown heberge un GIF anime par espece, 85 x 98. La fiche s'en
-// sert deja ; la grille, non — elle posait une image fixe.
-//
-// CE QUE CA COUTE, ET POURQUOI IL Y A UN BOUTON. Un GIF anime ne se decode pas
-// une fois : il tourne tant qu'il est a l'ecran. Trente ou quarante vignettes
-// visibles, ce sont trente ou quarante decodages en boucle — exactement le
-// genre de charge continue qui fait dire a un petit ordinateur que
-// l'application ne repond plus. C'est donc un choix, pas un defaut, et il
-// s'eteint la ou on l'a allume.
-//
-// ET ON NE L'IMPOSE PAS A QUI A DIT NON. `prefers-reduced-motion` est le
-// reglage systeme de qui ne supporte pas le mouvement — une grille de mille
-// sprites qui s'agitent est precisement ce qu'il vise. `saveData` dit qu'on
-// compte ses octets, et un GIF pese plus lourd qu'un PNG. Dans les deux cas le
-// bouton reste, mais il part eteint : on propose, on n'impose pas.
-const ANIMES_CLE = 'pokearchive-sprites-animes';
-
+// `prefers-reduced-motion` est le reglage de qui ne supporte pas le mouvement,
+// et une grille de mille sprites qui s'agitent est exactement ce qu'il vise.
+// `saveData` dit qu'on compte ses octets. Dans les deux cas on ne CHOISIT pas
+// un style anime a la place de quelqu'un — mais s'il le demande, il l'a.
 function animesRefuses(){
   try{
     if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
@@ -770,56 +776,106 @@ function animesRefuses(){
   return !!(c && c.saveData);
 }
 
-let spritesAnimes = (function(){
-  if(animesRefuses()) return false;
-  try{ return localStorage.getItem(ANIMES_CLE) === 'oui'; }
-  catch(e){ return false; }
+let styleSprite = (function(){
+  let garde = null;
+  try{ garde = localStorage.getItem(STYLE_CLE); }catch(e){ /* stockage refuse */ }
+  if(STYLES_CONNUS.indexOf(garde) === -1) return 'home';
+  // Un choix explicite est respecte, meme anime : le refus systeme decide du
+  // DEFAUT, pas de ce que quelqu'un a demande lui-meme.
+  return garde;
 })();
 
-// Le bouton n'apparaît que là où un jeu de sprites existe : ni sur HOME, ni sur
-// les jeux d'après la cinquième génération, qui n'ont plus de sprite 2D.
-function majBoutonAnimes(){
-  const bouton = document.getElementById('animesBtn');
-  if(!bouton) return;
-  bouton.setAttribute('aria-pressed', String(spritesAnimes));
-  bouton.classList.toggle('active', spritesAnimes);
-  boutonIcone(bouton, spritesAnimes ? 'disque' : 'etincelle',
-    spritesAnimes ? 'Sprites fixes' : 'Sprites animés');
+/** Le jeu ouvert a-t-il ses propres sprites ? Jusqu'a Noir 2 / Blanc 2. */
+function jeuASesSprites(){
+  return !!(typeof spritesDuJeu === 'function' && spritesDuJeu(currentTab));
+}
+
+/** Le style vraiment applicable ici : « jeu » n'existe pas partout. */
+function styleEffectif(){
+  if((styleSprite === 'jeu' || styleSprite === 'jeu-anime') && !jeuASesSprites()){
+    return 'home';
+  }
+  return styleSprite;
+}
+
+function majMenuStyle(){
+  const menu = document.getElementById('spriteStyle');
+  if(!menu) return;
+  const possible = jeuASesSprites();
+  // ON GRISE PLUTOT QUE DE RETIRER. Une option qui disparait et revient d'un
+  // onglet a l'autre fait sauter les trois autres de place, et l'on clique a
+  // cote. Grisee, elle garde son rang et dit pourquoi elle ne repond pas.
+  Array.prototype.forEach.call(menu.options, function(o){
+    if(o.value === 'jeu' || o.value === 'jeu-anime'){
+      o.disabled = !possible;
+      o.title = possible ? '' : 'Ce jeu n’a pas de sprites d’époque.';
+    }
+  });
+  menu.value = styleSprite;
+  // Le menu stylise recopie l'etat du <select> cache : il faut le prevenir.
+  menu.dispatchEvent(new Event('change', { bubbles: false }));
 }
 
 (function(){
-  const bouton = document.getElementById('animesBtn');
-  if(!bouton) return;
-  bouton.addEventListener('click', function(){
-    spritesAnimes = !spritesAnimes;
-    try{ localStorage.setItem(ANIMES_CLE, spritesAnimes ? 'oui' : 'non'); }
+  const menu = document.getElementById('spriteStyle');
+  if(!menu) return;
+  menu.value = styleSprite;
+  menu.addEventListener('change', function(){
+    if(STYLES_CONNUS.indexOf(menu.value) === -1) return;
+    styleSprite = menu.value;
+    try{ localStorage.setItem(STYLE_CLE, styleSprite); }
     catch(e){ /* stockage refuse : le choix ne survivra pas, tant pis */ }
-    majBoutonAnimes();
     renderList(true);
   });
-  majBoutonAnimes();
 })();
+
+// Appelee par showPage() a chaque changement d'onglet : c'est la qu'on apprend
+// si le jeu ouvert a des sprites d'epoque.
+/**
+ * Le rendu HOME anime, pose au survol et retire ensuite.
+ *
+ * POURQUOI PAS TOUT DE SUITE. Mesure : 731 Ko pour Pikachu, 3 568 Ko pour
+ * l'entree n° 1000, contre 77 Ko pour le rendu fixe. Cinquante-cinq vignettes
+ * visibles, ce sont des dizaines de megaoctets a tirer et autant de decodages
+ * en boucle — exactement la charge continue qui fait dire a un petit ordinateur
+ * que l'application ne repond plus.
+ *
+ * ON MONTRE DONC L'ANIMATION LA OU L'ON REGARDE. Le fixe reste pose ; le
+ * curseur echange l'un contre l'autre, et l'on revient au fixe en partant. Une
+ * seule anime a la fois, celle qu'on a demandee du regard.
+ *
+ * `focus` autant que `mouseenter` : on parcourt aussi cette grille au clavier,
+ * et une animation reservee a la souris serait une animation refusee a qui n'en
+ * a pas.
+ */
+function poserSurvolAnime(carte, img, entry){
+  let fixe = null;
+  const montrer = function(){
+    if(img.dataset.stage === 'home-anime') return;
+    fixe = img.src;
+    img.dataset.stage = 'home-anime';
+    img.src = homeAnimeUrl(entry.id, shinyView);
+  };
+  const rendre = function(){
+    if(img.dataset.stage !== 'home-anime' || !fixe) return;
+    img.dataset.stage = 'pokeos';
+    img.src = fixe;
+  };
+  // UN GIF ABSENT NE DOIT PAS LAISSER UN TROU. PokeOS n'en a pas pour tout —
+  // l'entree n° 1017 manque, la forme chromatique de la 1025 aussi — et
+  // l'erreur nous ramene simplement au fixe qu'on avait sous la main.
+  img.addEventListener('error', function(){
+    if(img.dataset.stage === 'home-anime') rendre();
+  });
+  carte.addEventListener('mouseenter', montrer);
+  carte.addEventListener('mouseleave', rendre);
+  carte.addEventListener('focusin', montrer);
+  carte.addEventListener('focusout', rendre);
+}
 
 function majBoutonSprites(){
-  const bouton = document.getElementById('spritesJeuBtn');
-  if(!bouton) return;
-  const possible = !!(typeof spritesDuJeu === 'function' && spritesDuJeu(currentTab));
-  bouton.hidden = !possible;
-  if(!possible && spritesEpoque) spritesEpoque = false;
-  bouton.setAttribute('aria-pressed', String(spritesEpoque && possible));
-  bouton.textContent = (spritesEpoque && possible)
-    ? '🕹️ Rendus HOME' : '🕹️ Sprites du jeu';
+  majMenuStyle();
 }
-
-(function(){
-  const bouton = document.getElementById('spritesJeuBtn');
-  if(!bouton) return;
-  bouton.addEventListener('click', function(){
-    spritesEpoque = !spritesEpoque;
-    majBoutonSprites();
-    renderList(true);
-  });
-})();
 
 function majLegendeObtention(){
   const el = document.getElementById('legendeObtention');
@@ -932,15 +988,33 @@ function renderCard(entry){
   // En mode « sprites du jeu », le sprite d'époque passe en tête : s'il manque
   // — une espèce qui n'existait pas encore à cette génération — l'erreur ramène
   // à la chaîne habituelle, qui n'a pas changé d'un caractère.
-  const epoque = spritesEpoque
+  const style = styleEffectif();
+  const epoque = (style === 'jeu' || style === 'jeu-anime')
     ? spriteEpoqueUrl(currentTab, showdownSlug, shinyView) : null;
+
   // L'ANIME PASSE EN TETE, ET RIEN D'AUTRE NE CHANGE. Showdown n'a pas de GIF
   // pour toutes les formes — les cosmetiques et une partie des recentes
   // manquent — et l'erreur redonne la main a la chaine habituelle, qui n'a pas
   // bouge d'un caractere. Une espece sans anime retombe donc sur son image
   // fixe, sans trou ni cadre vide.
-  const anime = (spritesAnimes && !entry.spriteOnly)
-    ? spriteAnimeUrl(showdownSlug, shinyView) : null;
+  //
+  // `gen5ani` SUR UN POKEDEX DE CINQUIEME GENERATION : c'est la que l'animation
+  // EST celle du jeu. Ailleurs, `ani` est le seul jeu anime qui existe — les
+  // generations 1 a 4 n'ont jamais eu de sprites animes — et c'est ce qu'on
+  // montre, faute de mieux et en le sachant.
+  const anime = (style === 'jeu-anime' && !entry.spriteOnly)
+    ? (spriteGen5AnimeUrl(currentTab, showdownSlug, shinyView)
+       || spriteAnimeUrl(showdownSlug, shinyView))
+    : null;
+
+  // LE HOME ANIME N'EST PAS POSE ICI, et c'est mesure : 731 Ko pour Pikachu,
+  // 3 568 Ko pour l'entree n° 1000, contre 77 Ko pour le rendu fixe.
+  // Cinquante-cinq vignettes visibles, ce sont des dizaines de megaoctets et
+  // autant de decodages en boucle. La carte porte donc le fixe, et l'echange
+  // contre l'anime quand le curseur la designe — une seule a la fois.
+  if(style === 'home-anime' && !entry.spriteOnly){
+    poserSurvolAnime(card, img, entry);
+  }
   // Le maillon local se saute quand la session a déjà prouvé qu'il ne donne
   // rien : voir spritesLocauxPossibles() dans noyau.js.
   const apresLocal = function(){

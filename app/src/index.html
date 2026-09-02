@@ -310,13 +310,18 @@
         <button class="toggle-btn" id="legendeBtn" type="button" aria-pressed="false"
                 aria-controls="legendeObtention" hidden
                 title="Ce que veulent dire les pastilles des cartes.">🏷️ Voir les pastilles</button>
-        <button class="toggle-btn" id="spritesJeuBtn" type="button" aria-pressed="false" hidden
-                title="Afficher les sprites du jeu à la place des rendus Pokémon HOME.">🕹️ Sprites du jeu</button>
-        <!-- Les sprites animés. Un bouton et non un réglage caché : c'est un
-             goût, il change à vue, et il coûte assez cher pour qu'on veuille
-             pouvoir l'éteindre là où on l'a allumé. Voir js/dex.js. -->
-        <button class="toggle-btn" id="animesBtn" type="button" aria-pressed="false"
-                title="Les sprites animés de Pokémon Showdown, à la place des images fixes. Plus vivant, mais plus lourd pour un petit ordinateur.">Sprites animés</button>
+        <!-- QUATRE STYLES, UN SEUL MENU. C'étaient deux boutons indépendants —
+             « sprites du jeu » et « animés » — dont on ne voyait pas qu'ils se
+             croisaient. Quatre réponses à une seule question se lisent dans une
+             liste, pas dans deux interrupteurs qu'il faut combiner de tête.
+             Voir js/dex.js. -->
+        <select id="spriteStyle" aria-label="Style des images"
+                title="Ce que montrent les vignettes. Les deux « du jeu » ne sont proposés que là où le jeu a ses propres sprites — jusqu'à Noir 2 / Blanc 2. Le rendu HOME animé pèse dix fois le fixe : dans la grille il ne s'anime qu'au survol.">
+          <option value="home">Images : rendu HOME</option>
+          <option value="home-anime">Images : rendu HOME animé</option>
+          <option value="jeu">Images : sprite du jeu</option>
+          <option value="jeu-anime">Images : sprite animé</option>
+        </select>
         <label class="bascule bascule-cotes" id="scopeBascule" hidden
                title="Le Pokédex du jeu, ou celui qui le prolonge.">
           <span class="bascule-cote">Régional</span>

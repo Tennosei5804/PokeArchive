@@ -2365,6 +2365,23 @@ verifier('L’état du relevé',
       return 'échec : ' + sansChroma.key + ' se voit réclamer des méthodes de chasse';
     }
 
+    // LA COLONNE DES SPRITES DOIT RÉPONDRE, et pas seulement « sans objet ».
+    // Elle interrogeait `spritesEpoque`, qui est le BOOLÉEN du réglage
+    // d'affichage et non une question sur un jeu : `typeof … !== 'function'`
+    // était donc toujours vrai, et les vingt-trois jeux répondaient « sans
+    // objet ». Une colonne entière muette, et personne pour s'en plaindre.
+    //
+    // CETTE VÉRIFICATION-CI L'AVAIT MANQUÉE parce qu'elle calculait son attente
+    // avec `releveEtat` elle-même : elle constatait que la fonction est
+    // d'accord avec la fonction. On lit donc la réserve directement.
+    const avecSprites = GAMES.filter(function(g){ return releveEtat(g, 'sprites') === 'oui'; });
+    const attendus = GAMES.filter(function(g){ return !!spritesDuJeu(g.key); });
+    if(avecSprites.length !== attendus.length){
+      return 'échec : ' + avecSprites.length + ' jeu(x) dits pourvus en sprites, '
+        + attendus.length + ' le sont vraiment';
+    }
+    if(!attendus.length) return 'échec : aucun jeu pourvu — la réserve est vide ?';
+
     // ET LE SANS-OBJET NE PÉNALISE PAS LA COUVERTURE : la jauge d'un jeu dont
     // tout le reste est renseigné doit être pleine, pas aux trois quarts.
     const i = GAMES.indexOf(sansChroma);
@@ -2799,92 +2816,97 @@ verifier('La mise à jour',
 
 // ---------------------------------------------------------------------------
 
-verifier('Les sprites animés',
-  'En tête quand on les demande, repli sur l’image fixe quand le GIF manque',
+verifier('Le style des images',
+  'Les quatre styles, et le rendu HOME animé qui n’arrive qu’au survol',
   async function(){
-    // TROIS DÉCISIONS, ET CHACUNE PEUT SE PERDRE EN SILENCE.
+    // QUATRE REPONSES A UNE SEULE QUESTION. C'etaient deux interrupteurs
+    // independants dont rien ne disait qu'ils se croisaient ; deux des quatre
+    // combinaisons ne se devinaient pas.
     //
-    // · LE REPLI. Showdown n’a pas de GIF pour toutes les formes — les
-    //   cosmétiques et une partie des récentes manquent. Sans repli, ces
-    //   entrées afficheraient un cadre vide, ce qui se lit « il me manque »
-    //   dans un Pokédex : la pire confusion possible ici.
-    //
-    // · L’ORDRE. L’animé passe DEVANT la chaîne existante, sans la modifier :
-    //   une erreur doit la reprendre à son début, pas la court-circuiter.
-    //
-    // · LE REFUS. `prefers-reduced-motion` est le réglage de qui ne supporte
-    //   pas le mouvement, et une grille de mille sprites qui s’agitent est
-    //   exactement ce qu’il vise. `saveData` dit qu’on compte ses octets. Dans
-    //   les deux cas on propose, on n’impose pas.
-    if(typeof animesRefuses !== 'function') return 'échec : animesRefuses() a disparu';
-    if(typeof spriteAnimeUrl !== 'function') return 'échec : spriteAnimeUrl() a disparu';
+    // ET LE QUATRIEME NE SE POSE PAS COMME LES AUTRES, pour une raison mesuree :
+    // le rendu HOME anime pese 731 Ko pour Pikachu et 3 568 Ko pour l'entree
+    // n° 1000, contre 77 Ko pour le fixe. Cinquante-cinq vignettes visibles, ce
+    // sont des dizaines de megaoctets et autant de decodages en boucle — la
+    // charge continue qu'on vient justement de chasser de cette application.
+    // La grille pose donc le fixe et n'echange qu'au survol.
+    const avant = styleSprite;
+    const jeuAvecSprites = GAMES.find(function(g){ return !!spritesDuJeu(g.key); });
+    const jeuSans = GAMES.find(function(g){ return !spritesDuJeu(g.key); });
+    if(!jeuAvecSprites || !jeuSans) return 'ignoré : il faut un jeu de chaque sorte';
 
-    // L’adresse : le dossier change avec la forme chromatique, et lui seul.
-    const normal = spriteAnimeUrl('pikachu', false);
-    const shiny = spriteAnimeUrl('pikachu', true);
-    if(normal.indexOf('/ani/') === -1 || !/\.gif$/.test(normal)){
-      return 'échec : l’adresse normale n’est pas un GIF de /ani/ — ' + normal;
-    }
-    if(shiny.indexOf('/ani-shiny/') === -1){
-      return 'échec : la forme chromatique ne change pas de dossier — ' + shiny;
+    const source = function(){
+      const i = document.querySelector('.card img');
+      return i ? (i.src.split('/sprites/')[1] || i.src) : '';
+    };
+    const poser = function(s){ styleSprite = s; renderList(true); };
+
+    showPage(jeuAvecSprites.key);
+    await new Promise(function(r){ setTimeout(r, 250); });
+
+    poser('jeu');
+    if(source().indexOf(spritesDuJeu(jeuAvecSprites.key).normal + '/') === -1){
+      return 'échec : « sprite du jeu » ne prend pas le dossier d’époque — ' + source();
     }
 
-    // LE REFUS SE LIT DANS LE SYSTÈME. On maquille `matchMedia` le temps du
-    // contrôle : c’est la seule façon d’éprouver une décision qui dépend d’un
-    // réglage qu’on ne contrôle pas.
-    const vrai = window.matchMedia;
-    try{
-      window.matchMedia = function(q){
-        return { matches: /reduced-motion/.test(q), media: q,
-                 addListener: function(){}, removeListener: function(){} };
-      };
-      if(!animesRefuses()){
-        return 'échec : « moins de mouvement » ne suffit pas à les refuser';
+    poser('jeu-anime');
+    if(!/ani/.test(source()) || !/\.gif$/.test(source())){
+      return 'échec : « sprite animé » n’est pas un GIF animé — ' + source();
+    }
+
+    // SUR UN POKEDEX DE CINQUIEME GENERATION, l'anime d'epoque EST celui du
+    // jeu : Noir et Blanc ont ete les seuls a en avoir. Ailleurs on retombe sur
+    // le jeu courant de Showdown, faute de mieux et en le sachant.
+    const gen5 = GAMES.find(function(g){
+      const s = spritesDuJeu(g.key); return s && s.normal === 'gen5';
+    });
+    if(gen5){
+      showPage(gen5.key);
+      await new Promise(function(r){ setTimeout(r, 250); });
+      poser('jeu-anime');
+      if(source().indexOf('gen5ani') === -1){
+        return 'échec : sur ' + gen5.key + ', l’animé n’est pas celui du jeu — ' + source();
       }
-      window.matchMedia = function(q){
-        return { matches: false, media: q,
-                 addListener: function(){}, removeListener: function(){} };
-      };
-      if(animesRefuses()){
-        return 'échec : refusés alors que rien ne s’y oppose';
-      }
-    } finally {
-      window.matchMedia = vrai;
     }
 
-    // ET LE REPLI, éprouvé sur une vraie carte : on met une adresse qui n’existe
-    // pas et l’on regarde où l’image atterrit.
-    const avant = spritesAnimes;
-    spritesAnimes = true;
+    // LES DEUX « DU JEU » SE GRISENT LA OU LE JEU N'EN A PAS, et le style
+    // retombe sur HOME plutot que de laisser des cartes vides.
+    showPage(jeuSans.key);
+    await new Promise(function(r){ setTimeout(r, 250); });
+    const menu = document.getElementById('spriteStyle');
+    const grisees = Array.prototype.filter.call(menu.options, function(o){ return o.disabled; })
+      .map(function(o){ return o.value; });
+    if(grisees.indexOf('jeu') === -1 || grisees.indexOf('jeu-anime') === -1){
+      return 'échec : sur ' + jeuSans.key + ', « du jeu » reste proposé — ' + grisees.join(',');
+    }
+    styleSprite = 'jeu-anime';
+    if(styleEffectif() !== 'home'){
+      return 'échec : un style impossible n’est pas rabattu sur HOME — ' + styleEffectif();
+    }
+
+    // LE HOME ANIME N'EST PAS POSE D'EMBLEE, et arrive au survol.
+    poser('home-anime');
+    await new Promise(function(r){ setTimeout(r, 250); });
+    const carte = document.querySelector('.card');
+    const img = carte && carte.querySelector('img');
+    if(!img){ styleSprite = avant; renderList(true); return 'ignoré : aucune carte'; }
+    if(img.dataset.stage === 'home-anime'){
+      styleSprite = avant; renderList(true);
+      return 'échec : le HOME animé est posé d’emblée — des dizaines de Mo par écran';
+    }
+    carte.dispatchEvent(new MouseEvent('mouseenter'));
+    await new Promise(function(r){ setTimeout(r, 200); });
+    if(img.dataset.stage !== 'home-anime'){
+      styleSprite = avant; renderList(true);
+      return 'échec : le survol n’anime pas la carte';
+    }
+    carte.dispatchEvent(new MouseEvent('mouseleave'));
+    await new Promise(function(r){ setTimeout(r, 200); });
+    if(img.dataset.stage === 'home-anime'){
+      styleSprite = avant; renderList(true);
+      return 'échec : la carte reste animée après le départ du curseur';
+    }
+
+    styleSprite = avant;
     renderList(true);
-    await new Promise(function(r){ setTimeout(r, 120); });
-    const img = document.querySelector('.card img');
-    if(!img) { spritesAnimes = avant; renderList(true); return 'ignoré : aucune carte'; }
-    if(img.dataset.stage !== 'anime'){
-      spritesAnimes = avant; renderList(true);
-      return 'échec : l’animé ne passe pas en tête — étape « ' + img.dataset.stage + ' »';
-    }
-
-    // `loading="lazy"` D'ABORD, ET C'EST TOUT LE PIEGE. Une image paresseuse
-    // hors du champ n'est jamais demandee : pas de requete, donc pas d'erreur,
-    // donc pas de repli. Cette verification echouait pour cette seule raison,
-    // en accusant un code qui marchait. Le banc tourne souvent dans un volet
-    // qui ne compose rien — il faut donc reclamer l'image explicitement.
-    img.loading = 'eager';
-    img.src = 'https://play.pokemonshowdown.com/sprites/ani/il-n-y-a-rien-ici.gif';
-    // On attend l'aller-retour reseau, pas un rendu : trois secondes suffisent
-    // largement pour un 404 sur un domaine deja interroge.
-    await new Promise(function(r){ setTimeout(r, 3000); });
-    if(img.dataset.stage === 'anime'){
-      spritesAnimes = avant; renderList(true);
-      return 'échec : un GIF absent laisse la carte en « anime » — elle reste vide';
-    }
-    if(img.classList.contains('sprite-anime')){
-      spritesAnimes = avant; renderList(true);
-      return 'échec : la classe d’affichage animé survit au repli';
-    }
-
-    spritesAnimes = avant;
-    renderList(true);
-    return 'adresse juste, refus respecté, et un GIF manquant retombe sur l’image fixe';
+    return 'quatre styles, gen5ani sur son Pokédex, et le HOME animé au seul survol';
   });

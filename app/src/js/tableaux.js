@@ -188,8 +188,14 @@ function releveEtat(jeu, colonne){
   if(colonne === 'sprites'){
     // Les sprites d'époque n'existent que jusqu'à la cinquième génération :
     // leur absence ailleurs est normale, pas un manque.
-    if(typeof spritesEpoque !== 'function') return 'sans-objet';
-    return spritesEpoque(cle) ? 'oui' : 'sans-objet';
+    //
+    // `spritesDuJeu` ET NON `spritesEpoque` : le second est le BOOLÉEN du
+    // réglage d'affichage, pas une question sur un jeu. Écrite ainsi, la
+    // condition `typeof … !== 'function'` était toujours vraie et la colonne
+    // répondait « sans objet » pour les vingt-trois jeux — une colonne entière
+    // qui ne disait rien, sans que rien ne s'en plaigne.
+    if(typeof spritesDuJeu !== 'function') return 'sans-objet';
+    return spritesDuJeu(cle) ? 'oui' : 'sans-objet';
   }
   return 'non';
 }

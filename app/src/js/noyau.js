@@ -515,6 +515,31 @@ function spriteAnimeUrl(slug, shiny){
     + (shiny ? 'ani-shiny/' : 'ani/') + slug + '.gif';
 }
 
+// Le rendu HOME ANIME, chez PokeOS, a cote du rendu fixe. Il existe pour la
+// quasi-totalite des especes, forme chromatique comprise.
+//
+// IL EST ENORME, ET C'EST LA DONNEE QUI COMMANDE TOUT LE RESTE. Mesure :
+// 731 Ko pour Pikachu, 3 568 Ko pour l'entree n° 1000, contre 77 Ko pour le
+// rendu fixe. Une grille de cinquante-cinq vignettes visibles demanderait donc
+// des dizaines de megaoctets, et ferait tourner cinquante-cinq decodages en
+// boucle. C'est pour cela que la grille ne le pose qu'au survol — voir dex.js.
+function homeAnimeUrl(id, shiny){
+  const base = 'https://s3.pokeos.com/pokeos-uploads/assets/pokemon/home/animated/';
+  return base + (shiny ? 'shiny/' : '') + id + '.gif';
+}
+
+// L'anime d'epoque : il n'existe qu'en cinquieme generation. Noir et Blanc ont
+// ete les seuls jeux a sprites animes, et Showdown les range a part de son jeu
+// « ani » courant, qui reprend ce style pour toutes les especes suivantes.
+//
+// Rend null ailleurs : l'appelant retombe alors sur `ani`, en le sachant.
+function spriteGen5AnimeUrl(cleJeu, slug, shiny){
+  const jeu = spritesDuJeu(cleJeu);
+  if(!jeu || (jeu.normal !== 'gen5' && jeu.normal !== 'gen5-shiny')) return null;
+  return 'https://play.pokemonshowdown.com/sprites/'
+    + (shiny ? 'gen5ani-shiny/' : 'gen5ani/') + slug + '.gif';
+}
+
 function showdownSpriteUrl(slug, shiny){
   const base = 'https://play.pokemonshowdown.com/sprites/';
   return (shiny ? base + 'home-shiny/' : base + 'home/') + slug + '.png';
