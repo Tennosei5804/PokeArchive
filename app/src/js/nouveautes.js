@@ -20,32 +20,28 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
-    version: '0.38.0', date: '2026-09-02',
-    titre: 'Tu choisis à quoi ressemblent tes Pokémon',
+    version: '0.39.0', date: '2026-09-02',
+    titre: 'Passe la souris sur un Pokémon, il s’anime',
     points: [
-      '**🖼️ Quatre styles d’image, au lieu d’un seul.** Sous les filtres du '
-      + 'Pokédex, un menu **Images** propose le rendu HOME (celui que tu '
-      + 'connais), le **rendu HOME animé**, le **sprite du jeu** que tu es en '
-      + 'train de lire, et le **sprite animé**. Les deux « du jeu » se grisent '
-      + 'là où le jeu n’avait pas ses propres sprites — ils gardent leur rang '
-      + 'dans la liste et disent pourquoi, plutôt que de disparaître et de '
-      + 'faire sauter les autres de place.',
-      '**▶️ Les deux styles animés bougent tout le temps**, sans passer la '
-      + 'souris dessus. À savoir avant de choisir : un rendu HOME animé pèse '
-      + 'de 700 Ko à 3,5 Mo pièce, contre 77 Ko pour le fixe — sur une petite '
-      + 'machine ou une connexion lente, un écran de Pokédex se fait sentir. '
-      + 'Les sprites animés des jeux, eux, sont légers. Le style se retient '
-      + 'd’une fois sur l’autre, et le défaut n’a pas bougé.',
-      '**📏 Les tailles ne sont plus au hasard.** Chaque image animée est '
-      + 'découpée au plus près du Pokémon : étirées à la même case, elles '
-      + 'donnaient un Chenipan grossi deux fois et demie à côté d’un Dracaufeu '
-      + 'rétréci. Chacune est maintenant rapportée à la plus grande connue — '
-      + 'un petit Pokémon redevient petit, et un gros reste gros, comme dans '
-      + 'le jeu.',
-      '**⚡ Changer d’onglet dessinait la grille quarante-quatre fois.** Le '
-      + 'menu du style se prévenait lui-même à chaque dessin, et se rappelait '
-      + 'aussitôt. C’était invisible mais lourd dans l’application, et sur la '
-      + 'version web ça plantait la page. Deux dessins suffisent.',
+      '**▶️ La carte que tu survoles s’anime.** Les vignettes montrent le rendu '
+      + 'HOME, comme avant ; celle que ton curseur désigne passe au **rendu '
+      + 'animé**, et revient au fixe quand tu la quittes. Au clavier aussi : la '
+      + 'carte que tu atteins au Tab s’anime pareil.',
+      '**Une seule à la fois, et c’est voulu.** Un rendu animé pèse de 700 Ko '
+      + 'à 3,5 Mo, contre 77 Ko pour le fixe : un écran entier de Pokémon '
+      + 'animés, ce sont des dizaines de mégaoctets et autant de décodages en '
+      + 'boucle. On anime donc là où tu regardes.',
+      '**📏 Et l’animé garde sa taille.** Ces rendus sont découpés au plus '
+      + 'près du Pokémon : étirés à la même case, un Chenipan aurait paru aussi '
+      + 'gros qu’un Dracaufeu. Chacun est rapporté au plus grand connu — un '
+      + 'petit Pokémon reste petit.',
+      '**⚙️ Si tu as demandé moins d’animations à ton système**, ou si tu es en '
+      + 'mode économie de données, rien ne s’anime : la carte garde son rendu '
+      + 'fixe.',
+      '**⚡ Changer d’onglet dessinait la grille quarante-quatre fois.** Un '
+      + 'réglage se prévenait lui-même à chaque dessin et se rappelait aussitôt. '
+      + 'C’était invisible mais lourd dans l’application, et sur la version web '
+      + 'ça plantait la page. Deux dessins suffisent.',
     ],
   },
   {
