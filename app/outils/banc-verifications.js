@@ -2578,3 +2578,152 @@ verifier('La rareté',
     rareteTable = avant;
     return 'sous le seuil : la note ; au-dessus : le compte ; sans table : rien';
   });
+
+// ---------------------------------------------------------------------------
+
+verifier('Le préchauffage',
+  'Une seule fois, et jamais sur une connexion mesurée',
+  async function(){
+    // CE QUE ÇA GARDE, ET POURQUOI ÇA COMPTE. Ouvrir la première fiche d’une
+    // session tirait 3,7 Mo d’un coup — descriptions, attaques, Cobblemon,
+    // demandés au même instant par trois blocs de la même fiche. Mesuré : le
+    // clic passait de 3 722 Ko à 60 Ko une fois les réserves chauffées à
+    // l’avance. C’est là que naissait le « l’application ne répond plus ».
+    //
+    // DEUX DÉCISIONS À TENIR, et elles peuvent se perdre en silence :
+    //
+    // · UNE SEULE FOIS. Rappelée à chaque dessin — et `init()` n’est pas le
+    //   seul chemin — elle relancerait la chaîne à chaque fois. Les réserves
+    //   sont déjà en mémoire, donc ce serait sans effet visible : on ne le
+    //   verrait qu’au profileur, ce qui revient à ne jamais le voir.
+    //
+    // · PAS SUR UNE CONNEXION MESURÉE. Dans l’application les réserves sont sur
+    //   le disque et ne coûtent rien ; sur le site elles viennent du réseau.
+    //   Précharger trois mégaoctets chez quelqu’un qui a demandé à son
+    //   navigateur d’économiser ses données serait décider à sa place.
+    if(typeof prechaufferReserves !== 'function'){
+      return 'échec : prechaufferReserves() a disparu';
+    }
+    if(typeof peutPrechauffer !== 'function'){
+      return 'échec : peutPrechauffer() a disparu';
+    }
+
+    // On maquille `navigator.connection` le temps du contrôle. Il est en
+    // lecture seule : `defineProperty` est le seul moyen, et on le remet.
+    const vrai = Object.getOwnPropertyDescriptor(Navigator.prototype, 'connection')
+      || Object.getOwnPropertyDescriptor(navigator, 'connection');
+    const poser = function(v){
+      Object.defineProperty(navigator, 'connection', { value: v, configurable: true });
+    };
+    const cas = [];
+    try{
+      poser({ saveData: true, effectiveType: '4g' });
+      cas.push(['économiseur de données', peutPrechauffer()]);
+      poser({ saveData: false, effectiveType: '2g' });
+      cas.push(['2g', peutPrechauffer()]);
+      poser({ saveData: false, effectiveType: '4g' });
+      cas.push(['4g', peutPrechauffer()]);
+      poser(undefined);
+      cas.push(['rien de connu', peutPrechauffer()]);
+    } finally {
+      // On rend l'objet tel qu'on l'a trouvé : d'autres vérifications tournent
+      // après celle-ci, et une propriété laissée en place les suivrait.
+      delete navigator.connection;
+      if(vrai && vrai.get) Object.defineProperty(navigator, 'connection', vrai);
+    }
+
+    const attendu = [false, false, true, true];
+    for(let i = 0; i < cas.length; i++){
+      if(cas[i][1] !== attendu[i]){
+        return 'échec : « ' + cas[i][0] +' » rend ' + cas[i][1]
+          + ', on attendait ' + attendu[i];
+      }
+    }
+
+    // ET UNE SEULE FOIS : le deuxième appel ne doit rien relancer. On le lit à
+    // la garde elle-même, qui est le seul témoin observable.
+    prechaufferReserves();
+    const avant = prechauffeFaite;
+    prechaufferReserves();
+    if(!avant || !prechauffeFaite){
+      return 'échec : la garde ne retient pas que le préchauffage a eu lieu';
+    }
+
+    return 'quatre connexions jugées comme il faut, et une seule chauffe';
+  });
+
+// ---------------------------------------------------------------------------
+
+verifier('La session',
+  'Un serveur muet n’est pas une déconnexion — surtout après une mise à jour',
+  async function(){
+    // LE DÉFAUT, ET LE MOMENT OÙ IL FRAPPAIT. `ouvrirSession()` rendait `false`
+    // pour deux situations qui n’ont rien à voir : « il n’y a pas de compte »
+    // et « il y a un compte mais le serveur n’a pas répondu ». Le démarrage
+    // traitait les deux pareil — il vidait la progression affichée et n’ouvrait
+    // aucune aventure — alors que le jeton dormait intact sur le disque, bon
+    // pour quatre-vingt-dix jours.
+    //
+    // C’est juste après une mise à jour que le serveur a le plus de chances de
+    // se taire : l’installeur vient de rendre la main, la machine finit
+    // d’écrire, la pile réseau se remet en place. À l’écran, cela s’appelait
+    // « la mise à jour m’a déconnecté ».
+    // ON PASSE PAR LE PONT LUI-MÊME, et non en remplaçant `window.__TAURI__` :
+    // compte.js retient `invoke` dans une constante au chargement. Remplaçer
+    // l’objet après coup ne l’atteint pas — cette vérification a d’abord été
+    // écrite ainsi, et elle « passait » en n’exerçant rien. Voir `__forcer`
+    // dans outils/banc.py.
+    const avec = async function(reponses){
+      Object.assign(window.__forcer, reponses);
+      try{ return await ouvrirSession(); }
+      finally{ for(const k in reponses) delete window.__forcer[k]; }
+    };
+
+    // 1. Aucune session : c’est bien une absence de compte.
+    const sans = await avec({ etat: { connecte: false } });
+    if(sans !== SESSION_SANS_COMPTE){
+      return 'échec : sans session, on rend « ' + sans + ' »';
+    }
+
+    // 2. Une session, et le serveur répond : connecté.
+    const ok = await avec({ etat: { connecte: true } });
+    if(ok !== SESSION_CONNECTE){
+      return 'échec : session valide et serveur présent, on rend « ' + ok + ' »';
+    }
+
+    // 3. UNE SESSION, ET LE SERVEUR SE TAIT. C’est le cas qui comptait : ni
+    //    « connecté » — on n’a rien confirmé — ni « sans compte », qui ferait
+    //    vider la progression d’un dresseur parfaitement connecté.
+    const muet = await avec({
+      etat: { connecte: true },
+      moi: { __rejet: 'API injoignable. Vérifie ta connexion.' },
+    });
+    if(muet === SESSION_SANS_COMPTE){
+      return 'échec : un serveur injoignable passe pour une déconnexion';
+    }
+    if(muet !== SESSION_HORS_LIGNE){
+      return 'échec : serveur muet, on rend « ' + muet + ' »';
+    }
+
+    // 4. ET UN VRAI REFUS RESTE UN REFUS. Si le serveur dit que le jeton ne
+    //    vaut plus rien, on ne s’accroche pas : ce serait garder une session
+    //    morte et échouer à chaque requête sans jamais le dire.
+    // EN CHAINE NUE, comme le fait Tauri : le Rust rend `Result<_, String>`.
+    // Écrite `new Error('SESSION_INVALIDE')`, cette ligne éprouvait un cas qui
+    // n'arrive jamais — `String(new Error('X'))` vaut « Error: X », et la
+    // comparaison de compte.js ne pouvait pas tomber juste. Le contrôle a
+    // trouvé le défaut dans le contrôle.
+    const refuse = await avec({
+      etat: { connecte: true },
+      moi: { __rejet: 'SESSION_INVALIDE' },
+    });
+    if(refuse !== SESSION_SANS_COMPTE){
+      return 'échec : un jeton refusé devrait mener à « sans compte », pas « '
+        + refuse + ' »';
+    }
+
+    // On remet l’écran d’aplomb : les vérifications suivantes lisent la vraie
+    // session, et `perdreSession()` vient de la fermer.
+    await ouvrirSession();
+    return 'sans compte, connecté, hors ligne et refusé : quatre réponses distinctes';
+  });

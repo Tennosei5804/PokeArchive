@@ -300,24 +300,54 @@ function construireDex(){
 }
 
 // ---- Session ----------------------------------------------------------------
-// Appelée par app.js au démarrage. Renvoie true si un dresseur est connecté.
+//
+// TROIS ÉTATS, ET NON UN BOOLÉEN. C'est le défaut que cette fonction portait,
+// et il se voyait au pire moment : juste après une mise à jour.
+//
+// Elle rendait `false` pour deux situations qui n'ont rien à voir — « il n'y a
+// pas de compte » et « il y a un compte mais le serveur n'a pas répondu ». Le
+// démarrage traitait les deux pareil : il vidait la progression affichée et
+// n'ouvrait aucune aventure. La session était pourtant intacte sur le disque,
+// et le jeton bon pour quatre-vingt-dix jours. À l'écran, cela s'appelait
+// « la mise à jour m'a déconnecté ».
+//
+// Et c'est le moment où le serveur a le plus de chances de ne pas répondre :
+// l'installeur vient de rendre la main, la machine finit d'écrire, la pile
+// réseau se remet en place. Sur un ordinateur modeste, cela dure.
+//
+// Les trois états portent donc un nom, et app.js décide pour chacun :
+//   'connecte'    un dresseur, et le serveur l'a confirmé ;
+//   'sans-compte' aucune session : la fenêtre de connexion s'ouvre ;
+//   'hors-ligne'  une session valide, un serveur muet. On ne touche à RIEN.
+const SESSION_CONNECTE = 'connecte';
+const SESSION_SANS_COMPTE = 'sans-compte';
+const SESSION_HORS_LIGNE = 'hors-ligne';
+
 async function ouvrirSession(){
   let etat;
   try{ etat = await invoke('etat'); }
   catch(e){ etat = { connecte: false }; }
 
   sessionOuverte = Boolean(etat.connecte);
-  if(!sessionOuverte){ ouvrirAuthModal(); marquerSansCompte(); return false; }
+  if(!sessionOuverte){
+    ouvrirAuthModal();
+    marquerSansCompte();
+    return SESSION_SANS_COMPTE;
+  }
 
   try{
     const data = await invoke('moi');
     appliquerDresseur(data.dresseur);
-    return true;
+    return SESSION_CONNECTE;
   }catch(e){
-    if(String(e) === 'SESSION_INVALIDE'){ await perdreSession(); return false; }
-    // API injoignable : on garde la session, elle est probablement bonne.
-    // On travaille hors ligne, la synchronisation reprendra plus tard.
-    return false;
+    if(String(e) === 'SESSION_INVALIDE'){
+      await perdreSession();
+      return SESSION_SANS_COMPTE;
+    }
+    // API INJOIGNABLE, ET LA SESSION RESTE. Elle est probablement bonne : le
+    // serveur n'a pas dit non, il n'a rien dit du tout. On travaille hors
+    // ligne, la synchronisation reprendra d'elle-même.
+    return SESSION_HORS_LIGNE;
   }
 }
 

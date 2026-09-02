@@ -263,8 +263,30 @@ const REPONSES = {
 // Le journal des appels : sans lui, on ne peut pas distinguer « la fenetre s'est
 // fermee » de « la suppression est vraiment partie ».
 window.__appels = [];
+
+// CE QU'UNE VERIFICATION PEUT FORCER LE TEMPS D'UN CONTROLE. compte.js retient
+// `invoke` dans une constante au chargement : remplacer window.__TAURI__ apres
+// coup n'a donc aucun effet sur lui, et une verification qui croit simuler une
+// panne reseau simule en realite... rien du tout. Elle passait au vert sur du
+// code qui n'avait pas ete exerce.
+//
+// Le detour passe donc par le pont lui-meme, qui est le seul point que tout le
+// monde traverse. Une entree rend une valeur, ou leve si c'est une Error.
+window.__forcer = {};
 window.__TAURI__ = { core: { invoke: async function(cmd, args){
   window.__appels.push({ cmd: cmd, args: args || null });
+  if(Object.prototype.hasOwnProperty.call(window.__forcer, cmd)){
+    const v = window.__forcer[cmd];
+    // TAURI REJETTE AVEC UNE CHAINE NUE, pas une Error : le Rust rend
+    // `Result<_, String>`, et c'est cette chaine qui arrive telle quelle. Le
+    // code de l'application la compare donc directement — `String(e) ===
+    // 'SESSION_INVALIDE'`. Une verification qui leve une Error eprouve un cas
+    // qui n'existe pas : `String(new Error('X'))` vaut « Error: X ».
+    // D'ou les deux formes, et la premiere est celle qui ressemble au reel.
+    if(v && v.__rejet !== undefined) throw v.__rejet;
+    if(v instanceof Error) throw v;
+    return v;
+  }
   const f = REPONSES[cmd];
   if(!f) throw new Error('commande non simulee : ' + cmd);
   return f(args);

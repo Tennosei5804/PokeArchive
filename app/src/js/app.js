@@ -96,17 +96,28 @@ async function init(){
   // progression — le dossier « save » local n'a plus de raison d'être.
   serverMode = true;
 
-  const connecte = await ouvrirSession();   // défini dans compte.js
-  if(connecte){
+  const session = await ouvrirSession();   // défini dans compte.js
+  if(session === SESSION_CONNECTE){
     // Les aventures du compte, et l'ouverture de celle qui doit l'être. C'est
     // aussi ce qui charge la progression depuis le serveur : un dresseur qui
     // change d'ordinateur retrouve tout, sans rien avoir emporté.
     await demarrerProfils();
-  } else {
+  } else if(session === SESSION_SANS_COMPTE){
     // Sans compte, il n'y a rien à afficher ni à enregistrer : la modale de
     // connexion reste ouverte. Le reste du démarrage continue quand même, pour
     // que la grille soit déjà prête au moment où la connexion aboutit.
     resetAllProgress();
+  } else {
+    // HORS LIGNE : ON NE TOUCHE À RIEN. La session est valide, le serveur n'a
+    // simplement pas répondu — ce qui arrive surtout dans les secondes qui
+    // suivent une mise à jour, quand la machine finit d'écrire et que la pile
+    // réseau se remet en place.
+    //
+    // Vider la progression ici était le défaut : l'application s'ouvrait sur
+    // une collection vide et n'ouvrait aucune aventure, alors que le jeton
+    // dormait intact sur le disque. À l'écran, cela s'appelait « la mise à
+    // jour m'a déconnecté ».
+    direHorsLigne();
   }
 
   updatePlayerBadge();
@@ -123,6 +134,7 @@ async function init(){
     readoutLeft.textContent = 'Pokémon HOME — ' + scopeEntries.length + ' entrées · réserve locale';
     updateProgress();
     renderList(true);
+    prechauffer();
     return;
   }
 
@@ -133,6 +145,7 @@ async function init(){
     scopeEntries = poolHome();   // le scope de départ est le Dex National
     updateProgress();
     renderList(true);
+    prechauffer();
   }catch(err){
     stateMsg.textContent = "Connexion au PokéAPI impossible, et aucune donnée en réserve. "
       + "Connecte-toi une fois : tout sera ensuite disponible hors ligne.";
@@ -197,5 +210,35 @@ shinyViewBtn.addEventListener('click', function(){
 // sur le compte, et se retrouve sur n'importe quel ordinateur en se connectant.
 // La réinitialisation, elle, a rejoint le menu du compte — c'est là qu'on
 // s'attend à trouver ce qui touche à ses données (voir compte.js).
+
+/**
+ * Les grosses réserves, demandées pendant que rien ne se passe.
+ *
+ * APRÈS LE PREMIER DESSIN, ET SEULEMENT LÀ. Mesuré : ouvrir la première fiche
+ * d'une session tire 3,7 Mo d'un coup — descriptions, attaques, Cobblemon —
+ * demandés au même instant par trois blocs de la même fiche. Le gel tombe donc
+ * sur un clic. Les demander plus tôt, une à la fois, quand le navigateur n'a
+ * rien à faire, ne change rien à ce qui est chargé : seulement quand.
+ *
+ * Le détail — l'ordre, le repli sans requestIdleCallback, et pourquoi on s'en
+ * abstient sur une connexion mesurée — vit dans fiche.js, avec les réserves.
+ */
+/**
+ * Le serveur n'a pas répondu, et on le dit sans rien casser.
+ *
+ * PAS DE FENÊTRE, PAS DE REFUS. La session tient, la progression affichée reste
+ * celle qu'on avait, et la veille de fond retentera d'elle-même. Une modale
+ * ferait croire à une panne à corriger, alors qu'il n'y a rien à faire.
+ */
+function direHorsLigne(){
+  if(typeof readoutLeft !== 'undefined' && readoutLeft){
+    readoutLeft.textContent = 'Serveur injoignable — ta session est gardée, '
+      + 'la synchronisation reprendra seule';
+  }
+}
+
+function prechauffer(){
+  if(typeof prechaufferReserves === 'function') prechaufferReserves();
+}
 
 init();

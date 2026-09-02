@@ -1793,6 +1793,99 @@ function chargerCobblemon(){
   return cobblemonEnCours;
 }
 
+// ---- Chauffer les réserves pendant que rien ne se passe ---------------------
+//
+// LE DÉFAUT, MESURÉ. Ouvrir la première fiche d'une session tire 3,7 Mo d'un
+// seul coup : les descriptions (1,5 Mo), les attaques (1,9 Mo) et Cobblemon
+// (178 Ko), demandées au même instant par trois blocs différents de la même
+// fiche. Chaque réserve est un script, donc chaque arrivée est UNE tâche
+// synchrone qui ne rend la main qu'une fois l'objet construit — et les trois se
+// suivent sans respirer.
+//
+// Sur la machine où cela a été mesuré, l'ouverture prend 4,7 s dont l'essentiel
+// en lecture de fichiers locaux. Sur un ordinateur modeste, c'est là que
+// Windows affiche « l'application ne répond plus » : le gel tombe sur un clic,
+// au moment précis où l'on attend quelque chose.
+//
+// CE QU'ON CHANGE, ET CE QU'ON NE CHANGE PAS. Les réserves restent chargées à
+// la demande — rien n'est ajouté au démarrage, et une session qui n'ouvre
+// aucune fiche ne les lit toujours pas. On les demande simplement PLUS TÔT,
+// quand le navigateur n'a rien à faire, et UNE À LA FOIS. Le premier clic
+// trouve alors tout en mémoire, et `chargerX()` rend sa promesse déjà résolue.
+//
+// UNE À LA FOIS, ET C'EST LE POINT. Les lancer ensemble reproduirait exactement
+// le gel qu'on essaie d'éviter, simplement plus tôt. Chacune attend que la
+// précédente soit là, et cède la main entre deux.
+
+/**
+ * Le moment où le navigateur n'a rien de mieux à faire.
+ *
+ * `requestIdleCallback` n'existe pas partout — Safari ne l'a eu que tard, et
+ * la vue web de Tauri suit celle du système. Le repli sur un `setTimeout`
+ * généreux n'est pas équivalent, mais il vaut mieux que rien : il place le
+ * travail après le premier dessin, qui est ce qui compte.
+ */
+function quandLibre(quoi, delai){
+  // Par `window.` et non en appel nu : c'est un global du navigateur, et le
+  // relecteur statique de outils/verifier.py ne connait que les fonctions
+  // ecrites dans l'application. Un appel nu s'y lit comme un nom introuvable.
+  if(typeof window.requestIdleCallback === 'function'){
+    window.requestIdleCallback(quoi, { timeout: delai || 4000 });
+  } else {
+    setTimeout(quoi, delai || 1500);
+  }
+}
+
+/**
+ * Vrai si l'on peut se permettre de télécharger 3,4 Mo sans qu'on l'ait demandé.
+ *
+ * DANS L'APPLICATION, LES RÉSERVES SONT SUR LE DISQUE : les lire ne coûte rien
+ * à personne. SUR LE SITE, elles viennent du réseau — et précharger trois
+ * mégaoctets chez quelqu'un en 3G, ou qui a demandé à son navigateur
+ * d'économiser les données, serait prendre une décision à sa place. On s'en
+ * abstient : il les aura à la première fiche, comme avant.
+ */
+function peutPrechauffer(){
+  const c = navigator.connection;
+  if(!c) return true;                       // rien de connu : on suppose que oui
+  if(c.saveData) return false;              // il a demandé le contraire
+  return !/(^|-)2g$/.test(c.effectiveType || '');
+}
+
+let prechauffeFaite = false;
+
+/**
+ * Appelée une fois, après le premier dessin. Voir app.js.
+ *
+ * ELLE NE REND RIEN ET N'ÉCHOUE PAS. Une réserve qui manque sera redemandée par
+ * la fiche, qui sait déjà le dire — signaler ici une erreur que personne n'a
+ * provoquée ne ferait qu'inquiéter sans rien apprendre.
+ */
+function prechaufferReserves(){
+  if(prechauffeFaite) return;
+  prechauffeFaite = true;
+  if(!peutPrechauffer()) return;
+
+  // L'ORDRE SUIT L'USAGE. Les descriptions et les attaques sont lues par toute
+  // fiche ; les lieux par le bloc « où le trouver » et par le programme du
+  // soir. Cobblemon ne concerne qu'un onglet sur vingt-quatre : il reste à la
+  // demande, sans quoi on ferait payer à tout le monde une réserve que presque
+  // personne n'ouvre.
+  const suite = [chargerDescriptions, chargerAttaques, chargerLieux];
+  let i = 0;
+  const suivante = function(){
+    if(i >= suite.length) return;
+    const charger = suite[i++];
+    let p;
+    try{ p = charger(); }catch(e){ return; }
+    // ENTRE DEUX, ON REND LA MAIN. Enchaîner dans la même tâche rassemblerait
+    // les trois arrivées en un seul gel — ce que ce préchauffage existe pour
+    // éviter.
+    p.then(function(){ quandLibre(suivante); }, function(){ /* la fiche redemandera */ });
+  };
+  quandLibre(suivante);
+}
+
 // Ce que le relevé dit d'une espèce, jeu par jeu. Rend une liste de
 // { jeu, titre, texte, categorie }, dans l'ordre de sortie des jeux.
 // La forme d'abord, l'espèce à défaut.
