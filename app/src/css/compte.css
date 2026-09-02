@@ -2319,6 +2319,47 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   font-family:var(--font-data); font-size:10.5px;
 }
 
+
+/* ---- La mise a jour en cours ------------------------------------------------
+   Elle vivait dans le bouton de l'en-tete, en « 42 % ». Neuf megaoctets
+   racontes par deux chiffres dans trente pixels. */
+.maj-fenetre{ width:100%; max-width:440px; text-align:left; position:relative; }
+
+/* LA JAUGE. Une barre pleine et non des tirets qui defilent : on veut savoir
+   OU on en est, pas seulement que quelque chose tourne. Elle passe en mouvement
+   perpetuel pour la seule etape qui n'a pas de progression — l'installation,
+   ou l'installeur Windows reprend la main et ne dit plus rien. */
+.maj-jauge{
+  height:8px; margin:14px 0 10px;
+  background:var(--screen); border-radius:999px; overflow:hidden;
+}
+.maj-jauge > i{
+  display:block; height:100%; width:0;
+  background:var(--gold); border-radius:999px;
+  transition:width 180ms linear;
+}
+.maj-jauge.indeterminee > i{
+  width:38%;
+  animation:maj-va-et-vient 1.1s ease-in-out infinite;
+}
+@keyframes maj-va-et-vient{
+  0%{ transform:translateX(-100%); }
+  100%{ transform:translateX(300%); }
+}
+@media (prefers-reduced-motion:reduce){
+  .maj-jauge.indeterminee > i{ animation:none; width:100%; opacity:.5; }
+  .maj-jauge > i{ transition:none; }
+}
+.maj-etat{
+  margin:0; font-family:var(--font-body); font-size:13px; color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.maj-note{
+  margin:6px 0 0; font-family:var(--font-body); font-size:11.5px;
+  color:var(--ink-soft); line-height:1.45;
+}
+.maj-fenetre .modal-actions{ margin-top:16px; }
+
 /* ---- Joindre un Pokémon à un message ----------------------------------------
    Le joint et sa recherche vivent AU-DESSUS du champ, pas dedans : on doit voir
    ce qu'on s'apprête à envoyer avant de l'envoyer, et pouvoir le retirer. */

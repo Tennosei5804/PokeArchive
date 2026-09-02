@@ -144,6 +144,104 @@ function notesDeVersion(maj){
   return brut.length > 600 ? brut.slice(0, 600).trimEnd() + '…' : brut;
 }
 
+// ---- La fenêtre de mise à jour ----------------------------------------------
+//
+// CE QU'ELLE REMPLACE. La progression existait déjà — `downloadAndInstall` rend
+// la main par étapes, `Started` donne la taille et `Progress` chaque morceau —
+// mais elle finissait écrite dans le bouton de l'en-tête, en « ⬇ 42 % ». On
+// téléchargeait neuf mégaoctets en regardant deux chiffres changer dans un
+// cadre de trente pixels, et si l'on avait cliqué ailleurs entre-temps, plus
+// rien ne disait que ça tournait.
+//
+// TROIS TEMPS, ET ILS N'ONT PAS LA MÊME NATURE :
+//
+//   téléchargement  on sait où l'on en est, en mégaoctets. Jauge pleine.
+//   installation    l'installeur Windows reprend la main et ne dit plus rien.
+//                   Jauge en mouvement perpétuel : prétendre un pourcentage
+//                   ici serait inventer. C'est le moment où l'application
+//                   paraissait figée.
+//   échec           il reste DANS la fenêtre, avec de quoi la fermer. Il
+//                   partait autrefois dans une autre modale, et le bouton de
+//                   l'en-tête redevenait doré comme si de rien n'était.
+//
+// PAS DE CROIX NI D'ÉCHAP pendant l'opération : on ne « ferme » pas une
+// installation en cours, et un bouton qui laisserait croire le contraire
+// mentirait. Le seul bouton apparaît quand il n'y a plus rien à attendre.
+
+const majOverlay = document.getElementById('majOverlay');
+const majFenetreTitre = document.getElementById('majFenetreTitre');
+const majJauge = document.getElementById('majJauge');
+const majJaugeBarre = document.getElementById('majJaugeBarre');
+const majEtatEl = document.getElementById('majEtat');
+const majNote = document.getElementById('majNote');
+const majActions = document.getElementById('majActions');
+const majFermerBtn = document.getElementById('majFermer');
+
+/** Des octets, dits comme on les lit. */
+function majMo(octets){
+  return (octets / 1048576).toFixed(1).replace('.', ',');
+}
+
+function ouvrirFenetreMaj(version){
+  if(!majOverlay) return;
+  majFenetreTitre.textContent = 'PokéArchive ' + version;
+  majJauge.classList.remove('indeterminee');
+  majJaugeBarre.style.width = '0%';
+  majEtatEl.textContent = 'Préparation…';
+  majNote.textContent = 'L’application se fermera le temps de l’installation, '
+    + 'puis se rouvrira seule. Ton Pokédex et tes aventures ne sont pas touchés : '
+    + 'ils vivent sur ton compte, pas dans le programme.';
+  majActions.hidden = true;
+  majOverlay.style.display = 'flex';
+}
+
+/**
+ * Le téléchargement, en mégaoctets et non en seul pourcentage.
+ *
+ * « 3,2 sur 9,1 Mo » dit ce qu'il reste ; « 35 % » demande de le calculer. Et
+ * quand la taille totale est inconnue — l'en-tête peut manquer — on montre ce
+ * qui est arrivé plutôt qu'un pourcentage faux.
+ */
+function majProgression(recu, total){
+  if(!majOverlay) return;
+  majJauge.classList.remove('indeterminee');
+  if(total){
+    const part = Math.min(100, Math.round(100 * recu / total));
+    majJaugeBarre.style.width = part + '%';
+    majEtatEl.textContent = 'Téléchargement… ' + majMo(recu) + ' sur '
+      + majMo(total) + ' Mo';
+  } else {
+    majJauge.classList.add('indeterminee');
+    majEtatEl.textContent = 'Téléchargement… ' + majMo(recu) + ' Mo';
+  }
+}
+
+function majInstallation(){
+  if(!majOverlay) return;
+  // AUCUNE PROGRESSION ICI, et c'est la vérité : l'installeur Windows reprend
+  // la main. Une jauge qui continuerait d'avancer inventerait un chiffre.
+  majJauge.classList.add('indeterminee');
+  majEtatEl.textContent = 'Installation…';
+  majNote.textContent = 'L’application va se fermer et se rouvrir. '
+    + 'Ne l’arrête pas.';
+}
+
+function majEchec(quoi){
+  if(!majOverlay) return;
+  majJauge.classList.remove('indeterminee');
+  majJaugeBarre.style.width = '0%';
+  majEtatEl.textContent = 'La mise à jour n’a pas abouti.';
+  majNote.textContent = quoi;
+  majActions.hidden = false;
+  setTimeout(function(){ if(majFermerBtn) majFermerBtn.focus(); }, 10);
+}
+
+function fermerFenetreMaj(){
+  if(majOverlay) majOverlay.style.display = 'none';
+}
+
+if(majFermerBtn) majFermerBtn.addEventListener('click', fermerFenetreMaj);
+
 /**
  * Le premier temps : on montre ce qui va se passer, et on demande.
  *
@@ -173,23 +271,22 @@ async function proposerMaj(){
 
   majEnCours = true;
   const bouton = document.getElementById('majBtn');
-  if(bouton){ bouton.disabled = true; direSurMaj(bouton, '⬇ 0 %', '⬇ Téléchargement… 0 %'); }
+  if(bouton) bouton.disabled = true;
+  ouvrirFenetreMaj(majTrouvee.version);
 
   try{
-    // downloadAndInstall rend la main par étapes : on s'en sert pour montrer
-    // une progression réelle plutôt qu'une roue qui tourne dans le vide.
+    // downloadAndInstall rend la main par étapes. La donnée était déjà là ;
+    // ce qui manquait, c'était un endroit où la montrer.
     let recu = 0, total = 0;
     await majTrouvee.downloadAndInstall(function(etape){
       if(etape.event === 'Started'){
         total = (etape.data && etape.data.contentLength) || 0;
+        majProgression(0, total);
       }else if(etape.event === 'Progress'){
         recu += (etape.data && etape.data.chunkLength) || 0;
-        if(bouton && total){
-          const fait = Math.round(100 * recu / total);
-          direSurMaj(bouton, '⬇ ' + fait + ' %', '⬇ Téléchargement… ' + fait + ' %');
-        }
+        majProgression(recu, total);
       }else if(etape.event === 'Finished'){
-        if(bouton) bouton.textContent = '⬇ installation…';
+        majInstallation();
       }
     });
 
@@ -201,11 +298,14 @@ async function proposerMaj(){
     majEnCours = false;
     // La version reste disponible : on rend le bouton à son état doré plutôt
     // qu'à sa flèche, sinon il faudrait revérifier pour retrouver ce qu'on sait.
-    if(bouton){ bouton.disabled = false; bouton.textContent = '⬇ Mise à jour'; }
-    prevenirErreur('L\'installation a échoué',
-      'Le téléchargement ou l\'installation s\'est interrompu. L\'application '
-      + 'reste dans sa version actuelle, rien n\'est cassé. Vous pouvez réessayer, '
-      + 'ou télécharger l\'installeur depuis la page des versions sur GitHub.');
+    if(bouton) montrerBoutonMaj(majTrouvee.version);
+    // L'ÉCHEC RESTE DANS LA FENÊTRE. Il partait dans une autre modale pendant
+    // que celle-ci se refermait : deux fenêtres pour un seul événement, et le
+    // bouton de l'en-tête redevenait doré comme si de rien n'était.
+    majEchec('Le téléchargement ou l\'installation s\'est interrompu. '
+      + 'L\'application reste dans sa version actuelle, rien n\'est cassé. Tu peux '
+      + 'réessayer, ou télécharger l\'installeur depuis la page des versions '
+      + 'sur GitHub.');
   }
 }
 

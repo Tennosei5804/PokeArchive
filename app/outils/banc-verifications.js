@@ -2727,3 +2727,72 @@ verifier('La session',
     await ouvrirSession();
     return 'sans compte, connecté, hors ligne et refusé : quatre réponses distinctes';
   });
+
+// ---------------------------------------------------------------------------
+
+verifier('La mise à jour',
+  'Le téléchargement se dit en mégaoctets, l’installation n’invente aucun chiffre',
+  async function(){
+    // CE QUE ÇA REMPLACE. La progression existait déjà — `downloadAndInstall`
+    // rend la main par étapes — mais elle finissait écrite dans le bouton de
+    // l’en-tête, en « ⬇ 42 % ». On téléchargeait neuf mégaoctets en regardant
+    // deux chiffres changer dans un cadre de trente pixels.
+    //
+    // DEUX DÉCISIONS À TENIR, et l’une des deux est une question d’honnêteté :
+    //
+    // · LE TÉLÉCHARGEMENT SE DIT EN MÉGAOCTETS. « 3,2 sur 9,1 Mo » dit ce qu’il
+    //   reste ; « 35 % » demande de le calculer.
+    //
+    // · L’INSTALLATION N’A PAS DE PROGRESSION. L’installeur Windows reprend la
+    //   main et ne dit plus rien. Une jauge qui continuerait d’avancer
+    //   inventerait un chiffre — et c’est précisément l’étape où l’application
+    //   paraissait figée, donc celle où l’on est le plus tenté de mentir.
+    if(typeof ouvrirFenetreMaj !== 'function') return 'échec : la fenêtre a disparu';
+
+    ouvrirFenetreMaj('9.9.9');
+    if(majOverlay.style.display !== 'flex') return 'échec : la fenêtre ne s’ouvre pas';
+    if(majFenetreTitre.textContent.indexOf('9.9.9') === -1){
+      return 'échec : la fenêtre ne dit pas quelle version elle installe';
+    }
+    if(!majActions.hidden){
+      return 'échec : un bouton est offert alors que rien n’est terminé';
+    }
+
+    // Le téléchargement : des mégaoctets, et une jauge qui suit vraiment.
+    majProgression(3.2 * 1048576, 9.1 * 1048576);
+    const dit = majEtatEl.textContent;
+    if(dit.indexOf('3,2') === -1 || dit.indexOf('9,1') === -1){
+      return 'échec : le téléchargement ne dit pas les mégaoctets — « ' + dit + ' »';
+    }
+    const large = parseInt(majJaugeBarre.style.width, 10);
+    if(large < 30 || large > 40){
+      return 'échec : jauge à ' + large + ' %, on attendait ~35';
+    }
+    if(majJauge.classList.contains('indeterminee')){
+      return 'échec : jauge indéterminée alors qu’on connaît la taille';
+    }
+
+    // TAILLE INCONNUE : on montre ce qui est arrivé, jamais un pourcentage faux.
+    majProgression(1.5 * 1048576, 0);
+    if(!majJauge.classList.contains('indeterminee')){
+      return 'échec : sans taille totale, la jauge prétend savoir où elle en est';
+    }
+    if(/%/.test(majEtatEl.textContent)){
+      return 'échec : un pourcentage annoncé sans taille totale — « '
+        + majEtatEl.textContent + ' »';
+    }
+
+    // L'installation : aucune progression, et on le montre.
+    majInstallation();
+    if(!majJauge.classList.contains('indeterminee')){
+      return 'échec : l’installation affiche une progression qu’elle n’a pas';
+    }
+
+    // L'échec reste DANS la fenêtre, avec de quoi la fermer.
+    majEchec('essai');
+    if(majActions.hidden) return 'échec : rien pour fermer après un échec';
+
+    fermerFenetreMaj();
+    if(majOverlay.style.display !== 'none') return 'échec : la fenêtre ne se ferme pas';
+    return 'mégaoctets au téléchargement, aucun chiffre inventé à l’installation';
+  });

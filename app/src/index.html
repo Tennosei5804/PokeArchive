@@ -1605,6 +1605,35 @@
      L'EMPLACEMENT EST DEDANS, en tête : « où il est » et « ce qu'il a de
      particulier » sont deux réponses sur le même exemplaire, et les séparer
      obligeait à les tenir à jour à deux endroits de l'écran. -->
+<!-- LA MISE A JOUR EN COURS. Elle se disait dans le petit bouton de l'en-tete,
+     en « 42 % » : on telechargeait neuf megaoctets en regardant deux chiffres
+     changer dans un cadre de trente pixels, et si l'on avait clique ailleurs
+     entre-temps, plus rien ne disait que ca tournait.
+
+     ELLE PREND LA MAIN, parce que c'est ce qui se passe : l'application va se
+     fermer. Pas de croix ni d'Echap — on ne « ferme » pas une installation en
+     cours, et un bouton qui laisserait croire le contraire serait un mensonge.
+
+     `aria-live` sur la ligne d'etat : c'est elle qui change, et c'est elle
+     qu'un lecteur d'ecran doit annoncer. -->
+<div class="modal-overlay" id="majOverlay" style="display:none;" role="dialog"
+     aria-modal="true" aria-labelledby="majFenetreTitre">
+  <div class="modal-card maj-fenetre">
+    <div class="modal-eyebrow">Mise a jour</div>
+    <h3 class="modal-title" id="majFenetreTitre">PokeArchive</h3>
+
+    <!-- Deux éléments, deux rôles : le cadre porte l'état (plein ou
+         indéterminé), la barre porte la largeur. -->
+    <div class="maj-jauge" id="majJauge"><i id="majJaugeBarre"></i></div>
+    <p class="maj-etat" id="majEtat" role="status" aria-live="polite"></p>
+    <p class="maj-note" id="majNote"></p>
+
+    <div class="modal-actions" id="majActions" hidden>
+      <button class="toggle-btn" id="majFermer" type="button">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="captureOverlay" style="display:none;" role="dialog"
      aria-modal="true" aria-labelledby="captureTitre">
   <div class="modal-card capture-fenetre">
