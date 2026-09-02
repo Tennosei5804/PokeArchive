@@ -2816,189 +2816,96 @@ verifier('La mise à jour',
 
 // ---------------------------------------------------------------------------
 
-verifier('Le style des images',
-  'Les quatre styles, l’échelle des sprites, et le repli quand un GIF manque',
+verifier('Le rendu HOME animé au survol',
+  'La carte s’anime sous le curseur, reprend son rendu fixe après, et garde sa taille',
   async function(){
-    // QUATRE REPONSES A UNE SEULE QUESTION. C'etaient deux interrupteurs
-    // independants dont rien ne disait qu'ils se croisaient ; deux des quatre
-    // combinaisons ne se devinaient pas.
-    //
-    // ET LES DEUX ANIMES PORTENT LEUR ECHELLE, chacun rapporte a sa propre
-    // reference : un sprite de combat tient dans 166 pixels, un rendu HOME en
-    // demande 1081. Les rapporter au meme maximum rendrait les sprites
-    // minuscules — d'ou deux nombres et non un.
-    const avant = styleSprite;
-    const jeuAvecSprites = GAMES.find(function(g){ return !!spritesDuJeu(g.key); });
-    const jeuSans = GAMES.find(function(g){ return !spritesDuJeu(g.key); });
-    if(!jeuAvecSprites || !jeuSans) return 'ignoré : il faut un jeu de chaque sorte';
-
-    const source = function(){
-      const i = document.querySelector('.card img');
-      return i ? (i.src.split('/sprites/')[1] || i.src) : '';
-    };
-    const poser = function(s){ styleSprite = s; renderList(true); };
-
-    showPage(jeuAvecSprites.key);
-    await new Promise(function(r){ setTimeout(r, 250); });
-
-    poser('jeu');
-    if(source().indexOf(spritesDuJeu(jeuAvecSprites.key).normal + '/') === -1){
-      return 'échec : « sprite du jeu » ne prend pas le dossier d’époque — ' + source();
-    }
-
-    poser('jeu-anime');
-    if(!/ani/.test(source()) || !/\.gif$/.test(source())){
-      return 'échec : « sprite animé » n’est pas un GIF animé — ' + source();
-    }
-
-    // SUR UN POKEDEX DE CINQUIEME GENERATION, l'anime d'epoque EST celui du
-    // jeu : Noir et Blanc ont ete les seuls a en avoir. Ailleurs on retombe sur
-    // le jeu courant de Showdown, faute de mieux et en le sachant.
-    const gen5 = GAMES.find(function(g){
-      const s = spritesDuJeu(g.key); return s && s.normal === 'gen5';
-    });
-    if(gen5){
-      showPage(gen5.key);
-      await new Promise(function(r){ setTimeout(r, 250); });
-      poser('jeu-anime');
-      if(source().indexOf('gen5ani') === -1){
-        return 'échec : sur ' + gen5.key + ', l’animé n’est pas celui du jeu — ' + source();
-      }
-    }
-
-    // L'ECHELLE DES SPRITES DE COMBAT EST RENDUE, ET NON EGALISEE. Chaque GIF
-    // est decoupe au plus pres et porte sa propre taille : Bulbizarre 45 x 49,
-    // Dracaufeu 133 x 140, Regigigas 166 x 96. Etires a la meme boite par
-    // `object-fit:contain`, ils paraissaient avoir des tailles au hasard — un
-    // Chenipan grossi deux fois et demie a cote d'un Dracaufeu retreci, chacun
-    // touchant le bord par un axe different. On rapporte donc chaque sprite au
-    // plus grand connu, et un petit Pokemon redevient petit.
-    showPage(jeuAvecSprites.key);
-    await new Promise(function(r){ setTimeout(r, 250); });
-    poser('jeu-anime');
-    const cartes = Array.prototype.slice.call(document.querySelectorAll('.card img'), 0, 30);
-    cartes.forEach(function(i){ i.loading = 'eager'; const s = i.src; i.src = ''; i.src = s; });
-    await new Promise(function(r){ setTimeout(r, 4000); });
-    const charges = cartes.filter(function(i){ return i.naturalWidth > 0; });
-    if(charges.length >= 4){
-      // On compare le plus petit fichier au plus grand : leurs largeurs a
-      // l'ecran doivent differer dans le meme sens.
-      const tries = charges.slice().sort(function(a, b){ return a.naturalWidth - b.naturalWidth; });
-      const petit = tries[0], grand = tries[tries.length - 1];
-      if(grand.naturalWidth > petit.naturalWidth * 1.4){
-        const lp = parseFloat(petit.style.width) || 0;
-        const lg = parseFloat(grand.style.width) || 0;
-        if(!lp || !lg){
-          styleSprite = avant; renderList(true);
-          return 'échec : aucune échelle posée sur les sprites animés';
-        }
-        if(lg <= lp){
-          styleSprite = avant; renderList(true);
-          return 'échec : échelle égaliée — ' + petit.naturalWidth + 'px rendu à '
-            + lp + '%, ' + grand.naturalWidth + 'px à ' + lg + '%';
-        }
-      }
-    }
-
-    // LES DEUX « DU JEU » SE GRISENT LA OU LE JEU N'EN A PAS, et le style
-    // retombe sur HOME plutot que de laisser des cartes vides.
-    showPage(jeuSans.key);
-    await new Promise(function(r){ setTimeout(r, 250); });
-    const menu = document.getElementById('spriteStyle');
-    const grisees = Array.prototype.filter.call(menu.options, function(o){ return o.disabled; })
-      .map(function(o){ return o.value; });
-    if(grisees.indexOf('jeu') === -1 || grisees.indexOf('jeu-anime') === -1){
-      return 'échec : sur ' + jeuSans.key + ', « du jeu » reste proposé — ' + grisees.join(',');
-    }
-    styleSprite = 'jeu-anime';
-    if(styleEffectif() !== 'home'){
-      return 'échec : un style impossible n’est pas rabattu sur HOME — ' + styleEffectif();
-    }
-
-    // LE HOME ANIME S'AFFICHE EN CONTINU, et c'est une decision prise en
-    // connaissance de cause : il pese 731 Ko pour Pikachu et 3 568 Ko pour
-    // l'entree n° 1000, contre 77 Ko pour le fixe. Une premiere version ne
-    // l'animait qu'au survol pour epargner les petites machines ; Maxime a
-    // tranche apres avoir vu les chiffres.
-    //
-    // CE QUI RESTE A TENIR, c'est le repli : PokeOS n'a pas de rendu anime pour
-    // tout, et une entree sans GIF ne doit pas laisser une carte vide.
-    poser('home-anime');
+    // LA GRILLE N'A PLUS QU'UN JEU D'IMAGES. Il a existe un menu a quatre
+    // styles — rendu HOME, HOME anime, sprite du jeu, sprite anime — retire le
+    // jour meme a la demande de Maxime. Ce qui reste tient en deux gestes : le
+    // rendu HOME fixe partout, et l'anime sur la carte que le curseur designe.
+    const jeu = GAMES[0];
+    showPage(jeu.key);
     await new Promise(function(r){ setTimeout(r, 300); });
-    const img = document.querySelector('.card img');
-    if(!img){ styleSprite = avant; renderList(true); return 'ignoré : aucune carte'; }
+
+    if(document.getElementById('spriteStyle')){
+      return 'échec : le menu des styles est revenu dans la page';
+    }
+
+    const carte = document.querySelector('.card');
+    const img = carte && carte.querySelector('img');
+    if(!img) return 'ignoré : aucune carte';
+
+    // AU REPOS, RIEN N'EST ANIME. C'est tout l'interet du survol : un ecran de
+    // cinquante-cinq vignettes en rendus animes, ce sont des dizaines de
+    // megaoctets — 731 Ko pour Pikachu, 3 568 Ko pour l'entree n° 1000, contre
+    // 77 Ko pour le fixe.
+    if(img.dataset.stage === 'home-anime'){
+      return 'échec : la carte est animée sans qu’on l’ait survolée';
+    }
+    const fixe = img.src;
+
+    carte.dispatchEvent(new MouseEvent('mouseenter'));
+    await new Promise(function(r){ setTimeout(r, 200); });
     if(img.dataset.stage !== 'home-anime'){
-      styleSprite = avant; renderList(true);
-      return 'échec : le HOME animé n’est pas posé — étape « ' + img.dataset.stage + ' »';
+      return 'échec : le survol n’anime pas la carte — étape « '
+        + img.dataset.stage + ' »';
     }
     if(img.src.indexOf('/animated/') === -1){
-      styleSprite = avant; renderList(true);
       return 'échec : ce n’est pas le rendu animé — ' + img.src;
     }
 
-    // L'ECHELLE DU HOME ANIME SE VERIFIE SUR LE CALCUL, et non en chargeant la
-    // grille : ces rendus pesent des megaoctets piece, et un banc n'a pas a en
-    // tirer trente. Les tailles ci-dessous sont relevees chez PokeOS —
-    // Pikachu 437 x 449, l'entree n° 1000 545 x 1081.
-    if(HOME_ANIME_REF <= ANIME_REF){
-      styleSprite = avant; renderList(true);
-      return 'échec : une seule référence pour deux découpes — ' + ANIME_REF
-        + ' et ' + HOME_ANIME_REF;
+    carte.dispatchEvent(new MouseEvent('mouseleave'));
+    await new Promise(function(r){ setTimeout(r, 200); });
+    if(img.src !== fixe){
+      return 'échec : la carte ne reprend pas son rendu fixe — ' + img.src;
     }
-    const mesure = function(l, h, ref){
-      const faux = { naturalWidth: l, naturalHeight: h, style: {} };
-      poserEchelleAnime(faux, ref);
-      return parseFloat(faux.style.width) || 0;
-    };
-    const pika = mesure(437, 449, HOME_ANIME_REF);
-    const mille = mesure(545, 1081, HOME_ANIME_REF);
-    if(!pika || !mille || pika >= mille){
-      styleSprite = avant; renderList(true);
-      return 'échec : le rendu HOME animé n’est pas mis à l’échelle — 437px à '
-        + pika + '%, 545px à ' + mille + '%';
-    }
-    if(mesure(166, 96, ANIME_REF) !== 100){
-      styleSprite = avant; renderList(true);
-      return 'échec : le plus grand sprite de combat ne remplit plus sa case';
+    if(img.style.width || img.style.height){
+      return 'échec : l’échelle de l’animé reste sur le rendu fixe — '
+        + img.style.width + ' x ' + img.style.height;
     }
 
+    // AU CLAVIER AUSSI. On parcourt cette grille au Tab, et une animation
+    // reservee a la souris serait une animation refusee a qui n'en a pas.
+    carte.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    await new Promise(function(r){ setTimeout(r, 200); });
+    const auClavier = img.dataset.stage === 'home-anime';
+    carte.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    await new Promise(function(r){ setTimeout(r, 200); });
+    if(!auClavier) return 'échec : le focus clavier n’anime pas la carte';
+
+    // L'ECHELLE SE VERIFIE SUR LE CALCUL, et non en chargeant la grille : ces
+    // rendus pesent des megaoctets piece, et un banc n'a pas a en tirer trente.
+    // Les tailles sont relevees chez PokeOS — Pikachu 437 x 449, l'entree
+    // n° 1000 545 x 1081, la plus grande connue.
+    const mesure = function(l, h){
+      const faux = { naturalWidth: l, naturalHeight: h, style: {} };
+      poserEchelleAnime(faux);
+      return parseFloat(faux.style.width) || 0;
+    };
+    const pika = mesure(437, 449), mille = mesure(545, 1081);
+    if(!pika || !mille || pika >= mille){
+      return 'échec : les rendus ne sont pas mis à l’échelle — 437px à '
+        + pika + '%, 545px à ' + mille + '%';
+    }
+    if(mesure(545, 1081) !== 100 * 545 / 1081){
+      return 'échec : la référence d’échelle a bougé';
+    }
+
+    // UN RENDU ABSENT NE LAISSE PAS DE TROU, et ne se redemande pas. PokeOS n'en
+    // a pas pour tout : l'entree n° 1017 manque, la forme chromatique de la
+    // 1025 aussi. Chaque passage du curseur relancerait la meme requete perdue.
+    carte.dispatchEvent(new MouseEvent('mouseenter'));
+    await new Promise(function(r){ setTimeout(r, 100); });
     img.loading = 'eager';
     img.src = 'https://s3.pokeos.com/pokeos-uploads/assets/pokemon/home/animated/999999.gif';
     await new Promise(function(r){ setTimeout(r, 3000); });
     if(img.dataset.stage === 'home-anime'){
-      styleSprite = avant; renderList(true);
       return 'échec : un rendu animé absent laisse la carte vide';
     }
-
-    // ET LE DESSIN NE SE RAPPELLE PAS LUI-MEME. Le menu du style est un
-    // <select> cache double d'un menu stylise ; pour les tenir d'accord, on a
-    // un temps simule un « change » sur le cache. Mais majMenuStyle() est
-    // appelee par renderList() a chaque dessin : l'evenement reveillait
-    // l'ecouteur du menu, qui rappelle renderList(), qui rappelle
-    // majMenuStyle(). Un seul changement d'onglet empilait quarante-quatre
-    // dessins de grille, et le site — qui recharge sa page plusieurs fois de
-    // suite — tombait en « Maximum call stack size exceeded ».
-    //
-    // On compte donc les appels : un changement d'onglet en vaut une poignee,
-    // pas quarante.
-    const vraiMaj = window.majMenuStyle;
-    let appels = 0;
-    window.majMenuStyle = function(){ appels++; return vraiMaj.apply(this, arguments); };
-    try{
-      showPage(jeuAvecSprites.key);
-      await new Promise(function(r){ setTimeout(r, 250); });
-    } finally {
-      window.majMenuStyle = vraiMaj;
+    if(!img.dataset.sansAnime){
+      return 'échec : rien ne retient l’absence — le survol suivant la redemande';
     }
-    if(appels > 8){
-      styleSprite = avant; renderList(true);
-      return 'échec : le dessin se rappelle lui-même — ' + appels
-        + ' passages dans le menu du style pour un seul changement d’onglet';
-    }
+    carte.dispatchEvent(new MouseEvent('mouseleave'));
 
-    styleSprite = avant;
-    renderList(true);
-    return 'quatre styles, gen5ani sur son Pokédex, les deux échelles, '
-      + 'HOME animé en continu, et ' + appels + ' dessin' + (appels > 1 ? 's' : '')
-      + ' par onglet';
+    return 'le survol anime, le départ rend le fixe, le clavier compte, et un rendu absent ne se redemande pas';
   });

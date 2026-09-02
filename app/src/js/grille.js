@@ -48,7 +48,6 @@ function renderList(reset){
   });
   listEl.appendChild(fragment);
   if(typeof majLegendeObtention === 'function') majLegendeObtention();
-  if(typeof majBoutonSprites === 'function') majBoutonSprites();
   renderedCount += next.length;
   loadMoreBtn.style.display = renderedCount < currentFiltered.length ? 'block' : 'none';
   updateBulkBar();
@@ -561,7 +560,6 @@ function renderBoites(){
   loadMoreBtn.style.display = 'none';
   dessinerNavBoites(tout.length);
   if(typeof majLegendeObtention === 'function') majLegendeObtention();
-  if(typeof majBoutonSprites === 'function') majBoutonSprites();
   updateBulkBar();
   poserTabulation(null);
 }

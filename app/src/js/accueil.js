@@ -492,7 +492,6 @@ function showPage(name){
   // Le bouton des pastilles suit l'onglet : il n'a rien à expliquer ailleurs
   // que sur le Pokédex d'un jeu.
   if(typeof majLegendeObtention === 'function') majLegendeObtention();
-  if(typeof majBoutonSprites === 'function') majBoutonSprites();
   pageHomeEl.classList.toggle('active', isHome);
   pageDexEl.classList.toggle('active', !isHome);
   // Un jeu n'a plus d'onglet à lui : c'est « Pokédex » qui reste allumé, parce

@@ -528,18 +528,6 @@ function homeAnimeUrl(id, shiny){
   return base + (shiny ? 'shiny/' : '') + id + '.gif';
 }
 
-// L'anime d'epoque : il n'existe qu'en cinquieme generation. Noir et Blanc ont
-// ete les seuls jeux a sprites animes, et Showdown les range a part de son jeu
-// « ani » courant, qui reprend ce style pour toutes les especes suivantes.
-//
-// Rend null ailleurs : l'appelant retombe alors sur `ani`, en le sachant.
-function spriteGen5AnimeUrl(cleJeu, slug, shiny){
-  const jeu = spritesDuJeu(cleJeu);
-  if(!jeu || (jeu.normal !== 'gen5' && jeu.normal !== 'gen5-shiny')) return null;
-  return 'https://play.pokemonshowdown.com/sprites/'
-    + (shiny ? 'gen5ani-shiny/' : 'gen5ani/') + slug + '.gif';
-}
-
 function showdownSpriteUrl(slug, shiny){
   const base = 'https://play.pokemonshowdown.com/sprites/';
   return (shiny ? base + 'home-shiny/' : base + 'home/') + slug + '.png';
