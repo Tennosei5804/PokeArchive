@@ -2817,7 +2817,7 @@ verifier('La mise à jour',
 // ---------------------------------------------------------------------------
 
 verifier('Le style des images',
-  'Les quatre styles, et le rendu HOME animé qui n’arrive qu’au survol',
+  'Les quatre styles, l’échelle des sprites, et le repli quand un GIF manque',
   async function(){
     // QUATRE REPONSES A UNE SEULE QUESTION. C'etaient deux interrupteurs
     // independants dont rien ne disait qu'ils se croisaient ; deux des quatre
@@ -2868,6 +2868,40 @@ verifier('Le style des images',
       }
     }
 
+    // L'ECHELLE DES SPRITES DE COMBAT EST RENDUE, ET NON EGALISEE. Chaque GIF
+    // est decoupe au plus pres et porte sa propre taille : Bulbizarre 45 x 49,
+    // Dracaufeu 133 x 140, Regigigas 166 x 96. Etires a la meme boite par
+    // `object-fit:contain`, ils paraissaient avoir des tailles au hasard — un
+    // Chenipan grossi deux fois et demie a cote d'un Dracaufeu retreci, chacun
+    // touchant le bord par un axe different. On rapporte donc chaque sprite au
+    // plus grand connu, et un petit Pokemon redevient petit.
+    showPage(jeuAvecSprites.key);
+    await new Promise(function(r){ setTimeout(r, 250); });
+    poser('jeu-anime');
+    const cartes = Array.prototype.slice.call(document.querySelectorAll('.card img'), 0, 30);
+    cartes.forEach(function(i){ i.loading = 'eager'; const s = i.src; i.src = ''; i.src = s; });
+    await new Promise(function(r){ setTimeout(r, 4000); });
+    const charges = cartes.filter(function(i){ return i.naturalWidth > 0; });
+    if(charges.length >= 4){
+      // On compare le plus petit fichier au plus grand : leurs largeurs a
+      // l'ecran doivent differer dans le meme sens.
+      const tries = charges.slice().sort(function(a, b){ return a.naturalWidth - b.naturalWidth; });
+      const petit = tries[0], grand = tries[tries.length - 1];
+      if(grand.naturalWidth > petit.naturalWidth * 1.4){
+        const lp = parseFloat(petit.style.width) || 0;
+        const lg = parseFloat(grand.style.width) || 0;
+        if(!lp || !lg){
+          styleSprite = avant; renderList(true);
+          return 'échec : aucune échelle posée sur les sprites animés';
+        }
+        if(lg <= lp){
+          styleSprite = avant; renderList(true);
+          return 'échec : échelle égaliée — ' + petit.naturalWidth + 'px rendu à '
+            + lp + '%, ' + grand.naturalWidth + 'px à ' + lg + '%';
+        }
+      }
+    }
+
     // LES DEUX « DU JEU » SE GRISENT LA OU LE JEU N'EN A PAS, et le style
     // retombe sur HOME plutot que de laisser des cartes vides.
     showPage(jeuSans.key);
@@ -2883,30 +2917,36 @@ verifier('Le style des images',
       return 'échec : un style impossible n’est pas rabattu sur HOME — ' + styleEffectif();
     }
 
-    // LE HOME ANIME N'EST PAS POSE D'EMBLEE, et arrive au survol.
+    // LE HOME ANIME S'AFFICHE EN CONTINU, et c'est une decision prise en
+    // connaissance de cause : il pese 731 Ko pour Pikachu et 3 568 Ko pour
+    // l'entree n° 1000, contre 77 Ko pour le fixe. Une premiere version ne
+    // l'animait qu'au survol pour epargner les petites machines ; Maxime a
+    // tranche apres avoir vu les chiffres.
+    //
+    // CE QUI RESTE A TENIR, c'est le repli : PokeOS n'a pas de rendu anime pour
+    // tout, et une entree sans GIF ne doit pas laisser une carte vide.
     poser('home-anime');
-    await new Promise(function(r){ setTimeout(r, 250); });
-    const carte = document.querySelector('.card');
-    const img = carte && carte.querySelector('img');
+    await new Promise(function(r){ setTimeout(r, 300); });
+    const img = document.querySelector('.card img');
     if(!img){ styleSprite = avant; renderList(true); return 'ignoré : aucune carte'; }
-    if(img.dataset.stage === 'home-anime'){
-      styleSprite = avant; renderList(true);
-      return 'échec : le HOME animé est posé d’emblée — des dizaines de Mo par écran';
-    }
-    carte.dispatchEvent(new MouseEvent('mouseenter'));
-    await new Promise(function(r){ setTimeout(r, 200); });
     if(img.dataset.stage !== 'home-anime'){
       styleSprite = avant; renderList(true);
-      return 'échec : le survol n’anime pas la carte';
+      return 'échec : le HOME animé n’est pas posé — étape « ' + img.dataset.stage + ' »';
     }
-    carte.dispatchEvent(new MouseEvent('mouseleave'));
-    await new Promise(function(r){ setTimeout(r, 200); });
+    if(img.src.indexOf('/animated/') === -1){
+      styleSprite = avant; renderList(true);
+      return 'échec : ce n’est pas le rendu animé — ' + img.src;
+    }
+
+    img.loading = 'eager';
+    img.src = 'https://s3.pokeos.com/pokeos-uploads/assets/pokemon/home/animated/999999.gif';
+    await new Promise(function(r){ setTimeout(r, 3000); });
     if(img.dataset.stage === 'home-anime'){
       styleSprite = avant; renderList(true);
-      return 'échec : la carte reste animée après le départ du curseur';
+      return 'échec : un rendu animé absent laisse la carte vide';
     }
 
     styleSprite = avant;
     renderList(true);
-    return 'quatre styles, gen5ani sur son Pokédex, et le HOME animé au seul survol';
+    return 'quatre styles, gen5ani sur son Pokédex, échelle rendue, HOME animé en continu';
   });

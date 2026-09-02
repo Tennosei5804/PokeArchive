@@ -752,13 +752,21 @@ let legendeOuverte = false;
 //   jeu-anime   le sprite anime de Showdown, et gen5ani sur un Pokedex de
 //               cinquieme generation, ou l'animation EST celle du jeu.
 //
-// POURQUOI LE HOME ANIME NE S'ANIME QU'AU SURVOL. Mesure, sur ces fichiers-la :
-// 731 Ko pour Pikachu, 3 568 Ko pour l'entree n° 1000, contre 77 Ko pour le
-// rendu fixe. Cinquante-cinq vignettes visibles, ce sont des dizaines de
-// megaoctets et autant de decodages en boucle — de quoi geler la machine qu'on
-// vient justement de degeler. La grille pose donc le fixe, et remplace par
-// l'anime celui que le curseur designe : on voit l'animation ou l'on regarde,
-// et une seule a la fois. La fiche, elle, garde ses propres boutons.
+// CE QUE COUTE LE HOME ANIME, ET LA DECISION QUI A ETE PRISE. Mesure, sur ces
+// fichiers-la : 731 Ko pour Pikachu, 3 568 Ko pour l'entree n° 1000, contre
+// 77 Ko pour le rendu fixe. Un ecran de cinquante-cinq vignettes demande donc
+// des dizaines de megaoctets, et fait tourner autant de decodages en boucle.
+//
+// IL S'AFFICHE QUAND MEME EN CONTINU, PARCE QUE C'EST CE QUI A ETE DEMANDE. Une
+// premiere version ne l'animait qu'au survol pour epargner les petites
+// machines ; Maxime a tranche apres avoir vu les chiffres, et c'est son
+// application. Le choix reste un choix : il faut aller le chercher dans le
+// menu, les trois autres styles sont legers, et le defaut n'a pas bouge.
+//
+// CE QUI LIMITE QUAND MEME LA CASSE, sans rien retirer a la demande : les
+// images de la grille sont en `loading="lazy"`, donc seules celles qu'on
+// approche sont demandees — on paie l'ecran qu'on regarde, pas les mille
+// deux cent cinquante entrees du Pokedex.
 const STYLE_CLE = 'pokearchive-style-sprite';
 const STYLES_CONNUS = ['home', 'home-anime', 'jeu', 'jeu-anime'];
 
@@ -831,46 +839,29 @@ function majMenuStyle(){
 
 // Appelee par showPage() a chaque changement d'onglet : c'est la qu'on apprend
 // si le jeu ouvert a des sprites d'epoque.
+// LE PLUS GRAND SPRITE DE COMBAT CONNU, en pixels. Releve sur un echantillon
+// choisi pour ses extremes : Regigigas 166 x 96, Eternatus 148 x 126, Wailord
+// 146 x 81, Rayquaza 142 x 153. Rien ne depasse 166.
+//
+// Il sert de reference d'echelle : un sprite occupe la fraction du cadre que sa
+// taille represente sur ce maximum. Regigigas remplit, Bulbizarre — 45 x 49 —
+// en occupe le quart. C'est le rapport qu'ils ont dans le jeu.
+const ANIME_REF = 166;
+
 /**
- * Le rendu HOME anime, pose au survol et retire ensuite.
+ * Rend au sprite anime son echelle, une fois le fichier arrive.
  *
- * POURQUOI PAS TOUT DE SUITE. Mesure : 731 Ko pour Pikachu, 3 568 Ko pour
- * l'entree n° 1000, contre 77 Ko pour le rendu fixe. Cinquante-cinq vignettes
- * visibles, ce sont des dizaines de megaoctets a tirer et autant de decodages
- * en boucle — exactement la charge continue qui fait dire a un petit ordinateur
- * que l'application ne repond plus.
- *
- * ON MONTRE DONC L'ANIMATION LA OU L'ON REGARDE. Le fixe reste pose ; le
- * curseur echange l'un contre l'autre, et l'on revient au fixe en partant. Une
- * seule anime a la fois, celle qu'on a demandee du regard.
- *
- * `focus` autant que `mouseenter` : on parcourt aussi cette grille au clavier,
- * et une animation reservee a la souris serait une animation refusee a qui n'en
- * a pas.
+ * EN JAVASCRIPT ET NON EN CSS, parce que la taille n'est connue qu'au
+ * chargement : elle vit dans le fichier, pas dans le document. On la pose en
+ * POURCENTAGE du cadre et non en pixels, pour que la grille reste elastique —
+ * les cartes retrecissent avec la fenetre, et des pixels figes ici auraient
+ * debordé sur un ecran etroit.
  */
-function poserSurvolAnime(carte, img, entry){
-  let fixe = null;
-  const montrer = function(){
-    if(img.dataset.stage === 'home-anime') return;
-    fixe = img.src;
-    img.dataset.stage = 'home-anime';
-    img.src = homeAnimeUrl(entry.id, shinyView);
-  };
-  const rendre = function(){
-    if(img.dataset.stage !== 'home-anime' || !fixe) return;
-    img.dataset.stage = 'pokeos';
-    img.src = fixe;
-  };
-  // UN GIF ABSENT NE DOIT PAS LAISSER UN TROU. PokeOS n'en a pas pour tout —
-  // l'entree n° 1017 manque, la forme chromatique de la 1025 aussi — et
-  // l'erreur nous ramene simplement au fixe qu'on avait sous la main.
-  img.addEventListener('error', function(){
-    if(img.dataset.stage === 'home-anime') rendre();
-  });
-  carte.addEventListener('mouseenter', montrer);
-  carte.addEventListener('mouseleave', rendre);
-  carte.addEventListener('focusin', montrer);
-  carte.addEventListener('focusout', rendre);
+function poserEchelleAnime(img){
+  const l = img.naturalWidth, h = img.naturalHeight;
+  if(!l || !h) return;
+  img.style.width = (100 * l / ANIME_REF) + '%';
+  img.style.height = (100 * h / ANIME_REF) + '%';
 }
 
 function majBoutonSprites(){
@@ -1007,14 +998,13 @@ function renderCard(entry){
        || spriteAnimeUrl(showdownSlug, shinyView))
     : null;
 
-  // LE HOME ANIME N'EST PAS POSE ICI, et c'est mesure : 731 Ko pour Pikachu,
-  // 3 568 Ko pour l'entree n° 1000, contre 77 Ko pour le rendu fixe.
-  // Cinquante-cinq vignettes visibles, ce sont des dizaines de megaoctets et
-  // autant de decodages en boucle. La carte porte donc le fixe, et l'echange
-  // contre l'anime quand le curseur la designe — une seule a la fois.
-  if(style === 'home-anime' && !entry.spriteOnly){
-    poserSurvolAnime(card, img, entry);
-  }
+  // LE HOME ANIME, EN TETE COMME LES AUTRES. Il coute cher — voir l'en-tete de
+  // ce bloc — mais il s'affiche en continu parce que c'est ce qui a ete
+  // demande, et son erreur redonne la main a la chaine habituelle : PokeOS n'en
+  // a pas pour tout, l'entree n° 1017 manque et la forme chromatique de la 1025
+  // aussi.
+  const homeAnime = (style === 'home-anime' && !entry.spriteOnly)
+    ? homeAnimeUrl(entry.id, shinyView) : null;
   // Le maillon local se saute quand la session a déjà prouvé qu'il ne donne
   // rien : voir spritesLocauxPossibles() dans noyau.js.
   const apresLocal = function(){
@@ -1027,7 +1017,10 @@ function renderCard(entry){
     }
   };
 
-  if(anime){
+  if(homeAnime){
+    img.src = homeAnime;
+    img.dataset.stage = 'home-anime';
+  } else if(anime){
     img.src = anime;
     img.dataset.stage = 'anime';
     img.classList.add('sprite-anime');
@@ -1045,12 +1038,24 @@ function renderCard(entry){
   // le dossier de quelqu'un qui l'a vraiment rempli.
   img.addEventListener('load', function(){
     if(img.dataset.stage === 'local') noterSpriteLocal(true);
+    // L'echelle n'appartient qu'aux sprites de combat : les rendus HOME sont
+    // tous cadres pareil, et leur en imposer une les rapetisserait sans raison.
+    if(img.dataset.stage === 'anime') poserEchelleAnime(img);
   });
 
   img.addEventListener('error', function(){
-    if(img.dataset.stage === 'anime'){
-      // Pas d'anime pour cette espece : on reprend la chaine a son debut.
+    if(img.dataset.stage === 'home-anime'){
+      // Pas de rendu anime pour cette entree : le fixe prend sa place, et la
+      // carte ne reste pas vide.
+      img.dataset.stage = 'pokeos';
+      img.src = pokeosHomeUrl(entry.id, shinyView);
+    } else if(img.dataset.stage === 'anime'){
+      // Pas d'anime pour cette espece : on reprend la chaine a son debut, et
+      // l'echelle posee pour lui s'en va avec — l'image de repli est cadree
+      // comme les autres.
       img.classList.remove('sprite-anime');
+      img.style.width = '';
+      img.style.height = '';
       if(epoque){
         img.dataset.stage = 'epoque';
         img.src = epoque;

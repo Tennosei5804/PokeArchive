@@ -1198,7 +1198,23 @@
    rendu, il a du vide autour du Pokemon, et le rogner lui couperait les pieds. */
 .card img.sprite-anime{
   image-rendering:pixelated;
-  object-fit:contain;
+  /* PAS DE `contain` ICI, ET C'EST TOUT LE SUJET. Les GIF de Showdown sont des
+     sprites de COMBAT : chacun est decoupe au plus pres et porte sa propre
+     echelle. Mesure : Bulbizarre fait 45 x 49, Dracaufeu 133 x 140, Regigigas
+     166 x 96 — l'ecart est celui des Pokemon eux-memes.
+
+     `object-fit:contain` dans une boite carree les etirait tous a la meme
+     taille : Bulbizarre grossi deux fois et demie, Dracaufeu retreci, et chacun
+     touchant le bord par un axe different — d'ou une grille qui paraissait
+     avoir des tailles au hasard alors qu'elle les avait justement toutes
+     egalisees.
+
+     L'echelle est donc rendue, rapportee au plus grand sprite connu (166 px) :
+     Regigigas remplit le cadre, Bulbizarre en occupe le quart. C'est ce qu'on
+     voit dans le jeu. `poserEchelleAnime()` pose les deux dimensions — voir
+     dex.js, car elles dependent du fichier recu. */
+  object-fit:fill;
+  align-self:center;
 }
 /* QUI A DEMANDE MOINS DE MOUVEMENT NE DOIT PAS EN TROUVER ICI. Le reglage est
    deja consulte pour decider de l'etat de depart du bouton, mais quelqu'un peut
