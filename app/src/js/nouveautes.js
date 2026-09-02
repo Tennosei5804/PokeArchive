@@ -20,6 +20,34 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.37.0', date: '2026-09-02',
+    titre: 'L’application ne se fige plus au premier Pokémon ouvert',
+    points: [
+      '**⚡ Ouvrir la première fiche d’une session tirait 3,7 Mo d’un seul '
+      + 'coup** — les notices, les capacités et Cobblemon, demandées au même '
+      + 'instant par trois blocs de la même fiche. Sur un ordinateur modeste, '
+      + 'c’est là que Windows affichait « l’application ne répond plus » : le '
+      + 'gel tombait sur un clic. Ces réserves sont maintenant demandées **plus '
+      + 'tôt et une à la fois**, pendant que rien ne se passe. Mesuré sur le '
+      + 'même geste : 3 722 Ko avant, 60 Ko après.',
+      '**Rien de plus n’est chargé au démarrage**, et rien n’est préchargé si '
+      + 'ton navigateur est en mode économie de données ou sur une connexion '
+      + 'lente : dans l’application les réserves sont sur ton disque, sur le '
+      + 'site elles viennent du réseau.',
+      '**🔑 Une mise à jour ne te déconnecte plus.** L’application confondait '
+      + '« pas de compte » et « le serveur n’a pas répondu » : elle vidait ta '
+      + 'collection affichée et n’ouvrait aucune aventure, alors que ta session '
+      + 'était intacte. Or c’est juste après une mise à jour que le serveur a '
+      + 'le plus de chances de se taire — la machine finit d’écrire. Hors '
+      + 'ligne, on ne touche plus à rien.',
+      '**📥 La mise à jour s’affiche dans une fenêtre**, avec les mégaoctets '
+      + '(« 3,2 sur 9,1 Mo ») plutôt que deux chiffres dans un bouton d’en-tête. '
+      + 'L’installation, elle, n’annonce aucun pourcentage : l’installeur '
+      + 'Windows reprend la main et ne dit plus rien — inventer un chiffre '
+      + 'serait mentir. Et si ça échoue, tu le lis là où tu regardais.',
+    ],
+  },
+  {
     version: '0.36.4', date: '2026-09-01',
     titre: 'La connexion ne paraît plus figée, et la fiche de capture s’ouvre en grand',
     points: [
