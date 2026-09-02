@@ -741,8 +741,65 @@ const LEGENDE_OBTENTION = '🌿 capturable ici · ⬆ par évolution · 🎁 off
 let legendeOuverte = false;
 let spritesEpoque = false;
 
+// ---- Les sprites animes ------------------------------------------------------
+//
+// CE QUE C'EST. Showdown heberge un GIF anime par espece, 85 x 98. La fiche s'en
+// sert deja ; la grille, non — elle posait une image fixe.
+//
+// CE QUE CA COUTE, ET POURQUOI IL Y A UN BOUTON. Un GIF anime ne se decode pas
+// une fois : il tourne tant qu'il est a l'ecran. Trente ou quarante vignettes
+// visibles, ce sont trente ou quarante decodages en boucle — exactement le
+// genre de charge continue qui fait dire a un petit ordinateur que
+// l'application ne repond plus. C'est donc un choix, pas un defaut, et il
+// s'eteint la ou on l'a allume.
+//
+// ET ON NE L'IMPOSE PAS A QUI A DIT NON. `prefers-reduced-motion` est le
+// reglage systeme de qui ne supporte pas le mouvement — une grille de mille
+// sprites qui s'agitent est precisement ce qu'il vise. `saveData` dit qu'on
+// compte ses octets, et un GIF pese plus lourd qu'un PNG. Dans les deux cas le
+// bouton reste, mais il part eteint : on propose, on n'impose pas.
+const ANIMES_CLE = 'pokearchive-sprites-animes';
+
+function animesRefuses(){
+  try{
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      return true;
+    }
+  }catch(e){ /* matchMedia absent : on continue */ }
+  const c = navigator.connection;
+  return !!(c && c.saveData);
+}
+
+let spritesAnimes = (function(){
+  if(animesRefuses()) return false;
+  try{ return localStorage.getItem(ANIMES_CLE) === 'oui'; }
+  catch(e){ return false; }
+})();
+
 // Le bouton n'apparaît que là où un jeu de sprites existe : ni sur HOME, ni sur
 // les jeux d'après la cinquième génération, qui n'ont plus de sprite 2D.
+function majBoutonAnimes(){
+  const bouton = document.getElementById('animesBtn');
+  if(!bouton) return;
+  bouton.setAttribute('aria-pressed', String(spritesAnimes));
+  bouton.classList.toggle('active', spritesAnimes);
+  boutonIcone(bouton, spritesAnimes ? 'disque' : 'etincelle',
+    spritesAnimes ? 'Sprites fixes' : 'Sprites animés');
+}
+
+(function(){
+  const bouton = document.getElementById('animesBtn');
+  if(!bouton) return;
+  bouton.addEventListener('click', function(){
+    spritesAnimes = !spritesAnimes;
+    try{ localStorage.setItem(ANIMES_CLE, spritesAnimes ? 'oui' : 'non'); }
+    catch(e){ /* stockage refuse : le choix ne survivra pas, tant pis */ }
+    majBoutonAnimes();
+    renderList(true);
+  });
+  majBoutonAnimes();
+})();
+
 function majBoutonSprites(){
   const bouton = document.getElementById('spritesJeuBtn');
   if(!bouton) return;
@@ -877,6 +934,13 @@ function renderCard(entry){
   // à la chaîne habituelle, qui n'a pas changé d'un caractère.
   const epoque = spritesEpoque
     ? spriteEpoqueUrl(currentTab, showdownSlug, shinyView) : null;
+  // L'ANIME PASSE EN TETE, ET RIEN D'AUTRE NE CHANGE. Showdown n'a pas de GIF
+  // pour toutes les formes — les cosmetiques et une partie des recentes
+  // manquent — et l'erreur redonne la main a la chaine habituelle, qui n'a pas
+  // bouge d'un caractere. Une espece sans anime retombe donc sur son image
+  // fixe, sans trou ni cadre vide.
+  const anime = (spritesAnimes && !entry.spriteOnly)
+    ? spriteAnimeUrl(showdownSlug, shinyView) : null;
   // Le maillon local se saute quand la session a déjà prouvé qu'il ne donne
   // rien : voir spritesLocauxPossibles() dans noyau.js.
   const apresLocal = function(){
@@ -889,7 +953,11 @@ function renderCard(entry){
     }
   };
 
-  if(epoque){
+  if(anime){
+    img.src = anime;
+    img.dataset.stage = 'anime';
+    img.classList.add('sprite-anime');
+  } else if(epoque){
     img.src = epoque;
     img.dataset.stage = 'epoque';
   } else if(spritesLocauxPossibles()){
@@ -906,7 +974,19 @@ function renderCard(entry){
   });
 
   img.addEventListener('error', function(){
-    if(img.dataset.stage === 'epoque'){
+    if(img.dataset.stage === 'anime'){
+      // Pas d'anime pour cette espece : on reprend la chaine a son debut.
+      img.classList.remove('sprite-anime');
+      if(epoque){
+        img.dataset.stage = 'epoque';
+        img.src = epoque;
+      } else if(spritesLocauxPossibles()){
+        img.dataset.stage = 'local';
+        img.src = localSpriteUrl(entry.name, shinyView);
+      } else {
+        apresLocal();
+      }
+    } else if(img.dataset.stage === 'epoque'){
       if(spritesLocauxPossibles()){
         img.dataset.stage = 'local';
         img.src = localSpriteUrl(entry.name, shinyView);

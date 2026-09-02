@@ -1189,6 +1189,23 @@
    afin de savoir si on l'a deja demandee. */
 .blocage-cherche{ font-style:normal; font-size:11px; }
 
+/* ---- Les sprites animes ----------------------------------------------------
+   85 x 98 pixels de pixel art, agrandis pour tenir la place d'un rendu HOME.
+   `pixelated` est obligatoire : lisses par le navigateur, ils baveraient — la
+   fiche fait deja exactement ca pour la meme raison.
+
+   `object-fit:contain` et non `cover` : un anime n'est pas cadre comme un
+   rendu, il a du vide autour du Pokemon, et le rogner lui couperait les pieds. */
+.card img.sprite-anime{
+  image-rendering:pixelated;
+  object-fit:contain;
+}
+/* QUI A DEMANDE MOINS DE MOUVEMENT NE DOIT PAS EN TROUVER ICI. Le reglage est
+   deja consulte pour decider de l'etat de depart du bouton, mais quelqu'un peut
+   l'activer apres coup, ou changer d'avis en cours de session. On ne peut pas
+   arreter un GIF en CSS ; on peut au moins ne pas l'imposer par defaut, et le
+   dire — voir animesRefuses() dans dex.js. */
+
 /* ===== Le catalogue des verrous chromatiques =============================
    Voir verrous.js. Il se consulte avant de lancer une chasse : trois mille
    rencontres sur un Pokémon verrouillé, c'est l'erreur qu'on ne fait qu'une

@@ -2796,3 +2796,95 @@ verifier('La mise à jour',
     if(majOverlay.style.display !== 'none') return 'échec : la fenêtre ne se ferme pas';
     return 'mégaoctets au téléchargement, aucun chiffre inventé à l’installation';
   });
+
+// ---------------------------------------------------------------------------
+
+verifier('Les sprites animés',
+  'En tête quand on les demande, repli sur l’image fixe quand le GIF manque',
+  async function(){
+    // TROIS DÉCISIONS, ET CHACUNE PEUT SE PERDRE EN SILENCE.
+    //
+    // · LE REPLI. Showdown n’a pas de GIF pour toutes les formes — les
+    //   cosmétiques et une partie des récentes manquent. Sans repli, ces
+    //   entrées afficheraient un cadre vide, ce qui se lit « il me manque »
+    //   dans un Pokédex : la pire confusion possible ici.
+    //
+    // · L’ORDRE. L’animé passe DEVANT la chaîne existante, sans la modifier :
+    //   une erreur doit la reprendre à son début, pas la court-circuiter.
+    //
+    // · LE REFUS. `prefers-reduced-motion` est le réglage de qui ne supporte
+    //   pas le mouvement, et une grille de mille sprites qui s’agitent est
+    //   exactement ce qu’il vise. `saveData` dit qu’on compte ses octets. Dans
+    //   les deux cas on propose, on n’impose pas.
+    if(typeof animesRefuses !== 'function') return 'échec : animesRefuses() a disparu';
+    if(typeof spriteAnimeUrl !== 'function') return 'échec : spriteAnimeUrl() a disparu';
+
+    // L’adresse : le dossier change avec la forme chromatique, et lui seul.
+    const normal = spriteAnimeUrl('pikachu', false);
+    const shiny = spriteAnimeUrl('pikachu', true);
+    if(normal.indexOf('/ani/') === -1 || !/\.gif$/.test(normal)){
+      return 'échec : l’adresse normale n’est pas un GIF de /ani/ — ' + normal;
+    }
+    if(shiny.indexOf('/ani-shiny/') === -1){
+      return 'échec : la forme chromatique ne change pas de dossier — ' + shiny;
+    }
+
+    // LE REFUS SE LIT DANS LE SYSTÈME. On maquille `matchMedia` le temps du
+    // contrôle : c’est la seule façon d’éprouver une décision qui dépend d’un
+    // réglage qu’on ne contrôle pas.
+    const vrai = window.matchMedia;
+    try{
+      window.matchMedia = function(q){
+        return { matches: /reduced-motion/.test(q), media: q,
+                 addListener: function(){}, removeListener: function(){} };
+      };
+      if(!animesRefuses()){
+        return 'échec : « moins de mouvement » ne suffit pas à les refuser';
+      }
+      window.matchMedia = function(q){
+        return { matches: false, media: q,
+                 addListener: function(){}, removeListener: function(){} };
+      };
+      if(animesRefuses()){
+        return 'échec : refusés alors que rien ne s’y oppose';
+      }
+    } finally {
+      window.matchMedia = vrai;
+    }
+
+    // ET LE REPLI, éprouvé sur une vraie carte : on met une adresse qui n’existe
+    // pas et l’on regarde où l’image atterrit.
+    const avant = spritesAnimes;
+    spritesAnimes = true;
+    renderList(true);
+    await new Promise(function(r){ setTimeout(r, 120); });
+    const img = document.querySelector('.card img');
+    if(!img) { spritesAnimes = avant; renderList(true); return 'ignoré : aucune carte'; }
+    if(img.dataset.stage !== 'anime'){
+      spritesAnimes = avant; renderList(true);
+      return 'échec : l’animé ne passe pas en tête — étape « ' + img.dataset.stage + ' »';
+    }
+
+    // `loading="lazy"` D'ABORD, ET C'EST TOUT LE PIEGE. Une image paresseuse
+    // hors du champ n'est jamais demandee : pas de requete, donc pas d'erreur,
+    // donc pas de repli. Cette verification echouait pour cette seule raison,
+    // en accusant un code qui marchait. Le banc tourne souvent dans un volet
+    // qui ne compose rien — il faut donc reclamer l'image explicitement.
+    img.loading = 'eager';
+    img.src = 'https://play.pokemonshowdown.com/sprites/ani/il-n-y-a-rien-ici.gif';
+    // On attend l'aller-retour reseau, pas un rendu : trois secondes suffisent
+    // largement pour un 404 sur un domaine deja interroge.
+    await new Promise(function(r){ setTimeout(r, 3000); });
+    if(img.dataset.stage === 'anime'){
+      spritesAnimes = avant; renderList(true);
+      return 'échec : un GIF absent laisse la carte en « anime » — elle reste vide';
+    }
+    if(img.classList.contains('sprite-anime')){
+      spritesAnimes = avant; renderList(true);
+      return 'échec : la classe d’affichage animé survit au repli';
+    }
+
+    spritesAnimes = avant;
+    renderList(true);
+    return 'adresse juste, refus respecté, et un GIF manquant retombe sur l’image fixe';
+  });
