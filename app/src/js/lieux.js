@@ -326,6 +326,299 @@ function puceEspece(x, estPris){
   return l;
 }
 
+// ---- Ce qui change ce que l'on croise ---------------------------------------
+//
+// DEUX CHOSES PESENT SUR UNE RENCONTRE, et aucune des deux ne se lit dans la
+// liste des especes : la METHODE — l'attaque ou l'objet qu'il faut pour la
+// declencher — et le TALENT DE TETE, celui du premier Pokemon de l'equipe, qui
+// biaise ce qui sort.
+//
+// LA METHODE EST DEJA LA, DANS LA SOUS-ZONE. Le releve Pokepedia ecrit « Lac
+// Ouragan • Coup d'Boule » ou « • Peche a la Super Canne » : la sous-zone EST
+// la methode. Mesure sur les vingt-deux jeux : 521 rencontres au Coup d'Boule,
+// 112 a l'Eclate-Roc, 3 946 a la peche, 157 au Poke Radar. Il n'y avait donc
+// rien a relever, seulement a dire ce que chacune demande.
+//
+// LE TALENT, LUI, S'ECRIT A LA MAIN. Aucune table publiee ne decrit les effets
+// de terrain : PokeAPI n'en donne qu'une prose anglaise, non structuree. C'est
+// du savoir de jeu, comme la table CADEAUX de fiche.js ou TALENTS_COMBAT de
+// combat.js — dont celle-ci reprend la forme, identifiants PokeAPI compris.
+//
+// LES BORNES DE GENERATION SONT PRUDENTES, ET C'EST DELIBERE. Ces effets ont
+// change plusieurs fois : Statik n'attire l'Electrik qu'a partir de la
+// quatrieme, Lumiattirance ne double plus la rencontre en huitieme, et les jeux
+// ou les Pokemon sont VISIBLES sur la carte — Let's Go, Legendes Arceus,
+// Ecarlate/Violet — n'ont pas d'attraction par le talent du tout. Hors des
+// bornes, on n'affiche RIEN : une ligne absente ne trompe personne, une ligne
+// fausse fait perdre des heures de chasse.
+
+const LIEUX_GENERATION = {
+  rby:1, jaune:1, gsc:2, cristal:2, rse:3, emeraude:3, frlg:3,
+  dp:4, pt:4, hgss:4, bw:5, b2w2:5, xy:6, oras:6, sm:7, usum:7,
+  letsgo:7, swsh:8, bdsp:8, pla:8, sv:9, za:9
+};
+
+// Les jeux ou le talent de tete ne joue pas : on y voit le Pokemon avant de
+// l'approcher, il n'y a rien a biaiser. Cobblemon est absent de la table des
+// generations et se trouve ecarte par le meme chemin.
+const LIEUX_SANS_TALENT = ['letsgo', 'pla', 'cobblemon'];
+
+// Les talents qui ATTIRENT UN TYPE. `type` est l'identifiant PokeAPI, celui de
+// TYPES_FR. La ligne ne parait que si ce type est vraiment present sur le lieu
+// ouvert : « Statik attire l'Electrik » n'apprend rien sur une route qui n'en a
+// pas un seul.
+const TERRAIN_TYPE = [
+  { id:9,   type:13, gens:[4, 8] },   // Statik        -> Electrik
+  { id:42,  type:9,  gens:[4, 8] },   // Magnepiege    -> Acier
+  { id:18,  type:10, gens:[8, 8] },   // Torche        -> Feu
+  { id:114, type:11, gens:[8, 8] },   // Lavabo        -> Eau
+  { id:31,  type:13, gens:[8, 8] },   // Paratonnerre  -> Electrik
+  { id:139, type:12, gens:[8, 8] }    // Recolte       -> Plante
+];
+
+// LES TALENTS QUI NE DEPENDENT PAS DU LIEU, GROUPES PAR EFFET ET NON UN PAR UN.
+// Ecrits a la ligne, ils faisaient douze lignes identiques sous chacun des
+// soixante lieux d'un jeu — un mur qu'on cesse de lire des le deuxieme lieu. Et
+// ce n'est pas ainsi qu'on se pose la question : on cherche « comment croiser
+// plus de Pokemon », pas « que fait Lumiattirance ».
+//
+// Chaque talent garde SA borne de generation a l'interieur du groupe : Annule
+// Garde n'existe qu'a partir de la quatrieme, Lumiattirance des la troisieme.
+const TERRAIN_GROUPES = [
+  { texte:'deux fois plus de rencontres',
+    talents:[{ id:35, gens:[3, 7] }, { id:71, gens:[3, 7] }, { id:99, gens:[4, 7] }] },
+  { texte:'deux fois moins de rencontres',
+    talents:[{ id:1, gens:[3, 7] }, { id:73, gens:[3, 7] }, { id:95, gens:[4, 7] }] },
+  { texte:'deux fois moins sous une tempête de sable, ou sous la grêle',
+    talents:[{ id:8, gens:[4, 7] }, { id:81, gens:[4, 7] }] },
+  { texte:'plus souvent le niveau le plus haut de la fourchette',
+    talents:[{ id:46, gens:[5, 8] }, { id:72, gens:[5, 8] }, { id:55, gens:[5, 8] }] },
+  { texte:'écarte les Pokémon bien plus faibles que ta tête d’équipe',
+    talents:[{ id:22, gens:[5, 8] }, { id:51, gens:[5, 8] }] },
+  { texte:'une fois sur deux, la nature de ta tête d’équipe',
+    talents:[{ id:28, gens:[3, 8] }] },
+  { texte:'deux fois sur trois, le sexe opposé',
+    talents:[{ id:56, gens:[4, 8] }] },
+  { texte:'plus souvent un objet tenu',
+    talents:[{ id:14, gens:[4, 8] }] }
+];
+
+// Ce que demande une methode, quand ce n'est pas evident. La cle est le DEBUT
+// de la sous-zone : le releve ecrit « Peche a la Super Canne », et comparer le
+// debut evite d'enumerer chaque variante.
+//
+// Une methode absente de cette table n'est pas commentee : « Hautes herbes » se
+// passe d'explication, et inventer une phrase pour chacune des 923 sous-zones
+// relevees serait du remplissage.
+const TERRAIN_METHODES = [
+  ['Peche a la Mega Canne',   'il te faut la Méga Canne'],
+  ['Peche a la Super Canne',  'il te faut la Super Canne'],
+  ['Peche a la Canne',        'il te faut la Canne'],
+  ['Peche',                   'une canne, au bord de l’eau'],
+  ['Coup d’Boule',            'l’attaque Coup d’Boule, sur les arbres'],
+  ['Eclate-Roc',              'l’attaque Éclate-Roc, sur les rochers'],
+  ['Surf',                    'l’attaque Surf'],
+  ['Sur l’eau',               'l’attaque Surf'],
+  ['Surface de l’eau',        'l’attaque Surf'],
+  ['Poke Radar',              'le Poké Radar, dans l’herbe'],
+  ['Hordes',                  'Doux Parfum ou une Poudre Fumée les fait sortir à cinq'],
+  ['Pokemon caches',          'les buissons qui bougent, ou l’Encens'],
+  ['Herbes sombres',          'l’herbe la plus foncée : les niveaux y sont plus hauts'],
+  ['Hautes herbes remuantes', 'l’herbe qui bouge, une fois la première rencontre passée'],
+  ['Pokemon vadrouilleurs',   'il se déplace : la carte le suit'],
+  ['Son Hoenn',               'la radio, canal Son Hoenn'],
+  ['Son Sinnoh',              'la radio, canal Son Sinnoh']
+];
+
+/**
+ * L'explication d'une methode, ou null.
+ *
+ * ON COMPARE SANS ACCENT NI APOSTROPHE. Le releve ecrit « Coup d'Boule » avec
+ * une apostrophe droite ou courbe selon la page Pokepedia d'origine, et
+ * « Peche » avec son accent : comparer les chaines brutes ratait une entree sur
+ * deux. replierLieu() fait deja ce repli pour la recherche.
+ */
+function replierMethode(s){
+  return replierLieu(s).replace(/[’']/g, '');
+}
+
+function methodeExpliquee(sous){
+  const clef = replierMethode(sous);
+  for(let i = 0; i < TERRAIN_METHODES.length; i++){
+    if(clef.indexOf(replierMethode(TERRAIN_METHODES[i][0])) === 0){
+      return TERRAIN_METHODES[i][1];
+    }
+  }
+  return null;
+}
+
+function talentDansGeneration(t, gen){ return gen >= t.gens[0] && gen <= t.gens[1]; }
+
+/**
+ * Les especes du lieu qui portent un type donne.
+ *
+ * Rend un tableau vide tant que la table des types n'est pas chargee — la ligne
+ * ne parait alors pas, plutot que de promettre un Electrik sans savoir lequel.
+ */
+function especesDuType(compte, typeId){
+  if(typeof typesByPokemonId === 'undefined' || !typesByPokemonId) return [];
+  const vus = [], noms = [];
+  compte.manque.concat(compte.deja).forEach(function(x){
+    const l = typesByPokemonId.get(x.entry.id);
+    if(!l || l.indexOf(typeId) === -1) return;
+    if(vus.indexOf(x.entry.id) !== -1) return;
+    vus.push(x.entry.id);
+    noms.push(nomAffiche(x.entry));
+  });
+  return noms;
+}
+
+// Les Pokemon DE TA COLLECTION qui portent ce talent.
+//
+// C'est ce qui separe un conseil d'un conseil applicable : « Statik attire
+// l'Electrik » laisse chercher, « tu as un Pikachu » se suit tout de suite.
+// L'index se construit une fois par jeu, a la premiere ouverture d'un lieu —
+// parcourir la collection a chaque bloc serait du gaspillage.
+let lieuxTalentsPossedes = null;
+let lieuxTalentsJeu = null;
+
+function possedesAvecTalent(cleJeu, talentId){
+  if(lieuxTalentsJeu !== cleJeu){
+    lieuxTalentsJeu = cleJeu;
+    lieuxTalentsPossedes = new Map();
+    if(typeof allEntries !== 'undefined' && typeof ficheEmbarquee === 'function'){
+      const pris = prisesDe(cleJeu);
+      allEntries.forEach(function(e){
+        if(!pris.has(e.name)) return;
+        const f = ficheEmbarquee(e);
+        if(!f || !f.talents) return;
+        f.talents.forEach(function(paire){
+          const id = paire[0];
+          if(!lieuxTalentsPossedes.has(id)) lieuxTalentsPossedes.set(id, []);
+          const liste = lieuxTalentsPossedes.get(id);
+          if(liste.length < 3) liste.push(nomAffiche(e));
+        });
+      });
+    }
+  }
+  return lieuxTalentsPossedes.get(talentId) || [];
+}
+
+function nomTalent(id){
+  return (typeof motDico === 'function' && motDico('talents', id)) || ('talent ' + id);
+}
+
+function ligneTerrain(titre, detail, appoint){
+  const l = document.createElement('div');
+  l.className = 'terrain-ligne';
+  const t = document.createElement('span');
+  t.className = 'terrain-quoi';
+  t.textContent = titre;
+  l.appendChild(t);
+  const d = document.createElement('span');
+  d.className = 'terrain-effet';
+  d.textContent = detail;
+  l.appendChild(d);
+  if(appoint){
+    const a = document.createElement('span');
+    a.className = 'terrain-tien';
+    a.textContent = appoint;
+    l.appendChild(a);
+  }
+  return l;
+}
+
+function sousTitreTerrain(texte){
+  const s = document.createElement('div');
+  s.className = 'terrain-sous';
+  s.textContent = texte;
+  return s;
+}
+
+/**
+ * L'encadre « Ce qui change ce que tu croises ici ».
+ *
+ * DEUX PARTIES, ET LA PREMIERE EST LA RAISON D'ETRE DE L'ENCADRE. « Ici » ne
+ * vaut que pour ce lieu : les methodes qu'il demande, et les talents dont le
+ * type est vraiment present. « Partout » est le rappel des effets qui ne
+ * dependent pas de l'endroit — utile, mais identique d'un lieu a l'autre, donc
+ * en second et annonce comme tel.
+ *
+ * Rend null quand il n'y a rien a dire : un encadre vide sous chaque lieu
+ * ferait du bruit dans une liste qu'on parcourt.
+ */
+function blocTerrain(lieu, compte, cleJeu){
+  const gen = LIEUX_GENERATION[cleJeu] || 0;
+  const talentsComptent = gen >= 3 && LIEUX_SANS_TALENT.indexOf(cleJeu) === -1;
+
+  const ici = [];
+  const partout = [];
+
+  // --- Ici : les methodes que ce lieu demande --------------------------------
+  //
+  // ON DEDOUBLONNE SUR L'EXPLICATION, pas sur la sous-zone. « Coup d'Boule » et
+  // « Coup d'Boule (Arbre special) » sont deux sous-zones du releve et une
+  // seule chose a faire : les ecrire toutes les deux disait deux fois la meme
+  // phrase.
+  const dites = [];
+  compte.manque.concat(compte.deja).forEach(function(x){
+    if(!x.sous) return;
+    const aide = methodeExpliquee(x.sous);
+    if(!aide || dites.indexOf(aide) !== -1) return;
+    dites.push(aide);
+    ici.push(ligneTerrain(x.sous.split(' (')[0], aide));
+  });
+
+  // --- Ici : les talents dont le type est present ----------------------------
+  if(talentsComptent){
+    TERRAIN_TYPE.forEach(function(t){
+      if(!talentDansGeneration(t, gen)) return;
+      const noms = especesDuType(compte, t.type);
+      if(!noms.length) return;
+      const typeFr = (typeof TYPES_FR !== 'undefined' && TYPES_FR[t.type]) || '';
+      const tiens = possedesAvecTalent(cleJeu, t.id);
+      ici.push(ligneTerrain(
+        nomTalent(t.id),
+        'en tête d’équipe : une rencontre sur deux sera ' + typeFr + ' — '
+          + noms.slice(0, 4).join(', ') + (noms.length > 4 ? '…' : ''),
+        tiens.length ? 'tu as ' + tiens.join(', ') : null));
+    });
+
+    // --- Partout : les effets qui ne dependent pas de l'endroit --------------
+    TERRAIN_GROUPES.forEach(function(g){
+      const noms = [], tiens = [];
+      g.talents.forEach(function(t){
+        if(!talentDansGeneration(t, gen)) return;
+        noms.push(nomTalent(t.id));
+        possedesAvecTalent(cleJeu, t.id).forEach(function(n){
+          if(tiens.indexOf(n) === -1) tiens.push(n);
+        });
+      });
+      if(!noms.length) return;
+      partout.push(ligneTerrain(g.texte, noms.join(', '),
+        tiens.length ? 'tu as ' + tiens.slice(0, 3).join(', ') : null));
+    });
+  }
+
+  if(!ici.length && !partout.length) return null;
+
+  const bloc = document.createElement('div');
+  bloc.className = 'terrain';
+  const titre = document.createElement('div');
+  titre.className = 'terrain-titre';
+  titre.textContent = 'Ce qui change ce que tu croises ici';
+  bloc.appendChild(titre);
+
+  if(ici.length){
+    ici.forEach(function(l){ bloc.appendChild(l); });
+  }
+  if(partout.length){
+    bloc.appendChild(sousTitreTerrain('En tête d’équipe, partout dans ce jeu'));
+    partout.forEach(function(l){ bloc.appendChild(l); });
+  }
+  return bloc;
+}
+
 function blocLieu(lieu, pris){
   const compte = manquantsDe(lieu, pris);
   const bloc = document.createElement('div');
@@ -374,6 +667,12 @@ function blocLieu(lieu, pris){
   }
 
   compte.deja.forEach(function(x){ corps.appendChild(puceEspece(x, true)); });
+
+  // Apres les especes, jamais avant : on ouvre un lieu pour savoir ce qui y
+  // reste, pas pour lire un mode d'emploi.
+  const terrain = blocTerrain(lieu, compte, lieuxJeuCourant);
+  if(terrain) corps.appendChild(terrain);
+
   bloc.appendChild(corps);
 
   tete.addEventListener('click', function(){
@@ -528,4 +827,17 @@ async function chargerPageLieux(){
   }
   if(!lieuxJeuCourant) remplirJeuxLieux();
   dessinerLieux();
+
+  // LES TYPES ARRIVENT APRES, ET LA PAGE NE LES ATTEND PAS. Ils ne servent qu'a
+  // l'encadre du terrain — « Statik attire l'Electrik : Pikachu, Voltorbe » —
+  // et les faire attendre retarderait la liste entiere pour une ligne. Sans
+  // eux, especesDuType() rend vide et l'encadre garde ses autres lignes ; avec
+  // eux, un second dessin les ajoute.
+  if(typeof loadTypes === 'function' && typeof typesByPokemonId !== 'undefined'
+     && !typesByPokemonId){
+    try{
+      await loadTypes();
+      dessinerLieux();
+    }catch(e){ /* le CSV n'est pas la : l'encadre s'en passe */ }
+  }
 }

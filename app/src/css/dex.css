@@ -1124,6 +1124,59 @@
 }
 .lieu-separateur::before{ width:14px; flex:none; }
 .lieu-separateur::after{ flex:1; }
+/* ---- Ce qui change ce que l on croise --------------------------------------
+   L encadre du terrain ferme le lieu deplie : les methodes qu il demande, et
+   les talents de tete qui y pesent. Voir blocTerrain() dans lieux.js.
+
+   flex-basis:100 % force le passage a la ligne, comme le separateur juste
+   au-dessus : le corps du lieu est en flex-wrap, et sans cela l encadre se
+   serait glisse a cote de la derniere pastille. */
+.terrain{
+  flex-basis:100%;
+  margin-top:11px; padding:10px 12px;
+  border:1px solid var(--card-border); border-radius:9px;
+  background:var(--screen);
+}
+.terrain-titre{
+  margin-bottom:7px;
+  font-family:var(--font-data); font-size:8.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-faint);
+}
+/* Une ligne par effet, le nom a gauche en largeur fixe : les effets tombent
+   alors les uns sous les autres et se comparent d un coup d oeil. Sous 430 px
+   la colonne saute, faute de place pour deux. */
+.terrain-ligne{
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 9px;
+  padding:3px 0;
+  font-family:var(--font-body); font-size:12px; line-height:1.45;
+}
+.terrain-quoi{
+  flex:0 0 auto; min-width:132px;
+  color:var(--ink);
+}
+.terrain-effet{ flex:1 1 190px; color:var(--ink-soft); }
+/* Le trait qui annonce « partout dans ce jeu ». Il separe ce qui vaut pour CE
+   lieu de ce qui vaut pour tous : sans lui, on lisait le rappel general comme
+   une propriete de la route ou l on se trouve. */
+.terrain-sous{
+  flex-basis:100%;
+  margin:9px 0 4px; padding-top:8px;
+  border-top:1px solid var(--card-border);
+  font-family:var(--font-data); font-size:8.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-faint);
+}
+/* « tu as un Pikachu » : c est ce qui rend le conseil applicable, donc c est ce
+   qui se voit. */
+.terrain-tien{
+  flex:0 0 auto;
+  padding:1px 7px; border-radius:20px;
+  background:var(--card-border);
+  font-family:var(--font-data); font-size:9.5px; color:var(--ink);
+}
+@media (max-width:430px){
+  .terrain-quoi{ flex-basis:100%; }
+}
+
 .lieu-espece.pris{ opacity:.45; }
 .lieu-espece.pris .lieu-espece-nom{ text-decoration:line-through; }
 .lieu-sous{ font-family:var(--font-data); font-size:9px; color:var(--ink-faint); }

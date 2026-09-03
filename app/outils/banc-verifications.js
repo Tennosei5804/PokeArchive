@@ -2909,3 +2909,84 @@ verifier('Le rendu HOME animé au survol',
 
     return 'le survol anime, le départ rend le fixe, le clavier compte, et un rendu absent ne se redemande pas';
   });
+
+// ---------------------------------------------------------------------------
+
+verifier('Ce qui change ce que l’on croise',
+  'Les méthodes du lieu, les talents de tête, et le silence là où ils ne jouent pas',
+  async function(){
+    if(typeof blocTerrain !== 'function') return 'ignoré : la page des lieux n’est pas là';
+    await chargerLieux();
+
+    const sonde = function(cle){
+      indexerLieux(cle);
+      const liste = lieuxIndex[cle] || [];
+      const pris = prisesDe(cle);
+      let lieux = 0, lignes = 0, partout = 0, doublons = 0;
+      liste.slice(0, 20).forEach(function(l){
+        const n = blocTerrain(l, manquantsDe(l, pris), cle);
+        if(!n) return;
+        lieux++;
+        const effets = Array.prototype.map.call(
+          n.querySelectorAll('.terrain-ligne .terrain-effet'),
+          function(e){ return e.textContent; });
+        lignes += effets.length;
+        partout += n.querySelectorAll('.terrain-sous').length;
+        effets.forEach(function(e, i){ if(effets.indexOf(e) !== i) doublons++; });
+      });
+      return { lieux: lieux, lignes: lignes, partout: partout, doublons: doublons,
+               total: liste.length };
+    };
+
+    // LA PREMIERE GENERATION N'A PAS DE TALENTS DU TOUT. Le releve lui donne
+    // quand meme des methodes — la peche, le Surf — mais pas une ligne ne doit
+    // parler d'un talent de tete.
+    const g1 = sonde('rby');
+    if(!g1.total) return 'ignoré : le relevé de Rouge/Bleu est vide';
+    if(g1.partout) return 'échec : la première génération se voit prêter des talents';
+    if(!g1.lignes) return 'échec : aucune méthode expliquée sur Rouge/Bleu';
+
+    // LES JEUX OU L'ON VOIT LE POKEMON AVANT DE L'APPROCHER n'ont pas
+    // d'attraction par le talent : Let's Go, Legendes Arceus, et la neuvieme
+    // generation dont les bornes s'arretent a la huitieme. On n'y affiche rien
+    // plutot qu'une ligne fausse — une chasse se compte en heures.
+    ['letsgo', 'pla', 'sv'].forEach(function(cle){
+      const s = sonde(cle);
+      if(s.partout){
+        throw new Error('échec : ' + cle + ' se voit prêter des talents de tête');
+      }
+    });
+
+    // LA QUATRIEME GENERATION, ELLE, LES A. Statik n'y parait que sur un lieu
+    // qui porte vraiment un Electrik, et le nomme.
+    indexerLieux('hgss');
+    const liste = lieuxIndex['hgss'] || [];
+    if(!liste.length) return 'ignoré : le relevé d’Or HeartGold est vide';
+    const pris = prisesDe('hgss');
+    let vuStatik = false, vuSansElectrik = false;
+    liste.slice(0, 40).forEach(function(l){
+      const compte = manquantsDe(l, pris);
+      const n = blocTerrain(l, compte, 'hgss');
+      if(!n) return;
+      const texte = n.innerText || '';
+      const aStatik = texte.indexOf('Statik') !== -1;
+      const aElectrik = especesDuType(compte, 13).length > 0;
+      if(aStatik && aElectrik) vuStatik = true;
+      if(aStatik && !aElectrik) vuSansElectrik = true;
+    });
+    if(vuSansElectrik){
+      return 'échec : Statik est proposé sur un lieu sans un seul Électrik';
+    }
+    if(!vuStatik) return 'ignoré : aucun lieu électrique dans les quarante premiers';
+
+    // ET LA MEME PHRASE NE SE DIT PAS DEUX FOIS. « Coup d'Boule » et « Coup
+    // d'Boule (Arbre special) » sont deux sous-zones du releve et une seule
+    // chose a faire.
+    const g4 = sonde('hgss');
+    if(g4.doublons){
+      return 'échec : ' + g4.doublons + ' explication(s) répétée(s) dans le même lieu';
+    }
+
+    return 'méthodes dédoublées, Statik là où il y a de l’Électrik, '
+      + 'et rien là où le talent ne joue pas';
+  });
