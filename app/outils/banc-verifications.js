@@ -2990,3 +2990,108 @@ verifier('Ce qui change ce que l’on croise',
     return 'méthodes dédoublées, Statik là où il y a de l’Électrik, '
       + 'et rien là où le talent ne joue pas';
   });
+
+// ---------------------------------------------------------------------------
+
+verifier('Données jeux',
+  'Un jeu s’ajoute, l’équipe plafonne à six, et rien ne quitte la machine',
+  async function(){
+    if(typeof dessinerParties !== 'function') return 'ignoré : le bloc n’est pas là';
+
+    // ON REMET LA LISTE EN PLACE A LA FIN, quoi qu'il arrive. C'est une saisie
+    // qu'aucun calcul ne retrouve : l'ecraser serait perdre des souvenirs.
+    const avant = JSON.parse(JSON.stringify(parties));
+    const avantOuvert = partieOuverte;
+    const rendre = function(){
+      parties = avant; partieOuverte = avantOuvert;
+      partiesEnregistrer(); partiesRemplirMenu(); dessinerParties();
+    };
+
+    try{
+      parties = {}; partieOuverte = null;
+      partiesRemplirMenu(); dessinerParties();
+
+      if(!partiesListe.textContent.trim()){
+        rendre(); return 'échec : la liste vide ne dit rien du tout';
+      }
+
+      // --- Ajouter un jeu ---------------------------------------------------
+      partiesAjout.value = 'jaune';
+      partiesAjouter.click();
+      if(!parties.jaune || parties.jaune.etat !== 'en-cours'){
+        rendre(); return 'échec : le jeu ajouté n’a pas d’état de départ';
+      }
+      if(partieOuverte !== 'jaune'){
+        rendre(); return 'échec : le jeu ajouté n’est pas ouvert — on vient le remplir';
+      }
+      // Et il quitte le menu : l'ajouter deux fois n'a pas de sens.
+      if(Array.prototype.some.call(partiesAjout.options,
+                                   function(o){ return o.value === 'jaune'; })){
+        rendre(); return 'échec : un jeu déjà listé reste proposé à l’ajout';
+      }
+
+      // --- L'equipe plafonne a six -----------------------------------------
+      const sept = ['pikachu', 'venusaur', 'charizard', 'blastoise',
+                    'snorlax', 'vaporeon', 'mewtwo'];
+      sept.forEach(function(n){
+        if(parties.jaune.equipe.length < PARTIES_EQUIPE_MAX){
+          parties.jaune.equipe.push(n);
+        }
+      });
+      if(parties.jaune.equipe.length !== PARTIES_EQUIPE_MAX){
+        rendre();
+        return 'échec : l’équipe compte ' + parties.jaune.equipe.length + ' membres';
+      }
+      dessinerParties();
+      // Le champ de recherche disparait a six : un champ qui refuse vaut moins
+      // qu'un champ qui n'est pas la.
+      if(document.querySelector('.partie-cherche')){
+        rendre(); return 'échec : on peut encore chercher un septième membre';
+      }
+      if(document.querySelectorAll('.partie-membre').length !== PARTIES_EQUIPE_MAX){
+        rendre(); return 'échec : l’équipe dessinée ne compte pas six membres';
+      }
+
+      // --- La recherche trouve par le nom francais --------------------------
+      const trouves = partiesChercher('drac');
+      if(!trouves.length){
+        rendre(); return 'échec : « drac » ne trouve aucun Pokémon';
+      }
+
+      // --- Ce qui est ecrit se relit ---------------------------------------
+      partiesEnregistrer();
+      let relu = null;
+      try{ relu = JSON.parse(localStorage.getItem(PARTIES_CLE)); }catch(e){ /* rien */ }
+      if(!relu || !relu.jaune || relu.jaune.equipe.length !== PARTIES_EQUIPE_MAX){
+        rendre(); return 'échec : la saisie ne se retrouve pas dans le stockage';
+      }
+
+      // --- L'ETAT PROPOSE RESTE PRUDENT ------------------------------------
+      // Un Pokedex bien rempli ne dit pas qu'on a fini le jeu, et l'inverse non
+      // plus : la deduction ne doit jamais ecrire « fini » a la place de
+      // quelqu'un.
+      const deduits = partiesDeduites();
+      if(deduits.length){
+        partiesDeduire.click();
+        const faux = deduits.filter(function(c){
+          return parties[c] && parties[c].etat !== 'en-cours';
+        });
+        if(faux.length){
+          rendre(); return 'échec : la déduction affirme un état — ' + faux.join(', ');
+        }
+      }
+
+      // --- Retirer un jeu ---------------------------------------------------
+      parties = { jaune: parties.jaune }; partieOuverte = 'jaune'; dessinerParties();
+      const retirer = document.querySelector('.partie-retirer');
+      if(!retirer){ rendre(); return 'échec : aucun moyen de retirer un jeu'; }
+      retirer.click();
+      if(parties.jaune){ rendre(); return 'échec : le jeu retiré est toujours là'; }
+
+      rendre();
+      return 'ajout, équipe à six, recherche par le nom, et la déduction n’affirme rien';
+    }catch(e){
+      rendre();
+      return 'échec : ' + (e && e.message ? e.message : String(e));
+    }
+  });

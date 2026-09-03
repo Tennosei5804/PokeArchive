@@ -466,6 +466,94 @@ html[data-theme="light"] body{ background:#e9e7e0; }
 }
 
 .profil-aventures{ display:flex; flex-direction:column; gap:10px; }
+
+/* ---- Donnees jeux -----------------------------------------------------------
+   Une ligne par jeu joue, repliee sur l equipe qu on y avait. Elle reprend la
+   forme des aventures juste au-dessus : meme fond, meme bordure, meme rayon —
+   ce sont deux listes de la meme page, et deux dessins auraient diverge au
+   premier ajustement. Voir js/parties.js. */
+.parties-barre{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:11px; }
+.parties-barre select{ flex:1 1 210px; min-width:0; }
+.parties{ display:flex; flex-direction:column; gap:8px; }
+
+.partie{
+  border:1px solid var(--card-border); border-radius:11px;
+  background:var(--panel); overflow:hidden;
+}
+.partie.ouverte{ border-color:var(--gold-deep); }
+.partie-tete{
+  display:flex; align-items:center; gap:11px;
+  width:100%; padding:9px 13px;
+  background:none; border:0; cursor:pointer; text-align:left;
+  font-family:var(--font-body); font-size:13.5px; color:var(--ink);
+}
+.partie-tete:hover{ background:var(--screen); }
+.partie-tete:focus-visible{ outline:2px solid var(--gold-deep); outline-offset:-2px; }
+.partie-nom{ flex:0 0 auto; }
+/* L equipe se lit avant d ouvrir : six vignettes se reconnaissent plus vite que
+   six noms. Elle prend la place du milieu, et se retire la ou il n y en a pas. */
+.partie-equipe-mini{ flex:1 1 auto; display:flex; gap:2px; align-items:center; }
+.partie-vignette{ display:block; object-fit:contain; }
+.partie-etat{
+  flex:0 0 auto;
+  padding:2px 9px; border-radius:20px;
+  font-family:var(--font-data); font-size:9.5px; letter-spacing:.06em;
+  text-transform:uppercase;
+  background:var(--card-border); color:var(--ink-soft);
+}
+.partie-etat-fini{ background:var(--gold-deep); color:var(--panel); }
+.partie-etat-abandon{ opacity:.6; }
+
+.partie-corps{
+  display:flex; flex-direction:column; gap:11px;
+  padding:12px 13px 13px;
+  border-top:1px solid var(--card-border);
+}
+.partie-corps[hidden]{ display:none; }
+.partie-champ{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.partie-champ select{ flex:0 1 200px; }
+.partie-champ-nom{
+  font-family:var(--font-data); font-size:8.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-faint);
+}
+.partie-equipe{ display:flex; flex-direction:column; gap:7px; }
+.partie-rangee{ display:flex; flex-wrap:wrap; gap:6px; }
+.partie-membre{
+  display:flex; align-items:center; gap:6px;
+  padding:3px 4px 3px 3px; border-radius:8px;
+  border:1px solid var(--card-border); background:var(--screen);
+  font-family:var(--font-body); font-size:12px; color:var(--ink);
+}
+.partie-oter{
+  border:0; background:none; cursor:pointer;
+  padding:0 4px; line-height:1;
+  font-size:15px; color:var(--ink-faint);
+}
+.partie-oter:hover{ color:var(--dex-red); }
+.partie-cherche, .partie-note{
+  width:100%; padding:7px 10px; border-radius:8px;
+  background:var(--screen); border:1px solid var(--card-border);
+  color:var(--ink); font-family:var(--font-body); font-size:12.5px;
+}
+.partie-note{ resize:vertical; line-height:1.5; }
+.partie-cherche:focus, .partie-note:focus{ outline:none; border-color:var(--gold-deep); }
+.partie-trouves{ display:flex; flex-wrap:wrap; gap:5px; }
+.partie-trouve{
+  display:flex; align-items:center; gap:5px;
+  padding:3px 8px 3px 3px; border-radius:7px;
+  border:1px solid var(--card-border); background:var(--panel);
+  color:var(--ink); font-family:var(--font-body); font-size:11.5px; cursor:pointer;
+}
+.partie-trouve:hover{ border-color:var(--gold-deep); }
+/* Retirer un jeu efface une saisie qu on ne peut pas retrouver : le bouton se
+   tient a l ecart, en bas, et n emprunte pas la couleur d une action ordinaire. */
+.partie-retirer{
+  align-self:flex-start;
+  border:0; background:none; cursor:pointer; padding:0;
+  font-family:var(--font-body); font-size:11.5px; color:var(--ink-faint);
+  text-decoration:underline;
+}
+.partie-retirer:hover{ color:var(--dex-red); }
 .av-carte{
   padding:13px 15px;
   background:var(--card); border:1px solid var(--card-border);

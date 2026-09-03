@@ -520,6 +520,25 @@
         </div>
         <p class="modal-error" id="profilPageErreur" role="alert"></p>
 
+        <!-- DONNEES JEUX. Une ligne par jeu auquel on a joue : l'equipe qu'on
+             y avait, ou l'on en est, et ce qu'on veut en dire. C'est du
+             souvenir, pas de la progression : rien ici n'est calcule a partir
+             du dex, tout est saisi.
+
+             ELLE RESTE SUR CETTE MACHINE POUR L'INSTANT. Le reste de la page
+             voyage avec le compte ; celle-ci attend d'avoir prouve qu'on s'en
+             sert. Voir l'en-tete de js/parties.js. -->
+        <div class="home-section-title">Données jeux</div>
+        <p class="profil-bloc-note">Les jeux auxquels tu as joué, l’équipe que tu y
+          avais, et ce que tu veux en dire. <b>Rien n’en sort de cette machine</b> :
+          ces données ne sont ni envoyées ni partagées.</p>
+        <div class="parties-barre">
+          <select id="partiesAjout" aria-label="Ajouter un jeu"></select>
+          <button class="toggle-btn primary" id="partiesAjouter" type="button">Ajouter</button>
+          <button class="toggle-btn" id="partiesDeduire" type="button" hidden></button>
+        </div>
+        <div class="parties" id="partiesListe"></div>
+
         <div class="home-section-title">Ta rétrospective</div>
         <div class="retro" id="retroBloc"></div>
         <div class="profil-bloc">
@@ -1969,6 +1988,7 @@
 <!-- Après compte.js : le premier lancement lit profilCourant et profilsConnus. -->
 <script src="js/depart.js"></script>
 <script src="js/donnees-perso.js"></script>
+<script src="js/parties.js"></script>
 <script src="js/presence.js"></script>
 <script src="js/app.js"></script>
 <script src="js/selecteur-couleur.js"></script>
