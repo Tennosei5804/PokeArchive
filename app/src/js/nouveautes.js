@@ -19,6 +19,25 @@
 const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
+  // ENTREE EN ATTENTE. Elle est ecrite avant la version qu'elle annonce : au
+  // moment de publier, verifier que `version` et `date` correspondent
+  // vraiment a ce qui sort. Si la prochaine est un correctif (0.39.1), c'est ce
+  // numero-la qu'il faut mettre — sinon l'entree ne s'affichera jamais, la
+  // liste ne montrant que les versions superieures a la derniere lue.
+  {
+    version: '0.40.0', date: '2026-09-03',
+    titre: 'Où est passé le menu des images',
+    points: [
+      '**🖼️ Le menu « Images » du Pokédex a été retiré.** La version 0.38.0 '
+      + 'proposait quatre styles de vignette — rendu HOME, rendu HOME animé, '
+      + 'sprite du jeu, sprite animé. Il n’en reste qu’un : **le rendu HOME**, '
+      + 'que le survol de la souris anime. Si tu avais choisi un autre style, '
+      + 'c’est pour ça qu’il n’est plus là.',
+      '**Les sprites d’époque n’ont pas disparu de l’application**, seulement '
+      + 'de la grille : **ouvre la fiche d’un Pokémon**, le bouton '
+      + '« Sprite animé » y est toujours, à côté de « Rendu HOME ».',
+    ],
+  },
   {
     version: '0.39.0', date: '2026-09-02',
     titre: 'Passe la souris sur un Pokémon, il s’anime',
