@@ -255,6 +255,63 @@ if(calcJeu){
 if(calcMethode) calcMethode.addEventListener('change', calcDessiner);
 if(calcRencontres) calcRencontres.addEventListener('input', calcMajProba);
 
+// ---- Le compteur de rencontres ----------------------------------------------
+
+/**
+ * De combien avance un clic, vu le nombre affiche.
+ *
+ * UN PAS FIXE NE MARCHE PAS ICI. Les taux vont de 1 sur 4 096 a 1 sur 8 192 ;
+ * les seuils affiches juste au-dessus se comptent en dizaines de milliers de
+ * rencontres. Un pas de 1 — celui de la fleche du navigateur — demandait mille
+ * clics pour arriver quelque part ; un pas de 1 000 empechait de dire 150.
+ *
+ * Le pas suit donc l'ordre de grandeur : un clic bouge toujours d'environ un
+ * dixieme de ce qui est affiche, et l'on garde la main au clavier pour le
+ * chiffre exact.
+ */
+function calcPas(n){
+  if(n < 100) return 10;
+  if(n < 1000) return 50;
+  if(n < 10000) return 500;
+  return 1000;
+}
+
+/**
+ * Avance ou recule le compteur.
+ *
+ * ON ARRONDIT SUR LE PAS. Partir de 1 500 et cliquer « + » donne 2 000 et non
+ * 2 000 puis 2 500 depuis 1 512 : les nombres restent ronds, et deux clics
+ * dans un sens puis deux dans l'autre ramenent ou l'on etait.
+ */
+function calcDecaler(sens){
+  if(!calcRencontres) return;
+  const actuel = parseInt(calcRencontres.value, 10) || 0;
+  const pas = calcPas(sens > 0 ? actuel : Math.max(0, actuel - 1));
+  let suivant = sens > 0
+    ? (Math.floor(actuel / pas) + 1) * pas
+    : (Math.ceil(actuel / pas) - 1) * pas;
+  if(suivant < 0) suivant = 0;
+  calcRencontres.value = suivant ? String(suivant) : '';
+  calcMajCompteur();
+  calcMajProba();
+}
+
+/** « Moins » s'eteint a zero : rien a retirer, et le bouton le dit. */
+function calcMajCompteur(){
+  const moins = document.getElementById('calcMoins');
+  if(!moins || !calcRencontres) return;
+  moins.disabled = !(parseInt(calcRencontres.value, 10) > 0);
+}
+
+if(calcRencontres){
+  calcRencontres.addEventListener('input', calcMajCompteur);
+  const moins = document.getElementById('calcMoins');
+  const plus = document.getElementById('calcPlus');
+  if(moins) moins.addEventListener('click', function(){ calcDecaler(-1); });
+  if(plus) plus.addEventListener('click', function(){ calcDecaler(1); });
+  calcMajCompteur();
+}
+
 document.addEventListener('DOMContentLoaded', function(){
   const bouton = document.getElementById('calcBtn');
   if(bouton) bouton.addEventListener('click', ouvrirCalculateur);

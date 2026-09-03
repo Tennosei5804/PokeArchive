@@ -1471,8 +1471,18 @@
     <div class="calc-seuils" id="calcSeuils"></div>
 
     <label class="chasse-label" for="calcRencontres">Et après combien de rencontres ?</label>
-    <input type="number" id="calcRencontres" min="0" step="1" inputmode="numeric"
-           placeholder="par exemple 1500" autocomplete="off">
+    <!-- DEUX BOUTONS PLUTÔT QUE LA FLÈCHE DU NAVIGATEUR. Celle-ci avance d'UN,
+         et l'on compte ici en milliers de rencontres : il fallait mille clics
+         pour aller quelque part. Le pas suit l'ordre de grandeur — voir
+         calcPas() dans js/calculateur.js. -->
+    <div class="calc-compteur">
+      <button type="button" class="calc-pas" id="calcMoins"
+              aria-label="Retirer des rencontres">−</button>
+      <input type="number" id="calcRencontres" min="0" step="1" inputmode="numeric"
+             placeholder="par exemple 1500" autocomplete="off">
+      <button type="button" class="calc-pas" id="calcPlus"
+              aria-label="Ajouter des rencontres">+</button>
+    </div>
     <p class="calc-proba" id="calcProba"></p>
 
     <div class="modal-actions">

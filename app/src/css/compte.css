@@ -2133,6 +2133,58 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   font-variant-numeric:tabular-nums; white-space:nowrap;
 }
 
+/* ---- Le compteur de rencontres ---------------------------------------------
+   IL RESSEMBLE AUX TROIS SEUILS JUSTE AU-DESSUS, et ce n'est pas une
+   coquetterie : c'est la meme question posee dans l'autre sens. Les seuils
+   disent « pour 90 % de chances, tant de rencontres » ; le compteur dit « pour
+   tant de rencontres, quelles chances ». Meme fond, meme bordure, meme rayon.
+
+   LA FLECHE DU NAVIGATEUR EST RETIREE. Elle avance d'UN, et l'on compte ici en
+   milliers : il fallait mille clics pour aller quelque part, sur un bouton de
+   sept pixels. Les deux boutons a cote suivent l'ordre de grandeur du nombre
+   affiche — voir calcPas() dans calculateur.js. */
+.calc-compteur{
+  display:flex; align-items:stretch; gap:7px;
+}
+.calc-compteur input[type="number"]{
+  flex:1; min-width:0;
+  padding:8px 11px; border-radius:9px;
+  background:var(--screen); border:1px solid var(--card-border);
+  color:var(--ink);
+  font-family:var(--font-data); font-size:14px;
+  font-variant-numeric:tabular-nums;
+  text-align:center;
+  /* Le compteur des rencontres est un nombre qu'on lit, pas une liste qu'on
+     fait defiler : la molette dessus changeait la valeur en voulant faire
+     defiler la fenetre. */
+  -moz-appearance:textfield;
+  appearance:textfield;
+}
+.calc-compteur input[type="number"]::-webkit-outer-spin-button,
+.calc-compteur input[type="number"]::-webkit-inner-spin-button{
+  -webkit-appearance:none; margin:0;
+}
+.calc-compteur input[type="number"]::placeholder{
+  color:var(--ink-soft); font-family:var(--font-body); font-size:12.5px;
+}
+.calc-compteur input[type="number"]:focus{
+  outline:none;
+  border-color:var(--gold-deep);
+}
+.calc-pas{
+  flex:0 0 auto; width:38px;
+  border-radius:9px;
+  background:var(--screen); border:1px solid var(--card-border);
+  color:var(--ink-soft);
+  font-family:var(--font-body); font-size:17px; line-height:1;
+  cursor:pointer;
+  transition:color .12s, border-color .12s;
+}
+.calc-pas:hover{ color:var(--ink); border-color:var(--gold-deep); }
+.calc-pas:focus-visible{ outline:2px solid var(--gold-deep); outline-offset:2px; }
+.calc-pas:disabled{ opacity:.4; cursor:default; }
+.calc-pas:disabled:hover{ color:var(--ink-soft); border-color:var(--card-border); }
+
 .calc-proba{
   margin:9px 0 0;
   font-family:var(--font-body); font-size:13.5px;
