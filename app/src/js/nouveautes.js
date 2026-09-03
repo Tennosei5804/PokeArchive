@@ -20,6 +20,32 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.41.0', date: '2026-09-03',
+    titre: 'Les lieux te disent comment y attraper ce qui te manque',
+    points: [
+      '**📍 Ouvre un lieu : il te dit maintenant ce qu’il faut pour y '
+      + 'pêcher, frapper un arbre ou faire sortir une horde.** Ces méthodes '
+      + 'étaient déjà dans le relevé sans être expliquées : « Coup d’Boule », '
+      + '« Pêche à la Super Canne », « Son Sinnoh » ne disaient rien à qui ne '
+      + 'les connaissait pas.',
+      '**⚡ Et le talent de ta tête d’équipe change ce qui sort.** Sur une '
+      + 'route qui a de l’Électrik, l’application écrit désormais : *Statik — '
+      + 'une rencontre sur deux sera Électrik : Loupio, Lanturn*. Elle ne le '
+      + 'propose que là où ce type existe vraiment, et **te dit si tu possèdes '
+      + 'déjà un Pokémon qui porte ce talent**.',
+      '**Rien n’est affirmé au hasard.** Ces effets ont changé d’une génération '
+      + 'à l’autre, et les jeux où tu vois le Pokémon avant de l’approcher — '
+      + 'Let’s Go, Légendes Arceus, Écarlate/Violet — n’en ont aucun. Là, '
+      + 'l’application se tait plutôt que de te faire perdre une soirée sur un '
+      + 'conseil faux.',
+      '**🧮 Le compteur du calculateur de taux était une case blanche du '
+      + 'navigateur**, avec ses petites flèches qui avançaient d’un. Or on '
+      + 'compte ici en milliers de rencontres. Il a le style de la fenêtre, et '
+      + 'deux boutons dont le pas suit le nombre affiché — 10 sous cent, 500 '
+      + 'sous dix mille, 1 000 au-delà.',
+    ],
+  },
+  {
     version: '0.40.0', date: '2026-09-03',
     titre: 'Où est passé le menu des images',
     points: [
