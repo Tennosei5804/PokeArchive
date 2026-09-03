@@ -19,11 +19,6 @@
 const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
-  // ENTREE EN ATTENTE. Elle est ecrite avant la version qu'elle annonce : au
-  // moment de publier, verifier que `version` et `date` correspondent
-  // vraiment a ce qui sort. Si la prochaine est un correctif (0.39.1), c'est ce
-  // numero-la qu'il faut mettre — sinon l'entree ne s'affichera jamais, la
-  // liste ne montrant que les versions superieures a la derniere lue.
   {
     version: '0.40.0', date: '2026-09-03',
     titre: 'Où est passé le menu des images',
