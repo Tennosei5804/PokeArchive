@@ -20,6 +20,20 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.42.1', date: '2026-09-04',
+    titre: 'Le bouton qui propose un échange fonctionne',
+    points: [
+      '**🤝 « Proposer l’échange » ne faisait rien du tout.** Le bouton '
+      + 's’allumait, changeait de mot selon que tu offrais, demandais ou '
+      + 'échangeais — et le clic ne partait nulle part. Tout le reste était en '
+      + 'place depuis le début : le serveur savait recevoir la proposition, la '
+      + 'liste savait l’afficher. Il manquait le fil entre les deux.',
+      '**Rien à refaire de ton côté.** Aucune proposition n’a été perdue : elles '
+      + 'ne partaient pas, donc il n’y a rien à retrouver. Choisis un Pokémon '
+      + 'chez un ami et le bouton part, cette fois.',
+    ],
+  },
+  {
     version: '0.42.0', date: '2026-09-04',
     titre: 'Ta carte de dresseur se voit enfin chez les autres',
     points: [
