@@ -44,14 +44,14 @@ const NOUVEAUTES = [
       + '« donjon mystère », « PMD » et « Explorateurs du ciel » désignaient le '
       + 'même jeu. **Ce que tu avais déjà tapé reste dans la liste** et n’est '
       + 'pas perdu.',
-      '**⚠️ Sur la version WEB, enregistrer ta collection l’effaçait du '
-      + 'serveur.** La sauvegarde partait vide : le Pokédex en ligne était '
-      + 'remplacé par un dex vierge, sans le moindre message. Deux autres '
-      + 'commandes étaient muettes de la même façon — importer un fichier ne '
-      + 'faisait rien, et renommer une aventure ou la rendre publique non plus. '
-      + 'C’est corrigé, et l’application de bureau n’a jamais été touchée. Si tu '
-      + 'as perdu une collection ainsi, ta sauvegarde locale ou un export la '
-      + 'contient peut-être encore.',
+      '**🔧 Trois commandes de la version web partaient sans leur contenu.** '
+      + 'Enregistrer y remplaçait le Pokédex en ligne par un dex vide, importer '
+      + 'un fichier ne faisait rien, et renommer une aventure ou la rendre '
+      + 'publique non plus — le tout sans le moindre message. '
+      + '**L’application de bureau n’a jamais été concernée**, et cette version '
+      + 'web n’est hébergée nulle part : elle ne tourne que chez qui la lance '
+      + 'depuis le dépôt. Le pont refuse désormais d’envoyer une requête vide, '
+      + 'plutôt que de le faire en silence.',
     ],
   },
   {
