@@ -980,7 +980,24 @@ verifier('Les échanges',
     trocChoisir('donne', donne, null);
 
     window.__appels = [];
-    await trocProposer();
+
+    // ON CLIQUE, ON N'APPELLE PAS. C'est toute la différence : #trocEnvoyer
+    // n'a longtemps eu AUCUN écouteur, et cette vérification passait au vert
+    // quand même parce qu'elle sautait le bouton pour aller droit à la
+    // fonction. Le clic éprouve la chaîne entière, câblage compris.
+    if(trocEnvoyer.disabled){
+      amiProgression = avant;
+      return 'échec : le bouton est désactivé alors que deux Pokémon sont choisis';
+    }
+    trocEnvoyer.click();
+
+    // Un clic ne rend pas de promesse : on attend que l'appel soit parti.
+    // Guetter le bouton ne marcherait pas — il se REdésactive en cas de succès,
+    // trocMajBarre() le repose sur une sélection vidée.
+    for(let i = 0; i < 60; i++){
+      if(window.__appels.some(function(a){ return a.cmd === 'echange_proposer'; })) break;
+      await new Promise(function(r){ setTimeout(r, 50); });
+    }
     amiProgression = avant;
 
     const appel = window.__appels.find(function(a){ return a.cmd === 'echange_proposer'; });
@@ -2827,6 +2844,7 @@ verifier('Le rendu HOME animé au survol',
     showPage(jeu.key);
     await new Promise(function(r){ setTimeout(r, 300); });
 
+    // verifier: absence voulue — c'est l'absence qui est le sujet ici.
     if(document.getElementById('spriteStyle')){
       return 'échec : le menu des styles est revenu dans la page';
     }

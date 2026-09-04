@@ -84,7 +84,10 @@ sessionStorage navigator location btoa atob structuredClone queueMicrotask reque
 getComputedStyle matchMedia
 await new delete void in of do else try finally throw class extends super this URL URLSearchParams
 Uint8Array TextEncoder TextDecoder Infinity NaN undefined null true false crypto performance
-AbortController Image Audio Blob File FileReader CustomEvent Event KeyboardEvent MouseEvent
+AbortController Image Audio Blob File FileReader DOMParser WebSocket Notification
+Event CustomEvent KeyboardEvent MouseEvent FocusEvent PointerEvent InputEvent SubmitEvent
+DragEvent WheelEvent TouchEvent ClipboardEvent MessageEvent ProgressEvent ErrorEvent
+AnimationEvent TransitionEvent DataTransfer
 IntersectionObserver ResizeObserver MutationObserver
 BigInt Option Proxy Reflect globalThis
 async constructor static process Buffer setImmediate queueMicrotask
@@ -205,6 +208,18 @@ def sans_commentaires_ni_chaines(txt):
     return "".join(out)
 
 
+# Le banc VERIFIE des absences : « le menu des styles est-il bien parti ? » se
+# demande avec un getElementById sur un identifiant qui ne doit plus exister.
+# Le signaler comme une faute etait un cri au loup a chaque relecture, et un
+# garde-fou qui se trompe a chaque passage finit ignore.
+#
+# On ne devine pas l'intention, on la demande : la marque ci-dessous, sur la
+# ligne ou juste au-dessus, dit que l'absence est le sujet. Elle se grep, et
+# elle oblige a l'ecrire — ce qui vaut mieux qu'une liste de fichiers exemptes
+# ailleurs dans ce script.
+ABSENCE_VOULUE = "verifier: absence voulue"
+
+
 def ids_absents(html, fichiers):
     """Les getElementById qui visent un identifiant que la page n'a pas.
 
@@ -217,10 +232,16 @@ def ids_absents(html, fichiers):
 
     print("— getElementById sur un identifiant absent du HTML")
     for nom, txt in fichiers.items():
+        lignes = txt.split("\n")
         for m in re.finditer(r"""getElementById\(\s*['"]([^'"]+)['"]\s*\)""", txt):
-            if m.group(1) not in ids:
-                print("    %s:%d  #%s" % (nom, ligne(txt, m.start()), m.group(1)))
-                fautes += 1
+            if m.group(1) in ids:
+                continue
+            n = ligne(txt, m.start())
+            voisines = lignes[max(0, n - 2):n]
+            if any(ABSENCE_VOULUE in l for l in voisines):
+                continue
+            print("    %s:%d  #%s" % (nom, n, m.group(1)))
+            fautes += 1
     if not fautes:
         print("    rien")
     return fautes

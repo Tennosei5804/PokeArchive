@@ -20,13 +20,27 @@ Ce qui a été écrit ici tient en deux fichiers.
 
 | | |
 |---|---|
-| `source/pont.js` | remplace Tauri par le navigateur |
+| `source/pont-api.js` | remplace Tauri par le navigateur, et parle à l'API |
 | `source/site.css` | ce qui ne vaut que sur le web |
 
-**Rien n'est envoyé nulle part.** Tout ce qu'on coche vit dans le
-`localStorage` de ce navigateur. Vider les données du site efface la
-collection, et il n'existe aucune copie ailleurs. Le bandeau en haut de page le
-dit, pour que personne ne l'apprenne le jour où il change d'ordinateur.
+**Même compte, mêmes données que l'application.** On se connecte avec Discord,
+et l'on retrouve ses aventures, ses amis, ses échanges et ses messages. Rien ne
+vit plus dans le seul `localStorage` du navigateur : le seul reliquat local est
+le jeton de session.
+
+Ce n'était pas vrai au début. Le site a d'abord simulé Tauri dans le
+`localStorage`, avec un compte local et aucun réseau : c'est ce que fait
+`source/pont.js`, qui rend des formes d'API sans jamais appeler personne.
+
+**Il n'est plus livré, et il n'est pas mort pour autant.** L'assembleur ne copie
+que `pont-api.js` ; `pont.js` reste dans `source/` pour le seul banc d'essai, qui
+le sert sous `/outils/pont-simule.js` — voir `outils/banc.py`. Le banc a besoin
+d'un monde clos : contre la vraie API il n'a pas de session au chargement, il
+part chez Discord, et aucune vérification ne s'exécute.
+
+Deux ponts, donc, et deux usages qu'il ne faut pas confondre : **une correction
+apportée à `pont.js` ne change rien au site**. C'est une confusion qui a déjà
+coûté une modification perdue.
 
 ## Pourquoi il n'y a qu'une source
 
@@ -56,16 +70,34 @@ dix minutes pourquoi une correction « ne prend pas ».
 
 ## Le pont
 
-`source/pont.js` pose `window.__TAURI__` avant tous les autres scripts —
+`source/pont-api.js` pose `window.__TAURI__` avant tous les autres scripts —
 `compte.js` le cherche dès son exécution et arrête l'application s'il manque.
 
 Il n'expose que `core.invoke`. C'est voulu : `maj.js` et `presence.js`
 vérifient `.updater`, `.app` et `.process` avant de s'en servir. Un site web n'a
 ni mise à jour à installer ni processus à fermer, et ils se taisent d'eux-mêmes.
 
-Les trente-huit commandes rendent **les formes de l'API**, reprises de
-`api/src/serveur.js` — pas des approximations. Une forme approchée casserait
-l'application à l'endroit le moins prévisible.
+**Une table, pas une simulation.** `ROUTES` associe chaque commande à une
+méthode, un chemin et un corps :
+
+```js
+ecrire_dex: ['POST', a => '/api/dex' + paramProfil(a.profil), a => a.donnees],
+```
+
+L'adresse de l'API est posée **à l'assemblage** par `POKEARCHIVE_API`, jamais
+déduite de `window.location` : le site local tourne sur 8130 et l'API sur 8787,
+la production sur deux domaines. Ni l'un ni l'autre ne se devine.
+
+TROIS ROUTES ONT LU UN ARGUMENT QUE PERSONNE N'ENVOIE, et la leçon vaut d'être
+gardée : la fonction de corps rendait `undefined`, la requête partait sans corps,
+et `express.json()` livrait `{}` à l'API. `ecrire_dex` remplaçait ainsi le
+Pokédex par un dex vide à chaque enregistrement, sans une erreur. Le pont **lève**
+désormais quand une route déclare un corps et n'en produit pas, et le banc
+inspecte le corps réellement envoyé pour les trois commandes.
+
+Cinq commandes ne sont pas de simples appels : la connexion Discord (fenêtre
+surgissante et PKCE), la déconnexion, l'état de session, et les deux qui portent
+des octets d'image.
 
 ### Ce qui marche
 
@@ -90,37 +122,39 @@ personne n'ait à y penser.
 
 La version du cache est celle des fichiers, jamais un numéro tenu à la main.
 
-### Ce qui ne marche pas encore
+### Ce qui ne marche pas
 
-Le classement, les amis, la visite d'un dresseur. Tout cela suppose d'autres
-joueurs, donc une base commune. Hors ligne, les listes sont **vides** plutôt que
-peuplées de gens inventés — un classement imaginaire serait une tromperie, un
-écran vide se comprend.
+**L'overlay OBS**, et lui seul. Il demande une écoute locale sur un port, ce
+qu'un navigateur ne sait pas faire. Le bandeau en haut de page le dit.
 
-Il n'y a pas non plus de connexion Discord : on ouvre un compte **local**, dont
-le nom ne sert qu'à l'affichage.
+Tout le reste est là : le classement, les amis, la visite d'un dresseur, les
+échanges, les messages, les photos. C'est la même API que celle de
+l'application, avec le même compte.
 
-### Le jour où l'API sera joignable
+### La connexion, dans une fenêtre surgissante
 
-Deux obstacles, tous deux côté serveur :
+Rediriger la page entière ferait tout perdre — le Pokédex en cours, les filtres,
+la position. La fenêtre s'ouvre sur Discord, renvoie un code par `postMessage`,
+et se ferme ; l'écran principal n'a pas bougé.
 
-- **l'API n'ouvre pas le CORS.** Un site sur un autre domaine ne peut pas
-  l'appeler ; le navigateur bloque avant même la requête ;
-- **la connexion Discord est bâtie pour le bureau.** Elle renvoie vers un port
-  ouvert sur la machine du joueur. Sans ce port, le serveur affiche « Aucune
-  application n'attendait cette connexion ».
+**L'origine du message est vérifiée**, sans quoi n'importe quelle page ouverte
+ailleurs pourrait se faire passer pour le retour de Discord. Et le code seul
+n'ouvre rien : l'API exige aussi le vérifieur PKCE, qui n'a jamais quitté la
+mémoire de la page.
 
-Servir le site depuis le même domaine que l'API supprime le premier obstacle
-d'un coup. Le second demande un vrai second chemin de session.
-
-Côté site, il n'y a **qu'un endroit** à changer : la fonction `repondre()` dans
-`pont.js`, qui choisit entre la réserve locale et le réseau. Les commandes
-n'auront pas à bouger, puisqu'elles rendent déjà les formes de l'API.
+Côté serveur, `SITE_ORIGINES` nomme les origines admises — pas d'étoile : le
+jeton reste nécessaire, mais une étoile laisserait une page tierce faire agir le
+navigateur d'un joueur connecté.
 
 ## La synchro site ↔ application
 
-Elle n'existe pas encore. Ce qui suit dit où on en est et ce qu'il reste, parce
-que la moitié du travail est déjà faite sans qu'on l'ait cherché.
+**Elle est faite, et par le compte.** Les deux clients parlent à la même API :
+ce qu'on coche ici se retrouve là-bas au rechargement, sans fichier à promener.
+Il n'y a plus de conflit à arbitrer — une seule collection, un seul serveur.
+
+Reste l'import par fichier, décrit ci-dessous. Il n'a pas perdu son utilité :
+reprendre une vieille sauvegarde, ou récupérer ce qu'une autre installation
+avait gardé.
 
 ### Le format existe, et il est versionné
 
@@ -173,22 +207,6 @@ Le format permet de faire mieux qu'écraser :
 Un décochage volontaire serait perdu par cette règle. C'est un choix assumé :
 perdre une correction est réparable en deux clics, perdre trois mois de
 cochage ne l'est pas.
-
-### Les deux étapes, dans l'ordre
-
-**1. Par fichier — fait.** L'import de `pokearchive-1` existe des deux côtés,
-avec la fusion ci-dessus. Manuel, mais complet et hors ligne : il n'a demandé
-ni hébergement, ni CORS, ni session web.
-
-**2. Par le compte — demande l'hébergement.** Le site parle à l'API comme le
-fait l'application. Côté site il n'y a **qu'une fonction** à changer,
-`repondre()` dans `pont.js`, puisque les trente-huit commandes rendent déjà les
-formes de l'API. Côté serveur il faut le CORS et un vrai chemin de session
-navigateur — voir « Le jour où l'API sera joignable » plus haut.
-
-L'étape 1 ne se perd pas si l'on fait la 2 : un import de fichier reste utile
-pour reprendre une sauvegarde, changer de machine, ou récupérer après un vidage
-du navigateur.
 
 ## S'adapter à la fenêtre
 

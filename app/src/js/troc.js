@@ -146,6 +146,20 @@ function trocMajBarre(){
   trocEnvoyer.disabled = !(trocSel.donne || trocSel.veux);
 }
 
+// LE BOUTON N'AVAIT AUCUN ÉCOUTEUR, et personne ne s'en apercevait.
+//
+// trocMajBarre() lui écrivait son libellé et le rendait cliquable, l'API savait
+// recevoir la proposition, le banc éprouvait l'inversion du sens et le refus de
+// répondre à soi-même. Tout était là SAUF la ligne qui relie le clic à la
+// fonction : proposer un échange était impossible depuis l'application.
+//
+// LE BANC NE POUVAIT PAS LE VOIR : il appelait trocProposer() directement. Une
+// vérification qui appelle la fonction éprouve la fonction, pas le câblage.
+// Elle clique désormais sur le bouton — voir banc-verifications.js.
+if(trocEnvoyer){
+  trocEnvoyer.addEventListener('click', trocProposer);
+}
+
 async function trocProposer(){
   if(!exigeCompte('proposer un échange')) return;
   if(!trocSel.donne && !trocSel.veux) return;

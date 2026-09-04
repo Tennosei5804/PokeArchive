@@ -234,8 +234,7 @@ const portraitSource = document.getElementById('portraitSource');
 const STORAGE_KEY = 'living-dex-progress';
 // Combien de cartes par lot, au premier dessin comme à chaque « Afficher plus ».
 const BATCH_SIZE = 55;
-const GAUGE_CIRCUMFERENCE = 2 * Math.PI * 31; // matches r=31 in the SVG
-const usingClaudeStorage = !!(window.storage && typeof window.storage.get === 'function');
+const GAUGE_CIRCUMFERENCE = 2 * Math.PI * 31; // r=31 dans le SVG
 
 
 
@@ -590,25 +589,30 @@ function depuisQuand(iso){
   return 'il y a ' + mois + (mois === 1 ? ' mois' : ' mois');
 }
 
-// ---- Storage: uses Claude's persistent storage when available,
-// falls back to the browser's own localStorage when the file is
-// opened standalone (downloaded, or hosted outside claude.ai).
+// ---- Le stockage local ------------------------------------------------------
+//
+// La progression de secours, celle qui survit a une API injoignable. Elle
+// double la sauvegarde serveur : voir serveur.js, seul appelant des deux
+// fonctions.
+//
+// ELLES RESTENT `async` alors que localStorage est synchrone. Ce n'est pas un
+// oubli : leurs appelants les attendent, et le jour ou le stockage passe a
+// autre chose — IndexedDB, un fichier Tauri — la signature n'aura pas a bouger.
+//
+// Il y avait ici une seconde voie, vers `window.storage`, heritee de l'epoque
+// ou cette page etait un artifact. Elle ne pouvait s'executer nulle part :
+// l'objet n'existe ni dans une fenetre Tauri ni dans un navigateur. Deux
+// chemins dont un mort, c'etait un chemin de trop a lire.
+//
+// ON N'AVALE PAS LES ECHECS D'ECRITURE EN SILENCE. Un stockage refuse —
+// navigation privee, quota plein — laisse croire que tout est garde alors que
+// rien ne l'est. La lecture, elle, peut rendre null sans bruit : l'appelant
+// sait quoi faire d'une reserve absente.
 async function storageGet(key){
-  if(usingClaudeStorage){
-    try{
-      const result = await window.storage.get(key, false);
-      return result ? result.value : null;
-    }catch(e){ return null; }
-  }
   try{ return localStorage.getItem(key); }catch(e){ return null; }
 }
 
 async function storageSet(key, value){
-  if(usingClaudeStorage){
-    try{ await window.storage.set(key, value, false); }
-    catch(e){ console.error('Erreur de sauvegarde :', e); }
-    return;
-  }
   try{ localStorage.setItem(key, value); }
   catch(e){ console.error('Erreur de sauvegarde locale :', e); }
 }
