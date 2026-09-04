@@ -520,18 +520,60 @@
         </div>
         <p class="modal-error" id="profilPageErreur" role="alert"></p>
 
+        <!-- LA CARTE DE DRESSEUR. Ce qui ne depend d'aucun jeu : ce qu'on
+             aime. Elle precede « Donnees jeux », qui detaille jeu par jeu —
+             on se presente avant de derouler sa vie.
+
+             LE SPIN-OFF EST UN MENU, tire de SPINOFFS dans donnees.js — les
+             54 jeux secondaires officiels, releves sur Pokepedia et Pokebip.
+             C'etait un champ libre : on y tapait « donjon mystere », « PMD »
+             ou « Explorateurs du ciel » pour le meme jeu, et rien ne pouvait
+             plus les rapprocher sur les fiches publiques.
+
+             « MON PREFERE N'EST PAS DANS LA LISTE » RESTE TRAITE, et c'etait
+             l'objection qui avait fait choisir le champ libre : un titre deja
+             enregistre qui ne figure pas dans SPINOFFS est AJOUTE au menu a
+             l'ouverture — voir identiteRemplirSpinoffs(). Personne ne perd ce
+             qu'il avait ecrit, et un jeu qui sort se rajoute d'une ligne. -->
+        <div class="home-section-title">Ta carte de dresseur</div>
+        <p class="profil-bloc-note">Ce que tu aimes, en trois lignes.
+          <b>Elle est publique</b> : qui ouvre ta fiche la voit, juste au-dessus
+          de tes aventures.</p>
+        <div class="carte-dresseur">
+          <label class="partie-champ" for="identiteJeu">
+            <span class="partie-champ-nom">Jeu préféré</span>
+            <select id="identiteJeu"></select>
+          </label>
+          <label class="partie-champ" for="identiteSpinoff">
+            <span class="partie-champ-nom">Spin-off préféré</span>
+            <select id="identiteSpinoff"></select>
+          </label>
+          <div class="carte-favoris">
+            <div class="partie-champ-nom" id="identiteFavorisTitre">Pokémon préférés</div>
+            <div class="partie-rangee" id="identiteFavoris"></div>
+            <input type="search" id="identiteCherche" class="partie-cherche"
+                   placeholder="Ajouter un Pokémon…" autocomplete="off">
+            <div class="partie-trouves" id="identiteTrouves"></div>
+          </div>
+          <label class="carte-phrase-champ" for="identitePhrase">
+            <span class="partie-champ-nom">Une phrase sur toi</span>
+            <input type="text" id="identitePhrase" maxlength="120" autocomplete="off"
+                   placeholder="Chasseur de shiny depuis 2011, spécialiste des Insectes">
+          </label>
+        </div>
+
         <!-- DONNEES JEUX. Une ligne par jeu auquel on a joue : l'equipe qu'on
              y avait, ou l'on en est, et ce qu'on veut en dire. C'est du
              souvenir, pas de la progression : rien ici n'est calcule a partir
              du dex, tout est saisi.
 
-             ELLE RESTE SUR CETTE MACHINE POUR L'INSTANT. Le reste de la page
-             voyage avec le compte ; celle-ci attend d'avoir prouve qu'on s'en
-             sert. Voir l'en-tete de js/parties.js. -->
+             ELLE VOYAGE AVEC LE COMPTE, ET ELLE EST PUBLIQUE. Une ligne par
+             jeu dans pa_parties, reprise sur la fiche du dresseur sous sa
+             carte. Voir l'en-tete de js/parties.js. -->
         <div class="home-section-title">Données jeux</div>
         <p class="profil-bloc-note">Les jeux auxquels tu as joué, l’équipe que tu y
-          avais, et ce que tu veux en dire. <b>Rien n’en sort de cette machine</b> :
-          ces données ne sont ni envoyées ni partagées.</p>
+          avais, et ce que tu veux en dire. <b>C’est public</b> : ces lignes
+          s’affichent sur ta fiche, avec ta carte de dresseur.</p>
         <div class="parties-barre">
           <select id="partiesAjout" aria-label="Ajouter un jeu"></select>
           <button class="toggle-btn primary" id="partiesAjouter" type="button">Ajouter</button>
@@ -1895,104 +1937,104 @@
   </div>
 </div>
 
-<script src="../src/js/donnees.js?v=1788459619"></script>
+<script src="../src/js/donnees.js?v=1788504079"></script>
 <!-- Généré par outils/generer-donnees.html. Doit précéder cache.js, qui y
      puise quand le stockage local est vide. -->
-<script src="../src/js/donnees-embarquees.js?v=1788459619"></script>
+<script src="../src/js/donnees-embarquees.js?v=1788504079"></script>
 <!-- Les verrous chromatiques : des données seules, relevées à la source et
      datées. Doit précéder verrous.js, qui les affiche. -->
-<script src="../src/js/donnees-cadeaux.js?v=1788459619"></script>
-<script src="../src/js/donnees-verrous.js?v=1788459619"></script>
+<script src="../src/js/donnees-cadeaux.js?v=1788504079"></script>
+<script src="../src/js/donnees-verrous.js?v=1788504079"></script>
 <!-- Les notices du Pokédex, une par espèce et par jeu, relevées sur Poképédia
      par outils/relever-descriptions.py, ne sont PAS déclarées ici : fiche.js va
      les chercher à la première fiche ouverte, comme les attaques et les lieux.
      Une notice par jeu, c'est vingt-deux fois le texte d'une notice par espèce
      — de quoi allonger chaque démarrage pour une carte qu'on ne lit pas
      toujours. -->
-<script src="../src/js/cache.js?v=1788459619"></script>
-<script src="../src/js/noyau.js?v=1788459619"></script>
+<script src="../src/js/cache.js?v=1788504079"></script>
+<script src="../src/js/noyau.js?v=1788504079"></script>
 <!-- Les icônes. Tôt : tout ce qui dessine un bouton s'en sert, et elles ne
      dépendent de rien. -->
-<script src="../src/js/icones.js?v=1788459619"></script>
-<script src="../src/js/confirmer.js?v=1788459619"></script>
-<script src="../src/js/maj.js?v=1788459619"></script>
-<script src="../src/js/nouveautes.js?v=1788459619"></script>
+<script src="../src/js/icones.js?v=1788504079"></script>
+<script src="../src/js/confirmer.js?v=1788504079"></script>
+<script src="../src/js/maj.js?v=1788504079"></script>
+<script src="../src/js/nouveautes.js?v=1788504079"></script>
 <!-- Le lexique. Autonome : il ne lit rien d'autre que ses propres définitions,
      et pose ses pastilles au DOMContentLoaded. -->
-<script src="../src/js/lexique.js?v=1788459619"></script>
-<script src="../src/js/serveur.js?v=1788459619"></script>
-<script src="../src/js/formes.js?v=1788459619"></script>
-<script src="../src/js/accueil.js?v=1788459619"></script>
-<script src="../src/js/dex.js?v=1788459619"></script>
-<script src="../src/js/fiche.js?v=1788459619"></script>
-<script src="../src/js/grille.js?v=1788459619"></script>
+<script src="../src/js/lexique.js?v=1788504079"></script>
+<script src="../src/js/serveur.js?v=1788504079"></script>
+<script src="../src/js/formes.js?v=1788504079"></script>
+<script src="../src/js/accueil.js?v=1788504079"></script>
+<script src="../src/js/dex.js?v=1788504079"></script>
+<script src="../src/js/fiche.js?v=1788504079"></script>
+<script src="../src/js/grille.js?v=1788504079"></script>
 <!-- Après dex.js et grille.js : les objectifs figent currentFiltered. -->
-<script src="../src/js/objectifs.js?v=1788459619"></script>
+<script src="../src/js/objectifs.js?v=1788504079"></script>
 <!-- Après grille.js : la fiche de capture complète la fenêtre d'aperçu. -->
-<script src="../src/js/capture.js?v=1788459619"></script>
+<script src="../src/js/capture.js?v=1788504079"></script>
 <!-- Après compte.js : la rareté demande la table à l'API. -->
-<script src="../src/js/rarete.js?v=1788459619"></script>
-<script src="../src/js/lieux.js?v=1788459619"></script>
-<script src="../src/js/filtres.js?v=1788459619"></script>
-<script src="../src/js/chasse.js?v=1788459619"></script>
+<script src="../src/js/rarete.js?v=1788504079"></script>
+<script src="../src/js/lieux.js?v=1788504079"></script>
+<script src="../src/js/filtres.js?v=1788504079"></script>
+<script src="../src/js/chasse.js?v=1788504079"></script>
 <!-- Apres chasse.js : il se sert de son modele de taux plutot que d'en
      porter une copie, qui divergerait a la premiere correction. -->
-<script src="../src/js/calculateur.js?v=1788459619"></script>
-<script src="../src/js/verrous.js?v=1788459619"></script>
-<script src="../src/js/cadeaux.js?v=1788459619"></script>
+<script src="../src/js/calculateur.js?v=1788504079"></script>
+<script src="../src/js/verrous.js?v=1788504079"></script>
+<script src="../src/js/cadeaux.js?v=1788504079"></script>
 <!-- Les règles de combat, puis l'écran qui s'appuie dessus. Tous deux après
      fiche.js (TYPE_RELATIONS, puceType, decoderBloc) et avant menus.js, qui
      stylise leurs menus déroulants. -->
-<script src="../src/js/combat.js?v=1788459619"></script>
-<script src="../src/js/strategie.js?v=1788459619"></script>
+<script src="../src/js/combat.js?v=1788504079"></script>
+<script src="../src/js/strategie.js?v=1788504079"></script>
 <!-- Après strategie.js : il lui emprunte creerSelecteur. -->
-<script src="../src/js/reproduction.js?v=1788459619"></script>
+<script src="../src/js/reproduction.js?v=1788504079"></script>
 <!-- Après donnees.js pour GAMES, et après reproduction.js par simple
      voisinage : les trois partagent la barre « Outils ». -->
-<script src="../src/js/transferts.js?v=1788459619"></script>
-<script src="../src/js/partage.js?v=1788459619"></script>
-<script src="../src/js/menus.js?v=1788459619"></script>
+<script src="../src/js/transferts.js?v=1788504079"></script>
+<script src="../src/js/partage.js?v=1788504079"></script>
+<script src="../src/js/menus.js?v=1788504079"></script>
 <!-- Redéfinit la couche de sauvegarde quand l'app tourne dans Tauri.
      Hors Tauri (serveur.py, ou fichier ouvert directement), il ne fait rien. -->
 
-<script src="../src/js/amis.js?v=1788459619"></script>
+<script src="../src/js/amis.js?v=1788504079"></script>
 <!-- Après partage.js, dont il complète le panneau d'entraide, et après
      compte.js pour nomJournal, libelleDex, avatarDiscord et dateLisible. -->
-<script src="../src/js/troc.js?v=1788459619"></script>
+<script src="../src/js/troc.js?v=1788504079"></script>
 <!-- Après amis.js (pontNotif, bullePermise) et troc.js (ouvrirDiscussion). -->
 <!-- Apres troc.js : il reprend ses bulles de discussion plutot que d'en
      redefinir un second jeu, qui aurait diverge. -->
-<script src="../src/js/messagerie.js?v=1788459619"></script>
+<script src="../src/js/messagerie.js?v=1788504079"></script>
 <!-- Apres chasse.js et photos.js : il lit leurs donnees et reprend leur
      vignette plutot que d'en ecrire une seconde. -->
-<script src="../src/js/tableaux.js?v=1788459619"></script>
-<script src="../src/js/notifs.js?v=1788459619"></script>
+<script src="../src/js/tableaux.js?v=1788504079"></script>
+<script src="../src/js/notifs.js?v=1788504079"></script>
 <!-- Après chasse.js (nomDeChasse, dessinerTableauChasse) et compte.js
      (perdreSession, profilCourant). -->
-<script src="../src/js/photos.js?v=1788459619"></script>
+<script src="../src/js/photos.js?v=1788504079"></script>
 <!-- Après formes.js (speciesForVariant, poolEntries), accueil.js (semeur,
      hachage) et photos.js (vignettePhoto). -->
-<script src="../src/js/defi.js?v=1788459619"></script>
+<script src="../src/js/defi.js?v=1788504079"></script>
 <!-- Après compte.js (nomJournal, perdreSession) et amis.js. -->
-<script src="../src/js/recherches.js?v=1788459619"></script>
+<script src="../src/js/recherches.js?v=1788504079"></script>
 <!-- Après dex.js (obtentionDe) et recherches.js (chercheDeja). -->
-<script src="../src/js/blocages.js?v=1788459619"></script>
+<script src="../src/js/blocages.js?v=1788504079"></script>
 <!-- Après grille.js (BOITE_TAILLE, allerBoite, basculerBoites) et dex.js
      (trierEntrees). -->
-<script src="../src/js/rangement.js?v=1788459619"></script>
-<script src="../src/js/retrospective.js?v=1788459619"></script>
-<script src="../src/js/succes.js?v=1788459619"></script>
+<script src="../src/js/rangement.js?v=1788504079"></script>
+<script src="../src/js/retrospective.js?v=1788504079"></script>
+<script src="../src/js/succes.js?v=1788504079"></script>
 <!-- Après retrospective.js : la carte lit retroDonnees si elle est là, et se
      passe d'elle sinon. -->
-<script src="../src/js/carte.js?v=1788459619"></script>
+<script src="../src/js/carte.js?v=1788504079"></script>
 <!-- Après compte.js : le premier lancement lit profilCourant et profilsConnus. -->
-<script src="../src/js/depart.js?v=1788459619"></script>
-<script src="../src/js/donnees-perso.js?v=1788459619"></script>
-<script src="../src/js/parties.js?v=1788459619"></script>
-<script src="../src/js/presence.js?v=1788459619"></script>
+<script src="../src/js/depart.js?v=1788504079"></script>
+<script src="../src/js/donnees-perso.js?v=1788504079"></script>
+<script src="../src/js/parties.js?v=1788504079"></script>
+<script src="../src/js/presence.js?v=1788504079"></script>
 
-<script src="../src/js/selecteur-couleur.js?v=1788459619"></script>
-<script src="../src/js/apparence.js?v=1788459619"></script>
+<script src="../src/js/selecteur-couleur.js?v=1788504079"></script>
+<script src="../src/js/apparence.js?v=1788504079"></script>
 <script src="generer-attaques.js"></script>
 </body>
 </html>

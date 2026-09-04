@@ -3095,3 +3095,80 @@ verifier('Données jeux',
       return 'échec : ' + (e && e.message ? e.message : String(e));
     }
   });
+
+verifier('Données jeux',
+  'La recherche d’équipe ne propose que les Pokémon DU jeu',
+  async function(){
+    if(typeof partiesPoolJeu !== 'function') return 'ignoré : le bloc n’est pas là';
+
+    // LE DÉFAUT, RELEVÉ À L'ÉCRAN : taper « Arca » sur Rouge / Bleu proposait
+    // Arcanin, Arcanin de Hisui et Marcacrin. On note ici une équipe qu'on a
+    // VRAIMENT eue : une liste qui propose des Pokémon absents du jeu invite à
+    // écrire un souvenir faux, et personne ne se demandera dix ans plus tard si
+    // Hisui existait sur Game Boy.
+    const rby = await partiesPoolJeu('rby');
+    const pla = await partiesPoolJeu('pla');
+    if(!rby || !pla) return 'ignoré : les Pokédex ne sont pas en réserve';
+
+    const noms = function(pool){
+      return partiesChercher('Arca', pool).map(function(e){ return nomAffiche(e); });
+    };
+    const surRby = noms(rby), surPla = noms(pla);
+
+    if(surRby.indexOf('Arcanin') === -1){
+      return 'échec : Arcanin manque sur Rouge / Bleu — ' + surRby.join(', ');
+    }
+    if(surRby.some(function(n){ return n.indexOf('Hisui') !== -1; })){
+      return 'échec : une forme de Hisui sur Rouge / Bleu — ' + surRby.join(', ');
+    }
+    // Marcacrin est de quatrième génération : il n'a rien à faire à Kanto.
+    if(surRby.indexOf('Marcacrin') !== -1){
+      return 'échec : Marcacrin proposé sur Rouge / Bleu';
+    }
+    // Et l'inverse tient : Légendes Arceus n'a QUE la forme de Hisui.
+    if(!surPla.some(function(n){ return n.indexOf('Hisui') !== -1; })){
+      return 'échec : Arcanin de Hisui manque sur Légendes Arceus — ' + surPla.join(', ');
+    }
+
+    // Le repli compte autant que le filtre : sans jeu connu, on cherche partout
+    // plutôt que de ne rien proposer. Un souvenir doit pouvoir s'écrire même
+    // quand le Pokédex du jeu n'est pas en réserve.
+    const inconnu = await partiesPoolJeu('ce-jeu-n-existe-pas');
+    if(inconnu !== null){
+      return 'échec : un jeu inconnu rend une liste au lieu de se replier';
+    }
+    if(!partiesChercher('Arca', null).length){
+      return 'échec : sans jeu, la recherche ne trouve plus rien';
+    }
+    return 'Rouge / Bleu : ' + surRby.join(', ') + ' — Légendes Arceus : ' + surPla.join(', ');
+  });
+
+verifier('Données jeux',
+  'Le temps de jeu et les dates : vide veut dire « je ne sais plus »',
+  async function(){
+    if(typeof partiesResume !== 'function') return 'ignoré : le bloc n’est pas là';
+
+    // ZÉRO N'EST PAS L'ABSENCE. Un souvenir ancien n'a souvent ni compteur ni
+    // dates ; afficher « 0 h » écrirait sur sa fiche quelque chose qu'il n'a
+    // pas dit. Le résumé se tait plutôt que d'inventer.
+    if(partiesResume({ heures: null, debut: null, fin: null }) !== ''){
+      return 'échec : un jeu sans rien saisi affiche quand même quelque chose';
+    }
+    if(partiesResume({ heures: 0, debut: null, fin: null }) !== '0 h'){
+      return 'échec : zéro heure saisi volontairement doit s’afficher';
+    }
+
+    // Même année : elle ne s'écrit qu'une fois.
+    const memeAn = partiesResume({ heures: 112, debut: '2024-03-17', fin: '2024-06-02' });
+    if(memeAn !== '112 h · mars → juin 2024'){
+      return 'échec : « ' + memeAn +' » au lieu de « 112 h · mars → juin 2024 »';
+    }
+    const deuxAns = partiesResume({ heures: null, debut: '2024-11-02', fin: '2025-01-08' });
+    if(deuxAns !== 'novembre 2024 → janvier 2025'){
+      return 'échec : deux années — « ' + deuxAns + ' »';
+    }
+    if(partiesResume({ debut: '2025-11-02' }) !== 'depuis novembre 2025'){
+      return 'échec : un début seul ne se lit pas « depuis … »';
+    }
+    return 'rien saisi ne dit rien, « 0 h » se dit, et l’année ne s’écrit qu’une fois';
+  });

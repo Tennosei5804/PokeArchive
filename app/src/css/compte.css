@@ -317,6 +317,59 @@ html[data-theme="light"] body{ background:#e9e7e0; }
   font-variant-numeric:tabular-nums;
 }
 
+/* Depuis quand il est la. Meme forme que la ligne des aventures juste au-dessus
+   — c est le meme registre —, mais plus pale : c est un renseignement, pas ce
+   qu on vient chercher.
+
+   LE SELECTEUR PORTE LE PARENT, comme pour .visite-discord et pour la meme
+   raison : .visite-entete span vaut (0,1,1) et l emporterait sur une classe
+   seule. La regle serait ecrite et sans effet. */
+.visite-entete .visite-inscrit{ color:var(--ink-faint); font-size:10.5px; }
+
+/* ---- La carte de dresseur, vue de l exterieur ----
+   Les memes briques que sur sa propre page — .partie-membre, .partie-etat,
+   .partie-vignette, .partie-champ-nom — dans un encadre qui prend la forme
+   de .visite-profil, juste en dessous. Deux dessins pour la meme fiche
+   auraient diverge au premier ajustement. Voir js/parties.js. */
+.carte-publique{
+  display:flex; flex-direction:column; gap:13px;
+  padding:12px 13px;
+  background:var(--card); border:1px solid var(--card-border); border-radius:10px;
+}
+/* Le jeu et le spin-off cote a cote tant que la place le permet ; l un sous
+   l autre des qu elle manque, plutot que de couper des titres de jeux. */
+.carte-publique-gouts{ display:flex; flex-wrap:wrap; gap:11px 26px; }
+.carte-publique-gouts > div{ display:flex; flex-direction:column; gap:3px; }
+.carte-publique-gouts strong{
+  font-family:var(--font-body); font-size:13.5px; font-weight:600; color:var(--ink);
+}
+/* PAR LEUR NOM, ET NON PAR « > div ». Le selecteur d enfant vaut (0,1,1) et
+   l emportait sur .carte-publique-gouts, qui n en vaut que (0,1,0) : la rangee
+   du jeu et du spin-off passait en colonne, la regle ecrite juste au-dessus
+   sans effet. Le meme piege que .visite-discord, releve a l essai. */
+.carte-publique-zone{ display:flex; flex-direction:column; gap:7px; }
+.carte-publique-phrase{
+  margin:0; padding-left:9px;
+  border-left:2px solid var(--gold-deep);
+  font-family:var(--font-body); font-size:13px; line-height:1.5; color:var(--ink-soft);
+}
+/* Une ligne de jeu, sans le bouton : elle ne se deplie pas chez les autres. On
+   reprend la mise en page de .partie-tete, pas sa nature. */
+.carte-publique-jeu{
+  display:flex; align-items:center; gap:11px;
+  padding:6px 0;
+  font-family:var(--font-body); font-size:13px; color:var(--ink);
+}
+.carte-publique-jeu + .carte-publique-note{
+  margin:-3px 0 4px; padding-left:1px;
+  font-family:var(--font-body); font-size:12px; line-height:1.5; color:var(--ink-soft);
+}
+/* Un Pokemon nomme quelque part dans l application ouvre sa fiche. Celui-ci ne
+   fait pas exception : sans ce curseur, rien ne le dirait. */
+.partie-membre.cliquable{ cursor:pointer; }
+.partie-membre.cliquable:hover{ border-color:var(--gold-deep); }
+.partie-membre.cliquable:focus-visible{ outline:2px solid var(--gold-deep); outline-offset:1px; }
+
 /* ---- Classement des dresseurs, nouvelle présentation ----
    L'ancienne liste alignait des chiffres nus : on ne savait pas si 152 était
    beaucoup. Une barre situe chacun par rapport au meilleur, et le podium se
@@ -472,6 +525,25 @@ html[data-theme="light"] body{ background:#e9e7e0; }
    forme des aventures juste au-dessus : meme fond, meme bordure, meme rayon —
    ce sont deux listes de la meme page, et deux dessins auraient diverge au
    premier ajustement. Voir js/parties.js. */
+/* La carte de dresseur : les memes champs que le corps d une partie, dans un
+   seul encadre. Elle precede Donnees jeux — on se presente avant de derouler. */
+.carte-dresseur{
+  display:flex; flex-direction:column; gap:12px;
+  padding:13px; margin-bottom:16px;
+  border:1px solid var(--card-border); border-radius:11px;
+  background:var(--panel);
+}
+.carte-dresseur select, .carte-dresseur input[type="text"]{ flex:1 1 220px; min-width:0; }
+.carte-dresseur input[type="text"]{
+  padding:7px 10px; border-radius:8px;
+  background:var(--screen); border:1px solid var(--card-border);
+  color:var(--ink); font-family:var(--font-body); font-size:12.5px;
+}
+.carte-dresseur input[type="text"]:focus{ outline:none; border-color:var(--gold-deep); }
+.carte-favoris{ display:flex; flex-direction:column; gap:7px; }
+.carte-phrase-champ{ display:flex; flex-direction:column; gap:6px; }
+.carte-phrase-champ input{ width:100%; }
+
 .parties-barre{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:11px; }
 .parties-barre select{ flex:1 1 210px; min-width:0; }
 .parties{ display:flex; flex-direction:column; gap:8px; }
@@ -494,6 +566,37 @@ html[data-theme="light"] body{ background:#e9e7e0; }
    six noms. Elle prend la place du milieu, et se retire la ou il n y en a pas. */
 .partie-equipe-mini{ flex:1 1 auto; display:flex; gap:2px; align-items:center; }
 .partie-vignette{ display:block; object-fit:contain; }
+/* Le temps de jeu et la periode, sur la ligne repliee comme sur la fiche
+   publique. En --font-data et discret : c est un renseignement a cote du nom,
+   pas ce qui titre la ligne. Il se retire quand la place manque plutot que de
+   pousser la pastille d etat hors du cadre. */
+.partie-resume{
+  flex:0 1 auto; min-width:0;
+  font-family:var(--font-data); font-size:10px; color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
+/* Les trois mesures cote a cote tant que la place le permet, l une sous l autre
+   des qu elle manque : trois champs courts ne meritent pas trois lignes sur un
+   ecran large, et ne tiennent pas sur un etroit. */
+.partie-mesures{ display:flex; flex-wrap:wrap; gap:10px 22px; }
+.partie-heures-boite{ display:flex; align-items:center; gap:5px; }
+.partie-unite{
+  font-family:var(--font-data); font-size:10px; color:var(--ink-faint);
+}
+.partie-heures, .partie-date{
+  padding:6px 9px; border-radius:8px;
+  background:var(--screen); border:1px solid var(--card-border);
+  color:var(--ink); font-family:var(--font-body); font-size:12.5px;
+}
+.partie-heures{ width:76px; }
+.partie-heures:focus, .partie-date:focus{ outline:none; border-color:var(--gold-deep); }
+/* Le calendrier natif sort noir sur noir sans cela : l icone est peinte par le
+   navigateur, et n herite pas de la couleur du texte. */
+.partie-date::-webkit-calendar-picker-indicator{ filter:invert(.7); cursor:pointer; }
+html[data-theme="light"] .partie-date::-webkit-calendar-picker-indicator{ filter:none; }
+
 .partie-etat{
   flex:0 0 auto;
   padding:2px 9px; border-radius:20px;

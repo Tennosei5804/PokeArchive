@@ -520,18 +520,60 @@
         </div>
         <p class="modal-error" id="profilPageErreur" role="alert"></p>
 
+        <!-- LA CARTE DE DRESSEUR. Ce qui ne depend d'aucun jeu : ce qu'on
+             aime. Elle precede « Donnees jeux », qui detaille jeu par jeu —
+             on se presente avant de derouler sa vie.
+
+             LE SPIN-OFF EST UN MENU, tire de SPINOFFS dans donnees.js — les
+             54 jeux secondaires officiels, releves sur Pokepedia et Pokebip.
+             C'etait un champ libre : on y tapait « donjon mystere », « PMD »
+             ou « Explorateurs du ciel » pour le meme jeu, et rien ne pouvait
+             plus les rapprocher sur les fiches publiques.
+
+             « MON PREFERE N'EST PAS DANS LA LISTE » RESTE TRAITE, et c'etait
+             l'objection qui avait fait choisir le champ libre : un titre deja
+             enregistre qui ne figure pas dans SPINOFFS est AJOUTE au menu a
+             l'ouverture — voir identiteRemplirSpinoffs(). Personne ne perd ce
+             qu'il avait ecrit, et un jeu qui sort se rajoute d'une ligne. -->
+        <div class="home-section-title">Ta carte de dresseur</div>
+        <p class="profil-bloc-note">Ce que tu aimes, en trois lignes.
+          <b>Elle est publique</b> : qui ouvre ta fiche la voit, juste au-dessus
+          de tes aventures.</p>
+        <div class="carte-dresseur">
+          <label class="partie-champ" for="identiteJeu">
+            <span class="partie-champ-nom">Jeu préféré</span>
+            <select id="identiteJeu"></select>
+          </label>
+          <label class="partie-champ" for="identiteSpinoff">
+            <span class="partie-champ-nom">Spin-off préféré</span>
+            <select id="identiteSpinoff"></select>
+          </label>
+          <div class="carte-favoris">
+            <div class="partie-champ-nom" id="identiteFavorisTitre">Pokémon préférés</div>
+            <div class="partie-rangee" id="identiteFavoris"></div>
+            <input type="search" id="identiteCherche" class="partie-cherche"
+                   placeholder="Ajouter un Pokémon…" autocomplete="off">
+            <div class="partie-trouves" id="identiteTrouves"></div>
+          </div>
+          <label class="carte-phrase-champ" for="identitePhrase">
+            <span class="partie-champ-nom">Une phrase sur toi</span>
+            <input type="text" id="identitePhrase" maxlength="120" autocomplete="off"
+                   placeholder="Chasseur de shiny depuis 2011, spécialiste des Insectes">
+          </label>
+        </div>
+
         <!-- DONNEES JEUX. Une ligne par jeu auquel on a joue : l'equipe qu'on
              y avait, ou l'on en est, et ce qu'on veut en dire. C'est du
              souvenir, pas de la progression : rien ici n'est calcule a partir
              du dex, tout est saisi.
 
-             ELLE RESTE SUR CETTE MACHINE POUR L'INSTANT. Le reste de la page
-             voyage avec le compte ; celle-ci attend d'avoir prouve qu'on s'en
-             sert. Voir l'en-tete de js/parties.js. -->
+             ELLE VOYAGE AVEC LE COMPTE, ET ELLE EST PUBLIQUE. Une ligne par
+             jeu dans pa_parties, reprise sur la fiche du dresseur sous sa
+             carte. Voir l'en-tete de js/parties.js. -->
         <div class="home-section-title">Données jeux</div>
         <p class="profil-bloc-note">Les jeux auxquels tu as joué, l’équipe que tu y
-          avais, et ce que tu veux en dire. <b>Rien n’en sort de cette machine</b> :
-          ces données ne sont ni envoyées ni partagées.</p>
+          avais, et ce que tu veux en dire. <b>C’est public</b> : ces lignes
+          s’affichent sur ta fiche, avec ta carte de dresseur.</p>
         <div class="parties-barre">
           <select id="partiesAjout" aria-label="Ajouter un jeu"></select>
           <button class="toggle-btn primary" id="partiesAjouter" type="button">Ajouter</button>

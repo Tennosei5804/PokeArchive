@@ -611,6 +611,96 @@ const FABULEUX = new Set([
     }
   ];
 
+  // ---- Les jeux secondaires -----------------------------------------------
+  //
+  // Les spin-offs officiels, pour « Spin-off préféré » sur la carte de
+  // dresseur. Ils ne sont PAS dans GAMES et ne le seront pas : GAMES décrit des
+  // Pokédex à cocher, avec leurs listes d'espèces et leurs règles de formes.
+  // Aucun de ceux-ci n'en a un. Deux référentiels, deux usages.
+  //
+  // RELEVÉS SUR POKÉPÉDIA ET POKÉBIP le 4 septembre 2026, sous leur titre
+  // français officiel — la même méthode que pour les légendaires et les lieux.
+  // Les écrire de mémoire aurait donné « Pokémon Conquest » au lieu de
+  // « Conquête », et trois Donjon Mystère sur six.
+  //
+  // ORDRE : par série, puis par sortie. menus.js aplatit les <optgroup> — il
+  // dessine sa propre liste depuis sel.options — donc les groupes se perdraient
+  // à l'affichage. Ranger les titres d'une même série côte à côte donne le même
+  // service sans dépendre d'un balisage qui ne survit pas.
+  //
+  // AUCUN TITRE NE DÉPASSE 60 CARACTÈRES : c'est la borne de la colonne
+  // pa_cartes.spinoff. Les deux versions d'un même Donjon Mystère sont donc
+  // deux entrées — ce sont deux jeux, et « Rouge / Bleue » sur une seule ligne
+  // passait tout juste.
+  const SPINOFFS = [
+    // Combat
+    'Pokémon Stadium',
+    'Pokémon Stadium 2',
+    'Pokémon Battle Revolution',
+    'Pokkén Tournament',
+    'Pokkén Tournament DX',
+    'Pokémon Champions',
+    // Donjon Mystère
+    'Pokémon Donjon Mystère : Équipe de Secours Rouge',
+    'Pokémon Donjon Mystère : Équipe de Secours Bleue',
+    'Pokémon Donjon Mystère : Explorateurs du Temps',
+    'Pokémon Donjon Mystère : Explorateurs de l\'Ombre',
+    'Pokémon Donjon Mystère : Explorateurs du Ciel',
+    'Pokémon Donjon Mystère : Les Portes de l\'Infini',
+    'Pokémon Méga Donjon Mystère',
+    'Pokémon Donjon Mystère : Équipe de Secours DX',
+    // Ranger
+    'Pokémon Ranger',
+    'Pokémon Ranger : Nuit sur Almia',
+    'Pokémon Ranger : Sillages de Lumière',
+    // Orre
+    'Pokémon Colosseum',
+    'Pokémon XD : Le Souffle des Ténèbres',
+    // Snap
+    'Pokémon Snap',
+    'New Pokémon Snap',
+    // Rumble
+    'Pokémon Rumble',
+    'Super Pokémon Rumble',
+    'Pokémon Rumble U',
+    'Pokémon Rumble World',
+    'Pokémon Rumble Rush',
+    // PokéPark
+    'PokéPark Wii : La Grande Aventure de Pikachu',
+    'PokéPark 2 : Le Monde des Vœux',
+    // Détective Pikachu
+    'Détective Pikachu',
+    'Le Retour de Détective Pikachu',
+    // Réflexion
+    'Pokémon Puzzle League',
+    'Pokémon Puzzle Challenge',
+    'Pokémon Trozei !',
+    'Pokémon Battle Trozei',
+    'Pokémon Shuffle',
+    'Pokémon Picross',
+    'Pokémon Art Academy',
+    // Cartes
+    'Pokémon Trading Card Game',
+    'Pokémon TCG Pocket',
+    // Autres consoles
+    'Pokémon Pinball',
+    'Pokémon Pinball : Rubis & Saphir',
+    'Pokémon Channel',
+    'Pokémon Dash',
+    'My Pokémon Ranch',
+    'Pokémon Conquête',
+    // Mobile
+    'Pokémon GO',
+    'Magicarpe Jump',
+    'Pokémon Duel',
+    'Pokémon Quest',
+    'Pokémon Masters EX',
+    'Pokémon Smile',
+    'Pokémon Café ReMix',
+    'Pokémon UNITE',
+    'Pokémon Sleep'
+  ];
+
   // Une carte par espèce, comme dans le Pokédex du jeu. Sans ça, une espèce
   // présente entraînait avec elle TOUTES ses formes connues — d'où des Méga
   // et des formes d'Alola dans le Pokédex de Hisui, qui n'en contient aucune.

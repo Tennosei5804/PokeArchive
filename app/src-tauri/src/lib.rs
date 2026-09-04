@@ -482,6 +482,30 @@ async fn ecrire_dex(
     appeler(reqwest::Method::POST, &chemin, &jeton, Some(donnees)).await
 }
 
+// --- La carte de dresseur ----------------------------------------------------
+//
+// Elle ne prend PAS de profil, a la difference du dex. Le jeu prefere de
+// quelqu'un est le sien, pas celui d'une de ses aventures : le passer ici
+// aurait donne une carte differente selon l'aventure ouverte.
+
+/// Ce qu'on aime, et les jeux qu'on a joues.
+#[tauri::command]
+async fn carte(etat: State<'_, Etat>) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(reqwest::Method::GET, "/api/carte", &jeton, None).await
+}
+
+/// Remplace la carte en entier. Le corps est `{ carte, parties }` tel que
+/// l'application le range deja en local — voir parties.js.
+#[tauri::command]
+async fn carte_ecrire(
+    etat: State<'_, Etat>,
+    donnees: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let jeton = etat.jeton()?;
+    appeler(reqwest::Method::POST, "/api/carte", &jeton, Some(donnees)).await
+}
+
 // --- Les aventures ----------------------------------------------------------
 #[tauri::command]
 async fn profils(etat: State<'_, Etat>) -> Result<serde_json::Value, String> {
@@ -1268,6 +1292,8 @@ pub fn run() {
             moi,
             lire_dex,
             ecrire_dex,
+            carte,
+            carte_ecrire,
             profils,
             creer_profil,
             modifier_profil,

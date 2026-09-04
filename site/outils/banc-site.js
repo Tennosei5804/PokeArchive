@@ -344,6 +344,10 @@ verifier('Le pont HTTP',
           arrayBuffer: async function(){ return octets.buffer; },
         };
       };
+      // UNE IFRAME srcdoc PARTAGE L'ORIGINE DE LA PAGE, donc son localStorage.
+      // Poser ce jeton d'essai écrase la vraie session de qui lance le banc, et
+      // le retirer le déconnecte. On garde donc ce qui était là pour le rendre.
+      const jetonAvant = w.localStorage.getItem('pokearchive-jeton');
       w.localStorage.setItem('pokearchive-jeton', 'jeton-de-banc');
 
       await new Promise(function(tenir, rejeter){
@@ -394,7 +398,113 @@ verifier('Le pont HTTP',
       return 'sujet et aventure dans l’adresse ; data:image/png, '
         + octets.length + ' octets intacts';
     } finally {
-      try{ f.contentWindow.localStorage.removeItem('pokearchive-jeton'); }catch(e){ /* déjà partie */ }
+      try{
+        if(jetonAvant === null) f.contentWindow.localStorage.removeItem('pokearchive-jeton');
+        else f.contentWindow.localStorage.setItem('pokearchive-jeton', jetonAvant);
+      }catch(e){ /* déjà partie */ }
+      f.remove();
+    }
+  });
+
+verifier('Le pont HTTP',
+  'Ce que l’appelant passe arrive vraiment dans le corps de la requête',
+  async function(){
+    // LE DÉFAUT QUI A COÛTÉ DES COLLECTIONS, et la vérification qui l'aurait
+    // arrêté le premier jour.
+    //
+    // La table ROUTES nomme l'argument qu'elle lit — `a => a.donnees`. Rien ne
+    // garantissait que ce nom soit celui que l'appelant écrit. Trois routes
+    // étaient fausses : `ecrire_dex` lisait `a.dex` quand compte.js envoie
+    // `donnees`, `importer` lisait `a.donnees` quand donnees-perso.js envoie
+    // `contenu`, `modifier_profil` lisait `a.champs` quand les six appelants
+    // passent leurs champs à plat.
+    //
+    // Conséquence : la requête partait SANS CORPS. Pour `ecrire_dex`, l'API
+    // recevait le `{}` d'express et remplaçait le Pokédex par un dex vide —
+    // sans erreur, sans console. Pour les deux autres, renommer une aventure,
+    // la rendre publique ou importer un fichier ne faisait rien du tout.
+    //
+    // ON PASSE LES ARGUMENTS EXACTS DES VRAIS APPELANTS. Les recopier ici est
+    // le point : si quelqu'un renomme un argument d'un côté sans l'autre, la
+    // vérification tombe.
+    const f = document.createElement('iframe');
+    f.style.cssText = 'position:fixed;left:-9999px;top:0;border:0;width:10px;height:10px;';
+    f.srcdoc = '<!doctype html><meta charset="utf-8"><body></body>';
+    document.body.appendChild(f);
+    try{
+      await new Promise(function(r){ f.onload = r; });
+      const w = f.contentWindow;
+      // UNE IFRAME srcdoc PARTAGE L'ORIGINE DE LA PAGE, donc son localStorage.
+      // Poser ce jeton d'essai écrase la vraie session de qui lance le banc, et
+      // le retirer le déconnecte. On garde donc ce qui était là pour le rendre.
+      const jetonAvant = w.localStorage.getItem('pokearchive-jeton');
+      w.localStorage.setItem('pokearchive-jeton', 'jeton-de-banc');
+
+      let vu = null;
+      w.fetch = async function(url, opt){
+        vu = { url: String(url), corps: opt && opt.body ? JSON.parse(opt.body) : null };
+        return { ok: true, status: 200, text: async function(){ return '{}'; } };
+      };
+
+      await new Promise(function(tenir, rejeter){
+        const s = w.document.createElement('script');
+        s.src = '/js/pont-api.js';
+        s.onload = tenir;
+        s.onerror = function(){ rejeter(new Error('pont-api.js absent de public/')); };
+        w.document.body.appendChild(s);
+      });
+      const invoquer = w.__TAURI__.core.invoke;
+
+      // 1. La sauvegarde. C'est celle qui détruisait.
+      await invoquer('ecrire_dex',
+        { donnees: { version: 1, captures: ['pikachu'] }, profil: 3 });
+      if(!vu.corps) return 'échec : ecrire_dex part sans corps — le dex serait écrasé';
+      if(vu.corps.version !== 1 || !vu.corps.captures){
+        return 'échec : ecrire_dex n’emporte pas la sauvegarde — ' + JSON.stringify(vu.corps);
+      }
+      if(vu.url.indexOf('profil=3') === -1) return 'échec : l’aventure ne voyage pas';
+
+      // 2. L'import.
+      await invoquer('importer', { contenu: { version: 1, profils: [] } });
+      if(!vu.corps || vu.corps.version !== 1){
+        return 'échec : importer part sans le fichier — ' + JSON.stringify(vu.corps);
+      }
+
+      // 3. Modifier une aventure : les champs sont à plat, et seuls ceux
+      //    qu'on donne doivent partir.
+      await invoquer('modifier_profil', { id: 7, public: true });
+      if(!vu.corps) return 'échec : modifier_profil part sans corps — publier ne ferait rien';
+      if(vu.corps.public !== true){
+        return 'échec : « public » ne part pas — ' + JSON.stringify(vu.corps);
+      }
+      if('nom' in vu.corps){
+        return 'échec : un champ non demandé part quand même — il écraserait le nom';
+      }
+      if(vu.url.indexOf('/api/profils/7') === -1) return 'échec : mauvais chemin — ' + vu.url;
+
+      // Et le carnet vidé à la main est un effacement voulu, pas une absence.
+      await invoquer('modifier_profil', { id: 7, notes: '' });
+      if(!vu.corps || vu.corps.notes !== ''){
+        return 'échec : vider le carnet ne part pas — ' + JSON.stringify(vu.corps);
+      }
+
+      // 4. Le garde-fou : une route dont le corps sort indéfini doit LEVER,
+      //    et non partir à vide.
+      const routes = w.__TAURI__.core.invoke;
+      try{
+        await routes('ecrire_dex', { profil: 1 });    // « donnees » manque
+        return 'échec : un corps absent est parti sans un mot';
+      }catch(e){
+        if(String(e).indexOf('ecrire_dex') === -1){
+          return 'échec : la levée ne nomme pas la commande — ' + e;
+        }
+      }
+      return 'dex, import et champs d’aventure arrivent ; un corps absent lève';
+    } finally {
+      try{
+        if(jetonAvant === null) f.contentWindow.localStorage.removeItem('pokearchive-jeton');
+        else f.contentWindow.localStorage.setItem('pokearchive-jeton', jetonAvant);
+      }catch(e){ /* déjà partie */ }
       f.remove();
     }
   });

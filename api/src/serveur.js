@@ -414,6 +414,22 @@ app.post('/api/dex', route(async (req, res) => {
   res.json({ ok: true, ...r, photosOtees });
 }));
 
+// --- La carte de dresseur ---------------------------------------------------
+//
+// POST ET NON PATCH, comme pour le dex : l'application envoie l'etat COMPLET
+// de sa carte et de ses donnees jeux, et le serveur remplace. Un PATCH aurait
+// laisse croire qu'on peut envoyer un seul champ, alors que retirer un jeu de
+// sa liste ne s'exprime que par son absence de l'envoi.
+app.get('/api/carte', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json(await comptes.lireCarte(d.id));
+}));
+
+app.post('/api/carte', route(async (req, res) => {
+  const d = await exiger(req, res); if (!d) return;
+  res.json({ ok: true, ...await comptes.ecrireCarte(d.id, req.body) });
+}));
+
 app.post('/api/pseudo', route(async (req, res) => {
   const d = await exiger(req, res); if (!d) return;
   res.json({ ok: true, pseudo: await comptes.changerPseudo(d.id, req.body?.pseudo) });

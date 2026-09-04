@@ -260,6 +260,74 @@ const TABLES = [
      CONSTRAINT fk_pa_images_profil FOREIGN KEY (profil_id)
        REFERENCES pa_profils(id) ON DELETE CASCADE
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // La carte de dresseur : ce qu'on aime, et qui ne depend d'aucune aventure.
+  //
+  // UNE LIGNE PAR DRESSEUR, ET NON PAR PROFIL. Le jeu prefere de quelqu'un est
+  // le sien, qu'il soit sur « Aventure 1 » ou sur « Chasse shiny ». L'accrocher
+  // au profil aurait donne une reponse differente selon l'aventure ouverte,
+  // alors que la question ne porte pas sur l'aventure.
+  //
+  // `favoris` est une liste de slugs separes par des virgules — « pikachu,
+  // venusaur ». Pas du JSON : trois valeurs qui n'ont ni cle ni structure ne
+  // gagnent rien a etre encadrees d'accolades, et un slug ne contient jamais de
+  // virgule (voir allEntries, cote application : [a-z0-9-] seulement).
+  //
+  // PAS DE DRAPEAU `public` ICI. La carte suit la meme regle que les aventures
+  // publiques : qui connait le pseudo peut la lire. Ce qui la retire des yeux
+  // de tous est `pa_dresseurs.visible`, deja pose, deja explique la-bas — un
+  // second interrupteur pour la meme intention aurait fait deux verites a tenir
+  // d'accord.
+  `CREATE TABLE IF NOT EXISTS pa_cartes (
+     dresseur_id BIGINT       NOT NULL PRIMARY KEY,
+     jeu         VARCHAR(32)  NOT NULL DEFAULT '',
+     spinoff     VARCHAR(60)  NOT NULL DEFAULT '',
+     favoris     VARCHAR(255) NOT NULL DEFAULT '',
+     phrase      VARCHAR(120) NOT NULL DEFAULT '',
+     maj_le      VARCHAR(64)  NOT NULL,
+     CONSTRAINT fk_pa_cartes_dresseur FOREIGN KEY (dresseur_id)
+       REFERENCES pa_dresseurs(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // Les donnees jeux : une ligne par dresseur ET PAR JEU. Ou il en est, quelle
+  // equipe il y avait, ce qu'il veut en dire.
+  //
+  // C'EST DU SOUVENIR, PAS DE LA PROGRESSION, et c'est pourquoi cette table
+  // existe a cote de pa_dex au lieu d'en etre deduite. Le dex sait ce qui est
+  // coche ; il ne saura jamais quels six Pokemon on avait en main a la Ligue.
+  //
+  // La cle primaire est (dresseur_id, jeu) : un jeu n'apparait qu'une fois par
+  // personne, et l'ecriture se fait en un seul INSERT ... ON DUPLICATE KEY.
+  //
+  // `jeu` porte une cle de GAMES — 'rby', 'hgss', 'sv'. Elles sont stables cote
+  // application, et une cle inconnue s'affiche sous son slug plutot que de
+  // faire disparaitre la ligne : un jeu retire du referentiel ne doit pas
+  // effacer le souvenir de quelqu'un.
+  //
+  // `heures`, `debut` et `fin` sont NULL et non zero ni chaine vide : « je ne
+  // sais plus combien d'heures j'y ai passe » n'est pas « zero heure », et une
+  // partie sans date de fin n'est pas une partie finie le 1er janvier. Un
+  // affichage qui confond les deux ecrit des choses fausses sur la fiche de
+  // quelqu'un.
+  //
+  // Les dates sont des VARCHAR(10) en « AAAA-MM-JJ », comme partout ailleurs
+  // ici : la retrospective et les succes comparent deja des jours sous cette
+  // forme, et un type DATE de MySQL rentrerait un fuseau dans une donnee qui
+  // n'en a pas — le mois ou l'on a commence Emeraude ne depend pas de l'heure.
+  `CREATE TABLE IF NOT EXISTS pa_parties (
+     dresseur_id BIGINT       NOT NULL,
+     jeu         VARCHAR(32)  NOT NULL,
+     etat        VARCHAR(16)  NOT NULL DEFAULT 'en-cours',
+     equipe      VARCHAR(255) NOT NULL DEFAULT '',
+     note        VARCHAR(300) NOT NULL DEFAULT '',
+     heures      INT          NULL,
+     debut       VARCHAR(10)  NULL,
+     fin         VARCHAR(10)  NULL,
+     maj_le      VARCHAR(64)  NOT NULL,
+     PRIMARY KEY (dresseur_id, jeu),
+     CONSTRAINT fk_pa_parties_dresseur FOREIGN KEY (dresseur_id)
+       REFERENCES pa_dresseurs(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const INDEX = [
@@ -417,6 +485,7 @@ export async function creerSchema(journal = () => {}) {
   await migrerMotsEnMessages(journal);
   await migrerNomDiscord(journal);
   await migrerNotesProfil(journal);
+  await migrerDureeParties(journal);
 }
 
 /**
@@ -472,6 +541,32 @@ async function migrerNotesProfil(journal) {
   if (deja?.n) return;
   await base().query('ALTER TABLE pa_profils ADD COLUMN notes TEXT NULL');
   journal('schema : colonne pa_profils.notes ajoutee');
+}
+
+/**
+ * Ajoute pa_parties.heures, .debut et .fin.
+ *
+ * La table est nee sans elles il y a quelques jours : les bases ou elle existe
+ * deja ne recoivent rien de « CREATE TABLE IF NOT EXISTS ». Les trois colonnes
+ * sont NULL, donc rien a remplir pour l'existant.
+ */
+async function migrerDureeParties(journal) {
+  const colonnes = [
+    ['heures', 'INT NULL'],
+    ['debut', 'VARCHAR(10) NULL'],
+    ['fin', 'VARCHAR(10) NULL'],
+  ];
+  for (const [nom, type] of colonnes) {
+    const deja = await une(
+      `SELECT COUNT(*) AS n FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'pa_parties'
+          AND column_name = ?`, [nom]);
+    if (deja?.n) continue;
+    // Le nom et le type viennent de la constante ci-dessus, jamais d'une
+    // saisie : aucune valeur exterieure n'entre dans ce SQL.
+    await base().query(`ALTER TABLE pa_parties ADD COLUMN ${nom} ${type}`);
+    journal(`schema : colonne pa_parties.${nom} ajoutee`);
+  }
 }
 
 async function migrerNomDiscord(journal) {

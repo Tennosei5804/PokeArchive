@@ -20,7 +20,8 @@
 // même en cas d'échec, par un try/finally. Rien d'autre n'est lu ni écrit.
 
 import { lire, une, ecrire, creerSchema, description } from '../src/base.js';
-import { ecrireDex, horodatage, changerEchangesOuverts, changerMessagesDe }
+import { ecrireDex, lireDex, horodatage, changerEchangesOuverts, changerMessagesDe,
+         lireCarte, ecrireCarte, profilsPublics }
   from '../src/comptes.js';
 import { suivre, quiA, nouveautes } from '../src/amis.js';
 import { proposer, repondre, annuler, mesEchanges, messages, ecrireMessage }
@@ -1052,6 +1053,232 @@ async function tout(ids) {
         return `échec : ${anciennes.length} annonce(s) antérieure(s) à l’abonnement`;
       }
       return 'rien de ce qui précède l’abonnement n’est annoncé';
+    });
+
+  await verifier(
+    'Une sauvegarde sans le moindre champ est refusée, pas écrite',
+    async () => {
+      // LE DERNIER REMPART. Un pont mal câblé a déjà fait partir une requête
+      // sans corps : express.json() rend alors `{}`, qui passait le garde de
+      // forme, comptait zéro espèce, et REMPLAÇAIT la collection. Le pont est
+      // corrigé ; ce refus fait que le prochain ne pourra plus.
+      const dex = sauvegarde(['bulbasaur', 'charmander', 'squirtle']);
+      await ecrireDex(un, dex, profilUn);
+
+      try {
+        await ecrireDex(un, {}, profilUn);
+        return 'échec : un objet vide a été accepté';
+      } catch (e) {
+        if (!(e instanceof Error)) return 'échec : levée inattendue';
+      }
+
+      // Et la collection est intacte : le refus doit précéder toute écriture.
+      // `caught` et non `captures` : c'est la cle que pose sauvegarde() ici,
+      // et compterEspeces() cote API lit les deux.
+      const apres = await lireDex(un, profilUn);
+      if ((apres.caught || []).length !== 3) {
+        return `échec : ${(apres.caught || []).length} espèce(s) après le refus`;
+      }
+
+      // Vider VOLONTAIREMENT reste possible : « Réinitialiser » envoie une
+      // sauvegarde complète dont les listes sont vides, pas un objet nu.
+      await ecrireDex(un, sauvegarde([]), profilUn);
+      const vide = await lireDex(un, profilUn);
+      if ((vide.caught || []).length !== 0) return 'échec : la remise à zéro ne passe plus';
+      return '{} refusé, les 3 espèces intactes, la remise à zéro toujours permise';
+    });
+
+  console.log('\nLa carte de dresseur');
+
+  await verifier(
+    'Une carte jamais remplie se lit vide, pas nulle',
+    async () => {
+      // L'affichage n'a alors aucun cas particulier : les mêmes champs se
+      // remplissent, qu'il y ait quelque chose dedans ou non. Rendre null
+      // aurait obligé chaque appelant à s'en souvenir.
+      const c = await lireCarte(deux);
+      if (!c || !c.carte || !c.parties) return 'échec : forme incomplète';
+      if (c.carte.jeu !== '' || c.carte.phrase !== '') return 'échec : carte non vide';
+      if (!Array.isArray(c.carte.favoris) || c.carte.favoris.length) {
+        return 'échec : favoris n’est pas un tableau vide';
+      }
+      if (Object.keys(c.parties).length) return 'échec : des parties sortent de nulle part';
+      return 'jeu et phrase vides, favoris [], aucune partie';
+    });
+
+  await verifier(
+    'La carte revient telle qu’elle est partie',
+    async () => {
+      await ecrireCarte(un, {
+        carte: { jeu: 'hgss', spinoff: 'Donjon Mystère',
+                 favoris: ['venusaur', 'umbreon', 'gengar'], phrase: 'Chasseur de shiny.' },
+        parties: {
+          rby:  { etat: 'fini', equipe: ['pikachu', 'charizard'], note: 'Premier run.' },
+          sv:   { etat: 'en-cours', equipe: [], note: '' },
+        },
+      });
+      const c = await lireCarte(un);
+      if (c.carte.jeu !== 'hgss') return `échec : jeu ${c.carte.jeu}`;
+      if (c.carte.favoris.join(',') !== 'venusaur,umbreon,gengar') {
+        return `échec : favoris ${c.carte.favoris.join(',')}`;
+      }
+      if (c.parties.rby.equipe.join(',') !== 'pikachu,charizard') {
+        return `échec : équipe ${c.parties.rby.equipe.join(',')}`;
+      }
+      if (c.parties.sv.equipe.length) return 'échec : une équipe vide revient peuplée';
+      if (c.parties.rby.note !== 'Premier run.') return 'échec : la note s’est perdue';
+      return '2 jeux, 3 favoris, une équipe et une note relus à l’identique';
+    });
+
+  await verifier(
+    'Un jeu retiré de l’envoi disparaît de la base',
+    async () => {
+      // C'EST LE SEUL GESTE QUI DEMANDE UN REMPLACEMENT. Fusionner aurait rendu
+      // impossible le retrait d'un jeu : il ne s'exprime que par son absence.
+      await ecrireCarte(un, { carte: { jeu: 'hgss' }, parties: {
+        rby: { etat: 'fini', equipe: ['pikachu'], note: '' } } });
+      const c = await lireCarte(un);
+      const restants = Object.keys(c.parties);
+      if (restants.length !== 1 || restants[0] !== 'rby') {
+        return `échec : il reste ${restants.join(', ') || 'rien'}`;
+      }
+      // Et une liste vide efface tout, sans laisser la table à demi peuplée.
+      await ecrireCarte(un, { carte: {}, parties: {} });
+      const apres = await lireCarte(un);
+      if (Object.keys(apres.parties).length) return 'échec : un envoi vide n’efface pas';
+      return 'sv retiré, puis la liste entière vidée';
+    });
+
+  await verifier(
+    'Ce qui dépasse les bornes est coupé, pas refusé',
+    async () => {
+      // UN ENVOI ABERRANT NE DOIT PAS FAIRE ÉCHOUER LE RESTE. Une version plus
+      // récente de l'application, un slug abîmé, un copier-coller de trois
+      // mille signes : on garde ce qui est lisible et on borne le reste, plutôt
+      // que de rejeter la carte entière et de tout perdre.
+      await ecrireCarte(un, {
+        carte: { jeu: 'hgss', spinoff: 'S'.repeat(200), phrase: 'P'.repeat(400),
+                 favoris: ['pikachu', 'eevee', 'abra', 'machop', 'MAUVAIS SLUG', 'pikachu'] },
+        parties: { rby: { etat: 'inconnu', note: 'N'.repeat(900),
+                          equipe: ['a1', 'b2', 'c3', 'd4', 'e5', 'f6', 'g7'] } },
+      });
+      const c = await lireCarte(un);
+      if (c.carte.favoris.length !== 3) {
+        return `échec : ${c.carte.favoris.length} favoris au lieu de 3`;
+      }
+      if (c.carte.favoris.indexOf('pikachu') !== c.carte.favoris.lastIndexOf('pikachu')) {
+        return 'échec : un doublon a passé';
+      }
+      if (c.carte.spinoff.length > 60) return `échec : spin-off ${c.carte.spinoff.length}`;
+      if (c.carte.phrase.length > 120) return `échec : phrase ${c.carte.phrase.length}`;
+      if (c.parties.rby.etat !== 'en-cours') {
+        return `échec : état inconnu gardé tel quel (${c.parties.rby.etat})`;
+      }
+      if (c.parties.rby.equipe.length !== 6) {
+        return `échec : ${c.parties.rby.equipe.length} membres d’équipe`;
+      }
+      return '3 favoris sans doublon, textes bornés, état inconnu ramené à « en cours »';
+    });
+
+  await verifier(
+    'Le temps de jeu et les dates : « je ne sais plus » n’est pas « zéro »',
+    async () => {
+      // LA DISTINCTION QUI COMPTE. Un souvenir ancien n'a souvent ni compteur
+      // ni dates. Rabattre l'absence sur 0 et sur une date bidon écrirait sur
+      // la fiche de quelqu'un des choses qu'il n'a pas dites.
+      await ecrireCarte(un, { carte: {}, parties: {
+        rby: { etat: 'fini', equipe: [], note: '', heures: 112,
+               debut: '2024-03-17', fin: '2024-06-02' },
+        gsc: { etat: 'fini', equipe: [], note: '' },
+      } });
+      const c = await lireCarte(un);
+      if (c.parties.rby.heures !== 112) return `échec : heures ${c.parties.rby.heures}`;
+      if (c.parties.rby.debut !== '2024-03-17') return `échec : début ${c.parties.rby.debut}`;
+      if (c.parties.gsc.heures !== null) {
+        return `échec : une partie sans heures rend ${JSON.stringify(c.parties.gsc.heures)} et non null`;
+      }
+      if (c.parties.gsc.debut !== null || c.parties.gsc.fin !== null) {
+        return 'échec : des dates sortent de nulle part';
+      }
+      return '112 h et deux dates relues ; l’absence reste null';
+    });
+
+  await verifier(
+    'Une date qui n’existe pas, ou une fin avant le début, ne passent pas',
+    async () => {
+      // « 2024-02-31 » a la bonne FORME et n'est aucun jour : une expression
+      // régulière seule la laisse entrer. Et une fin antérieure au début est
+      // presque toujours une saisie en cours — on retire la fin plutôt que de
+      // rejeter la ligne, sinon l'équipe et la note partiraient avec.
+      await ecrireCarte(un, { carte: {}, parties: {
+        rby: { etat: 'fini', equipe: ['pikachu'], note: 'gardée',
+               heures: -5, debut: '2024-02-31', fin: 'hier' },
+        gsc: { etat: 'fini', equipe: [], note: '',
+               debut: '2024-06-01', fin: '2024-03-01' },
+      } });
+      const c = await lireCarte(un);
+      if (c.parties.rby.debut !== null) return `échec : 31 février accepté (${c.parties.rby.debut})`;
+      if (c.parties.rby.fin !== null) return `échec : « hier » accepté (${c.parties.rby.fin})`;
+      if (c.parties.rby.heures !== null) return `échec : heures négatives gardées (${c.parties.rby.heures})`;
+      if (c.parties.rby.note !== 'gardée' || c.parties.rby.equipe.length !== 1) {
+        return 'échec : le reste de la ligne a été perdu avec les dates';
+      }
+      if (c.parties.gsc.debut !== '2024-06-01') return 'échec : le début a sauté';
+      if (c.parties.gsc.fin !== null) return `échec : fin avant début gardée (${c.parties.gsc.fin})`;
+      // Et 9999 h reste le plafond, sans faire échouer l'envoi.
+      await ecrireCarte(un, { carte: {}, parties: {
+        rby: { etat: 'fini', equipe: [], note: '', heures: 999999 } } });
+      const haut = await lireCarte(un);
+      if (haut.parties.rby.heures !== 9999) return `échec : plafond ${haut.parties.rby.heures}`;
+      return '31 février et « hier » écartés, fin avant début retirée, le reste intact';
+    });
+
+  await verifier(
+    'La fiche publique porte la carte, les parties et la date d’inscription',
+    async () => {
+      // C'est ce que visiterDresseur() affiche : si l'un des trois manque ici,
+      // la fiche se dessine sans lui et personne ne saura pourquoi.
+      //
+      // ON POSE CE QU'ON VERIFIE, plutot que de s'appuyer sur ce qu'une
+      // verification precedente aurait laisse : l'ordre du banc changera
+      // encore, et un controle qui depend du residu d'un autre tombe le jour
+      // ou l'on intercale une ligne entre les deux.
+      await ecrireCarte(un, {
+        carte: { jeu: 'hgss', spinoff: '', favoris: ['pikachu'], phrase: '' },
+        parties: { rby: { etat: 'fini', equipe: [], note: '', heures: 40 } },
+      });
+      const chez = await profilsPublics('BancUn');
+      if (!chez) return 'échec : dresseur introuvable';
+      if (!chez.dresseur.creeLe) return 'échec : pas de date d’inscription';
+      if (!chez.carte) return 'échec : pas de carte';
+      if (!chez.parties) return 'échec : pas de parties';
+      if (chez.carte.jeu !== 'hgss') return `échec : jeu ${chez.carte.jeu}`;
+      if (!chez.profils.length) return 'échec : aucune aventure publique';
+      return `carte, ${Object.keys(chez.parties).length} partie(s), inscrit le ${chez.dresseur.creeLe.slice(0, 10)}`;
+    });
+
+  await verifier(
+    'La carte part avec le dresseur qu’on supprime',
+    async () => {
+      // Par cascade sur la clé étrangère, comme le dex. Sans elle, deux tables
+      // garderaient des lignes orphelines qu'aucun écran ne montrerait plus.
+      // Un banc interrompu a pu le laisser : on efface avant de poser.
+      await ecrire("DELETE FROM pa_dresseurs WHERE discord_id = '99100000000000009'");
+      const quand = horodatage();
+      const r = await ecrire(
+        `INSERT INTO pa_dresseurs (discord_id, pseudo, pseudo_cle, avatar, cree_le, visible)
+         VALUES ('99100000000000009', 'BancTrois', 'banctrois', NULL, ?, 1)`, [quand]);
+      await ecrireCarte(r.insertId, { carte: { jeu: 'rby' },
+        parties: { rby: { etat: 'fini', equipe: [], note: '' } } });
+      await ecrire('DELETE FROM pa_dresseurs WHERE id = ?', [r.insertId]);
+      const cartes = await une('SELECT COUNT(*) AS n FROM pa_cartes WHERE dresseur_id = ?',
+        [r.insertId]);
+      const parts = await une('SELECT COUNT(*) AS n FROM pa_parties WHERE dresseur_id = ?',
+        [r.insertId]);
+      if (cartes.n || parts.n) {
+        return `échec : ${cartes.n} carte(s) et ${parts.n} partie(s) orphelines`;
+      }
+      return 'les deux tables suivent la suppression du compte';
     });
 }
 

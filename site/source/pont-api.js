@@ -79,15 +79,29 @@
   const ROUTES = {
     moi:                      ['GET',    () => '/api/moi'],
     lire_dex:                 ['GET',    a => '/api/dex' + paramProfil(a.profil)],
-    ecrire_dex:               ['POST',   a => '/api/dex' + paramProfil(a.profil), a => a.dex],
+    ecrire_dex:               ['POST',   a => '/api/dex' + paramProfil(a.profil), a => a.donnees],
     profils:                  ['GET',    () => '/api/profils'],
+    carte:                    ['GET',    () => '/api/carte'],
+    carte_ecrire:             ['POST',   () => '/api/carte', a => a.donnees],
     creer_profil:             ['POST',   () => '/api/profils',
                                a => ({ nom: a.nom, mode: a.mode })],
-    modifier_profil:          ['PATCH',  a => '/api/profils/' + a.id, a => a.champs],
+    // LE CORPS SE CONSTRUIT CHAMP PAR CHAMP, comme le fait le Rust. Les
+    // appelants passent l'aventure a plat — { id, public: true } — et non
+    // regroupee sous une cle. JSON.stringify laisse tomber les valeurs
+    // `undefined` : le corps ne porte donc que ce qui a ete demande, et
+    // « publier sans renommer » reste possible.
+    //
+    // `notes` a sa nuance, reprise du Rust : la chaine vide est un effacement
+    // voulu, pas une absence. Elle passe, la ou `undefined` veut dire « ne
+    // touche pas au carnet ».
+    modifier_profil:          ['PATCH',  a => '/api/profils/' + a.id,
+                               a => ({ nom: a.nom, notes: a.notes, public: a.public,
+                                       parDefaut: a.parDefaut, mode: a.mode,
+                                       niveauFormes: a.niveauFormes })],
     supprimer_profil:         ['DELETE', a => '/api/profils/' + a.id],
     historique:               ['GET',    a => avant(a.avant, '/api/profils/' + a.id + '/historique')],
     exporter:                 ['GET',    () => '/api/export'],
-    importer:                 ['POST',   () => '/api/import', a => a.donnees],
+    importer:                 ['POST',   () => '/api/import', a => a.contenu],
     rarete:                   ['GET',    () => '/api/rarete'],
     retrospective:            ['GET',    () => '/api/retrospective'],
     journal:                  ['GET',    a => avant(a.avant, '/api/journal')],
@@ -338,7 +352,27 @@
     }
     const [methode, chemin, corps] = route;
     const a = args || {};
-    return appeler(methode, chemin(a), corps ? corps(a) : undefined);
+
+    // UNE ROUTE QUI DECLARE UN CORPS DOIT EN PRODUIRE UN, et le manquement se
+    // dit tout haut.
+    //
+    // C'EST LE DEFAUT QUI A COUTE DES COLLECTIONS. `ecrire_dex` lisait `a.dex`
+    // quand l'appelant envoie `a.donnees` : la fonction rendait `undefined`,
+    // `appeler()` partait alors SANS CORPS ni Content-Type, l'API recevait un
+    // `{}` d'express — et remplacait le Pokedex du joueur par un dex vide.
+    // Rien ne levait, rien ne s'affichait : la sauvegarde disait « enregistre ».
+    // `importer` et `modifier_profil` avaient la meme faute, en plus silencieuse
+    // encore : renommer une aventure ou la rendre publique ne faisait rien.
+    //
+    // Un corps absent n'est jamais voulu ici : les routes sans corps n'en
+    // declarent pas. Lever nomme la commande et arrete la premiere fois, au
+    // lieu de laisser passer une requete qui detruit ce qu'elle devait ecrire.
+    const charge = corps ? corps(a) : undefined;
+    if(corps && charge === undefined){
+      throw new Error('Le pont n’a rien à envoyer pour « ' + commande
+        + ' » : les arguments attendus ne sont pas ceux reçus.');
+    }
+    return appeler(methode, chemin(a), charge);
   }
 
   window.__TAURI__ = {

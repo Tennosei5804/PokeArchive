@@ -509,6 +509,17 @@ export async function ecrireDex(dresseurId, donnees, profilId = null) {
   if (!donnees || typeof donnees !== 'object' || Array.isArray(donnees)) {
     throw new ErreurCompte('Dex illisible.');
   }
+  // UN OBJET SANS LE MOINDRE CHAMP N'EST PAS UNE SAUVEGARDE, c'est une requete
+  // arrivee sans corps — express.json() rend `{}` quand il n'a rien a lire.
+  // L'objet passait le garde ci-dessus, comptait zero espece, et ECRASAIT la
+  // collection. Un pont mal cable a suffi ; le prochain ne doit pas pouvoir.
+  //
+  // Vider volontairement une aventure reste possible : « Reinitialiser » passe
+  // par construireDex(), qui porte toujours `version` et la forme complete.
+  // Ce n'est pas une absence de champs, c'est des champs vides.
+  if (!Object.keys(donnees).length) {
+    throw new ErreurCompte('Sauvegarde vide : rien n’est arrivé au serveur.');
+  }
   const captures = compterEspeces(donnees, 'caught');
   const shiny = compterEspeces(donnees, 'shiny');
 
@@ -604,10 +615,22 @@ export async function classement() {
       LIMIT 200`);
 }
 
-/** Les aventures publiques d'un dresseur, pour aller voir chez lui. */
+/**
+ * Le profil public d'un dresseur : qui il est, ce qu'il aime, ce qu'il a joue.
+ *
+ * UNE SEULE REQUETE POUR TOUTE LA FICHE. La page d'un dresseur montrait deja
+ * ses aventures ; elle montre maintenant sa carte, ses donnees jeux et sa date
+ * d'inscription. Les servir en quatre appels aurait fait quatre allers-retours
+ * pour une page qu'on ouvre d'un clic, et un affichage qui se remplit par
+ * morceaux sous les yeux.
+ *
+ * `creeLe` sort d'ici et de nulle part ailleurs : la colonne existait depuis le
+ * premier jour, personne ne la lisait. Depuis quand quelqu'un est la est la
+ * premiere chose qu'on regarde sur un profil.
+ */
 export async function profilsPublics(pseudo) {
   const d = await une(
-    `SELECT id, pseudo, avatar, discord_id, discord_nom FROM pa_dresseurs
+    `SELECT id, pseudo, avatar, discord_id, discord_nom, cree_le FROM pa_dresseurs
       WHERE pseudo_cle = ?`, [normaliser(pseudo)]);
   if (!d) return null;
   const profils = await lire(
@@ -616,8 +639,189 @@ export async function profilsPublics(pseudo) {
        FROM pa_profils p LEFT JOIN pa_dex x ON x.profil_id = p.id
       WHERE p.dresseur_id = ? AND p.public = 1
       ORDER BY p.par_defaut DESC, p.id ASC`, [d.id]);
-  return { dresseur: { pseudo: d.pseudo, avatar: d.avatar, discordId: d.discord_id,
-                       nomDiscord: d.discord_nom || null }, profils };
+  const chez = await lireCarte(d.id);
+  return {
+    dresseur: { pseudo: d.pseudo, avatar: d.avatar, discordId: d.discord_id,
+                nomDiscord: d.discord_nom || null, creeLe: d.cree_le },
+    profils,
+    carte: chez.carte,
+    parties: chez.parties
+  };
+}
+
+// --- La carte de dresseur et les donnees jeux --------------------------------
+//
+// DEUX TABLES, UN SEUL ALLER-RETOUR. `pa_cartes` tient ce qui ne depend d'aucun
+// jeu, `pa_parties` une ligne par jeu joue. Elles se lisent et s'ecrivent
+// ensemble parce qu'elles s'affichent ensemble : les separer aurait double le
+// nombre d'appels sans rien rendre de plus clair.
+//
+// RIEN N'EST DEDUIT DE LA COLLECTION, et c'est le point. Le Pokemon qu'on a le
+// plus attrape n'est pas le Pokemon qu'on prefere, et une equipe de fin de
+// partie ne se lit dans aucune case cochee. Tout ce qui est ici est saisi.
+
+const CARTE_FAVORIS_MAX = 3;
+const CARTE_EQUIPE_MAX = 6;
+const CARTE_SPINOFF_MAX = 60;
+const CARTE_PHRASE_MAX = 120;
+const CARTE_NOTE_MAX = 300;
+const CARTE_JEUX_MAX = 60;
+
+// Les trois etats d'un jeu, tels que l'application les enregistre. Un etat
+// inconnu retombe sur « en cours » plutot que d'etre refuse : une version plus
+// recente de l'application ne doit pas voir son ecriture rejetee en bloc.
+const CARTE_ETATS = new Set(['en-cours', 'fini', 'abandon']);
+
+// Les slugs d'espece et les cles de jeu ont la meme forme cote application :
+// minuscules, chiffres et tirets. On la verifie ici plutot que de faire
+// confiance, parce que ces valeurs ressortent telles quelles chez les autres.
+const CARTE_SLUG = /^[a-z0-9][a-z0-9-]{0,31}$/;
+
+/** Une liste de slugs propre : bornee, sans doublon, sans vide. */
+const slugs = (v, max) => (Array.isArray(v) ? v : [])
+  .map((x) => String(x || '').trim().toLowerCase())
+  .filter((x) => CARTE_SLUG.test(x))
+  .filter((x, i, t) => t.indexOf(x) === i)
+  .slice(0, max);
+
+/** Une ligne de texte libre : espaces reduits, longueur bornee. */
+const ligne = (v, max) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
+
+// Neuf mille heures : au-dessus, c'est une faute de frappe et non un souvenir.
+// La borne existe pour que la fiche reste lisible, pas pour juger de personne.
+const CARTE_HEURES_MAX = 9999;
+
+/**
+ * Un nombre d'heures, ou null.
+ *
+ * NULL ET ZERO NE SONT PAS LA MEME CHOSE. « Je ne sais plus » est l'etat
+ * normal d'un souvenir ancien ; « zero heure » serait un mensonge affiche sur
+ * sa fiche. Un champ vide rend donc null, et l'affichage saute la mention.
+ */
+function heuresValides(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Math.floor(Number(v));
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Math.min(n, CARTE_HEURES_MAX);
+}
+
+/**
+ * Un jour « AAAA-MM-JJ », ou null.
+ *
+ * On verifie que la date EXISTE, et pas seulement qu'elle a la bonne forme :
+ * « 2024-02-31 » passe toute expression reguliere et n'est aucun jour. Le
+ * detour par Date puis la comparaison de la chaine rendue est ce qui l'attrape.
+ */
+function jourValide(v) {
+  const t = String(v ?? '').trim();
+  if (!t) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) return null;
+  const d = new Date(t + 'T12:00:00Z');
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10) === t ? t : null;
+}
+
+/**
+ * La carte et les parties d'un dresseur, dans la forme que l'application range
+ * deja dans son localStorage — voir parties.js. Une carte absente rend une
+ * carte vide et non `null` : l'affichage n'a alors aucun cas particulier a
+ * traiter, et le formulaire se remplit des memes champs dans les deux cas.
+ */
+export async function lireCarte(dresseurId) {
+  const c = await une(
+    'SELECT jeu, spinoff, favoris, phrase FROM pa_cartes WHERE dresseur_id = ?', [dresseurId]);
+  const lignes = await lire(
+    `SELECT jeu, etat, equipe, note, heures, debut, fin FROM pa_parties
+      WHERE dresseur_id = ? ORDER BY jeu ASC`, [dresseurId]);
+
+  const parties = {};
+  for (const l of lignes) {
+    parties[l.jeu] = {
+      etat: l.etat,
+      // Une chaine vide donne [''] au decoupage, et non [] : le filtre l'ecarte.
+      equipe: (l.equipe || '').split(',').filter(Boolean),
+      note: l.note || '',
+      // null tel quel, et surtout pas rabattu sur 0 ou '' : voir heuresValides.
+      heures: l.heures === null ? null : Number(l.heures),
+      debut: l.debut || null,
+      fin: l.fin || null
+    };
+  }
+  return {
+    carte: {
+      jeu: c?.jeu || '',
+      spinoff: c?.spinoff || '',
+      favoris: (c?.favoris || '').split(',').filter(Boolean),
+      phrase: c?.phrase || ''
+    },
+    parties
+  };
+}
+
+/**
+ * Remplace la carte et les donnees jeux par ce que l'application envoie.
+ *
+ * REMPLACER PLUTOT QUE FUSIONNER. L'application detient la verite complete :
+ * elle envoie l'etat entier a chaque changement, comme pour le dex. Fusionner
+ * aurait rendu impossible le seul geste qu'on veut vraiment pouvoir faire —
+ * retirer un jeu de sa liste.
+ *
+ * Les jeux absents de l'envoi sont donc supprimes, mais par une requete qui
+ * nomme les survivants : un DELETE suivi d'un INSERT complet aurait vide la
+ * liste de quelqu'un pendant l'instant ou la seconde requete echoue.
+ */
+export async function ecrireCarte(dresseurId, entree) {
+  const c = entree?.carte || {};
+  const quand = horodatage();
+
+  await ecrire(
+    `INSERT INTO pa_cartes (dresseur_id, jeu, spinoff, favoris, phrase, maj_le)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE jeu = VALUES(jeu), spinoff = VALUES(spinoff),
+       favoris = VALUES(favoris), phrase = VALUES(phrase), maj_le = VALUES(maj_le)`,
+    [dresseurId,
+     slugs([c.jeu], 1)[0] || '',
+     ligne(c.spinoff, CARTE_SPINOFF_MAX),
+     slugs(c.favoris, CARTE_FAVORIS_MAX).join(','),
+     ligne(c.phrase, CARTE_PHRASE_MAX),
+     quand]);
+
+  const brutes = entree?.parties && typeof entree.parties === 'object' ? entree.parties : {};
+  const jeux = Object.keys(brutes).filter((k) => CARTE_SLUG.test(k)).slice(0, CARTE_JEUX_MAX);
+
+  if (jeux.length) {
+    await ecrire(
+      `DELETE FROM pa_parties WHERE dresseur_id = ?
+        AND jeu NOT IN (${jeux.map(() => '?').join(',')})`, [dresseurId, ...jeux]);
+  } else {
+    await ecrire('DELETE FROM pa_parties WHERE dresseur_id = ?', [dresseurId]);
+  }
+
+  for (const jeu of jeux) {
+    const p = brutes[jeu] || {};
+    // La fin avant le debut est refusee en RETIRANT la fin, pas en rejetant la
+    // ligne : c'est presque toujours une saisie en cours — on tape la fin, on
+    // n'a pas encore corrige le debut — et perdre l'equipe et la note pour
+    // deux dates a l'envers serait une punition sans rapport avec la faute.
+    const debut = jourValide(p.debut);
+    let fin = jourValide(p.fin);
+    if (debut && fin && fin < debut) fin = null;
+
+    await ecrire(
+      `INSERT INTO pa_parties (dresseur_id, jeu, etat, equipe, note, heures, debut, fin, maj_le)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE etat = VALUES(etat), equipe = VALUES(equipe),
+         note = VALUES(note), heures = VALUES(heures), debut = VALUES(debut),
+         fin = VALUES(fin), maj_le = VALUES(maj_le)`,
+      [dresseurId, jeu,
+       CARTE_ETATS.has(p.etat) ? p.etat : 'en-cours',
+       slugs(p.equipe, CARTE_EQUIPE_MAX).join(','),
+       ligne(p.note, CARTE_NOTE_MAX),
+       heuresValides(p.heures), debut, fin,
+       quand]);
+  }
+
+  return await lireCarte(dresseurId);
 }
 
 /** Chercher un dresseur par son pseudo, même partiel. */

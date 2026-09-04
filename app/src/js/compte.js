@@ -365,6 +365,11 @@ function appliquerDresseur(d){
   img.alt = 'Avatar de ' + d.pseudo;
   compteMenu.hidden = false;
 
+  // La carte de dresseur vit dans ses propres tables, hors de la sauvegarde
+  // d'aventure : elle a donc son propre moment pour descendre, et c'est ici —
+  // le seul endroit qui sait qu'une session vient de s'ouvrir. Voir parties.js.
+  if(typeof partiesSynchroniser === 'function') partiesSynchroniser();
+
   chargerDresseurs();
 }
 
@@ -891,6 +896,23 @@ async function visiterDresseur(pseudo){
         ? ' · et ' + autres + ' autre' + (autres > 1 ? 's' : '') : '')
     : 'Aucune aventure publique';
   titre.appendChild(sous);
+
+  // DEPUIS QUAND IL EST LÀ. La colonne existait depuis le premier jour et
+  // personne ne la lisait — or c'est la question qu'on se pose en arrivant sur
+  // la fiche de quelqu'un, avant même de regarder ses chiffres.
+  //
+  // La date exacte ET le temps écoulé : « 12 mars 2026 » se compare aux siennes,
+  // « il y a 6 mois » se comprend sans compter. Les deux tiennent sur la ligne.
+  if(chez.dresseur.creeLe){
+    const inscrit = document.createElement('span');
+    inscrit.className = 'visite-inscrit';
+    const depuis = (typeof depuisQuand === 'function')
+      ? depuisQuand(chez.dresseur.creeLe) : '';
+    inscrit.textContent = 'Inscrit le ' + jourLisible(chez.dresseur.creeLe)
+      + (depuis ? ' · ' + depuis : '');
+    titre.appendChild(inscrit);
+  }
+
   entete.appendChild(img); entete.appendChild(titre);
 
   // Les succès de quelqu'un d'autre, dans la même pop-up que les siens. Ils se
@@ -931,6 +953,19 @@ async function visiterDresseur(pseudo){
   }
 
   dresseurVisite.appendChild(entete);
+
+  // SA CARTE, AVANT SES AVENTURES. Ce qu'il aime se lit en trois secondes et
+  // dit qui il est ; ses Pokédex demandent qu'on les ouvre. On présente la
+  // personne avant sa collection.
+  //
+  // Le bloc est construit par parties.js — il y tient déjà les vignettes, les
+  // noms d'espèce et le vocabulaire des états. Il rend null quand la carte est
+  // vide, et rien ne s'affiche alors : un cadre vide sur la fiche de quelqu'un
+  // ressemble à une panne.
+  if(typeof carteBlocPublic === 'function'){
+    const bloc = carteBlocPublic(chez.carte, chez.parties);
+    if(bloc) dresseurVisite.appendChild(bloc);
+  }
 
   if(!chez.profils.length){
     const rien = document.createElement('div');
@@ -1503,11 +1538,26 @@ function direErreurPage(texte){
 
 // Une date ISO en quelque chose de lisible. Les dates de la base sont en UTC
 // sans fuseau : on les rend telles quelles plutôt que d'inventer un décalage.
-function dateLisible(iso){
+/**
+ * Le jour seul : « 12 mars 2026 ».
+ *
+ * Une date d'inscription n'a que faire d'une heure : personne ne retient qu'il
+ * s'est inscrit a 14 h 32, et la minute allonge la ligne sans rien apprendre.
+ */
+function jourLisible(iso){
   if(!iso) return 'date inconnue';
   const d = new Date(iso);
   if(isNaN(d)) return iso;
-  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+// L'heure en plus, pour ce qui vient de se passer — une derniere sauvegarde,
+// une session ouverte. Elle s'appuie sur jourLisible : deux facons d'ecrire un
+// meme jour auraient fini par ne plus s'ecrire pareil.
+function dateLisible(iso){
+  const d = new Date(iso);
+  if(!iso || isNaN(d)) return jourLisible(iso);
+  return jourLisible(iso)
     + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 

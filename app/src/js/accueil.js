@@ -453,6 +453,10 @@ function showPage(name){
     if(name === 'amis' && typeof chargerQuiA === 'function') chargerQuiA();
     if(name === 'lieux' && typeof chargerPageLieux === 'function') chargerPageLieux();
     if(name === 'profil' && typeof chargerProfil === 'function') chargerProfil();
+    // La carte et les données jeux se redessinent en entrant : leur premier
+    // dessin a lieu au chargement de parties.js, avant qu'app.js n'ait rempli
+    // allEntries, et il sort donc sans les vignettes d'équipe.
+    if(name === 'profil' && typeof partiesToutDessiner === 'function') partiesToutDessiner();
     if(name === 'parametres' && typeof chargerParametres === 'function') chargerParametres();
     if(name === 'chasse' && typeof dessinerChasses === 'function') dessinerChasses();
     if(name === 'cadeaux' && typeof chargerCadeaux === 'function') chargerCadeaux();
