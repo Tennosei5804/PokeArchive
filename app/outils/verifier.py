@@ -321,6 +321,73 @@ def boutons_muets(html, fichiers):
     return len(muets)
 
 
+CREATION_BOUTON = re.compile(
+    r"""(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*"""
+    r"""document\.createElement\(\s*['"]button['"]""")
+
+
+def fin_de_portee(propre, depart):
+    """L'indice ou se referme le bloc qui contient `depart`.
+
+    PAR COMPTAGE D'ACCOLADES, ET NON PAR FENETRE DE N LIGNES. Une fenetre est
+    un reglage : a soixante-dix lignes elle manquait le bouton de menus.js,
+    dont les ecouteurs arrivent quatre-vingt-huit lignes plus bas, et signalait
+    un defaut qui n'existait pas. Un reglage qui decide d'une faute est un
+    reglage que personne ne saura reajuster dans six mois.
+
+    Le texte recu est passe par sans_commentaires_ni_chaines : les accolades
+    d'un commentaire ou d'une chaine ne comptent pas, et les positions sont
+    conservees.
+    """
+    profondeur = 0
+    for i in range(depart, len(propre)):
+        c = propre[i]
+        if c == "{":
+            profondeur += 1
+        elif c == "}":
+            profondeur -= 1
+            if profondeur < 0:
+                return i
+    return len(propre)
+
+
+def boutons_batis_muets(fichiers):
+    """Les <button> crees en JavaScript auxquels rien n'est branche.
+
+    LE PENDANT DE boutons_muets(), POUR CE QUI NE FIGURE PAS DANS LA PAGE. Les
+    lignes d'aventure, les vignettes, les puces d'equipe : la moitie des
+    boutons de l'application naissent d'un createElement.
+
+    LA REGLE EST STRICTE — un ecouteur pose sur le bouton lui-meme — parce que
+    les quatre-vingt-dix boutons batis du projet la respectent deja, sans une
+    exception. Elle ne signale donc rien aujourd'hui, et se contente d'empecher
+    la derive. Accepter « confie a une fonction » aurait laisse passer le seul
+    cas qui compte : appendChild() est un appel de fonction comme un autre, et
+    tout bouton finit insere quelque part.
+
+    `return` fait exception : une fabrique rend son bouton, et c'est l'appelant
+    qui le branche. Aucune n'existe ici pour l'instant.
+    """
+    muets = []
+    for nom, txt in fichiers.items():
+        propre = sans_commentaires_ni_chaines(txt)
+        for m in CREATION_BOUTON.finditer(txt):
+            var = re.escape(m.group(1))
+            bloc = propre[m.end():fin_de_portee(propre, m.end())]
+            if re.search(r"\b%s\s*\.\s*(?:addEventListener|onclick)\b" % var, bloc):
+                continue
+            if re.search(r"\breturn\s+%s\s*[;,)]" % var, bloc):
+                continue
+            muets.append("%s:%d  %s" % (nom, ligne(txt, m.start()), m.group(1)))
+
+    print("— boutons batis en JS auxquels rien n'est branche")
+    for b in muets:
+        print("    %s" % b)
+    if not muets:
+        print("    rien")
+    return len(muets)
+
+
 def sans_commentaires_ni_chaines_sauf_ids(txt):
     """Comme sans_commentaires_ni_chaines, mais les chaines restent.
 
@@ -335,6 +402,7 @@ def identifiants(html, fichiers, tout):
     ids = set(re.findall(r'\bid="([^"]+)"', html))
     fautes = ids_absents(html, fichiers)
     fautes += boutons_muets(html, fichiers)
+    fautes += boutons_batis_muets(fichiers)
 
     print("— identifiants du HTML que le JS ne cite jamais")
     orphelins = [i for i in sorted(ids)
