@@ -20,6 +20,41 @@ const NOUVEAUTES_VUES_KEY = 'pokearchive-nouveautes-vues';
 
 const NOUVEAUTES = [
   {
+    version: '0.42.0', date: '2026-09-04',
+    titre: 'Ta carte de dresseur se voit enfin chez les autres',
+    points: [
+      '**🧑 Ouvre la fiche de quelqu’un : tu vois maintenant qui il est, pas '
+      + 'seulement ce qu’il a coché.** Son jeu préféré, son spin-off, ses trois '
+      + 'Pokémon préférés, sa phrase, et les jeux auxquels il a joué avec '
+      + 'l’équipe qu’il y avait. **Ta propre carte part au serveur** : elle te '
+      + 'suit d’un ordinateur à l’autre, au lieu de rester sur une machine.',
+      '**📅 Et depuis quand il est là.** La date d’inscription était enregistrée '
+      + 'depuis le premier jour et n’apparaissait nulle part — alors que c’est '
+      + 'la première chose qu’on regarde en arrivant chez quelqu’un.',
+      '**🔎 La recherche d’équipe ne propose plus que les Pokémon DU jeu.** '
+      + 'Taper « Arca » sur Rouge / Bleu proposait Arcanin de Hisui et '
+      + 'Marcacrin — deux Pokémon qui n’existent pas sur Game Boy. On note ici '
+      + 'une équipe qu’on a vraiment eue : une liste qui propose n’importe quoi '
+      + 'invite à écrire un souvenir faux.',
+      '**⏱️ Temps de jeu, date de début et date de fin**, sur chaque jeu. Tout '
+      + 'est facultatif, et **laisser vide veut dire « je ne sais plus »** — pas '
+      + 'zéro heure le 1er janvier. Un jeu sans rien de saisi n’affiche rien.',
+      '**🎮 Le spin-off préféré devient un menu** de 54 jeux secondaires '
+      + 'officiels, de Stadium à Pokémon Sleep. C’était un champ libre où '
+      + '« donjon mystère », « PMD » et « Explorateurs du ciel » désignaient le '
+      + 'même jeu. **Ce que tu avais déjà tapé reste dans la liste** et n’est '
+      + 'pas perdu.',
+      '**⚠️ Sur la version WEB, enregistrer ta collection l’effaçait du '
+      + 'serveur.** La sauvegarde partait vide : le Pokédex en ligne était '
+      + 'remplacé par un dex vierge, sans le moindre message. Deux autres '
+      + 'commandes étaient muettes de la même façon — importer un fichier ne '
+      + 'faisait rien, et renommer une aventure ou la rendre publique non plus. '
+      + 'C’est corrigé, et l’application de bureau n’a jamais été touchée. Si tu '
+      + 'as perdu une collection ainsi, ta sauvegarde locale ou un export la '
+      + 'contient peut-être encore.',
+    ],
+  },
+  {
     version: '0.41.0', date: '2026-09-03',
     titre: 'Les lieux te disent comment y attraper ce qui te manque',
     points: [
