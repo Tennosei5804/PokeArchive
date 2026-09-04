@@ -247,10 +247,94 @@ def ids_absents(html, fichiers):
     return fautes
 
 
+def boutons_muets(html, fichiers):
+    """Les <button> du HTML que rien ne relie a du code.
+
+    LE DEFAUT QUE CETTE RELECTURE EXISTE POUR ATTRAPER. #trocEnvoyer a vecu des
+    semaines avec un libelle qui changeait, un etat disabled tenu a jour, une
+    API qui savait le recevoir et un banc qui passait au vert — et aucun
+    ecouteur. Proposer un echange etait impossible, et rien ne le disait : un
+    bouton sans gestionnaire ne leve pas, il ne fait rien.
+
+    ON CHERCHE UNE TRACE DE COMPORTEMENT, pas une forme precise. Le projet lie
+    ses elements de quatre facons, et les quatre comptent :
+
+        const b = getElementById('x'); b.addEventListener(...)   direct
+        const dgt = { crit: getElementById('x') }; dgt.crit...   propriete
+        monterBascule(dgt.crit, f)                               confie
+        [a, b].forEach(el => el.addEventListener(...))           en tableau
+
+    Exiger addEventListener aurait signale les trois dernieres a chaque
+    passage. Un garde-fou qui se trompe finit ignore — c'est precisement le
+    terrain sur lequel ce bouton a survecu.
+    """
+    lie = {}          # identifiant -> expressions qui le designent
+    for nom, txt in fichiers.items():
+        propre = sans_commentaires_ni_chaines_sauf_ids(txt)
+        for m in re.finditer(
+                r"""(?:(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=|"""
+                r"""([A-Za-z_$][\w$]*)\s*:)\s*document\.getElementById\(\s*['"]([^'"]+)['"]""",
+                txt):
+            var, cle, ident = m.group(1), m.group(2), m.group(3)
+            lie.setdefault(ident, set()).add(var if var else '.' + cle)
+
+    tout = "\n".join(fichiers.values())
+    muets = []
+
+    for m in re.finditer(r'<button\b[^>]*>', html, re.S):
+        balise = m.group(0)
+        i = re.search(r'\bid="([^"]+)"', balise)
+        if not i:
+            continue                      # sans identifiant : il est bati en JS
+        ident = i.group(1)
+        # Un submit est ecoute par son formulaire, un onclick porte son code.
+        if 'onclick' in balise or re.search(r'type="submit"', balise):
+            continue
+        # Ecouteur pose sur l'identifiant, sans passer par une variable.
+        if re.search(r"""getElementById\(\s*['"]%s['"]\s*\)\s*\.\s*(?:addEventListener|onclick)"""
+                     % re.escape(ident), tout):
+            continue
+
+        trace = False
+        for expr in lie.get(ident, ()):
+            # Une propriete ne se cherche que par son suffixe : l'objet qui la
+            # porte s'appelle « dgt » ici et autrement ailleurs.
+            motif = re.escape(expr) if not expr.startswith('.') else re.escape(expr)
+            if re.search(r'%s\s*\.\s*(?:addEventListener|onclick)\b' % motif, tout):
+                trace = True
+            # Confie a une fonction, ou range dans un tableau que l'on parcourt.
+            elif re.search(r'[(\[,]\s*[A-Za-z_$][\w$]*%s\s*[,)\]]' % motif, tout):
+                trace = True
+            elif not expr.startswith('.') and re.search(
+                    r'[(\[,]\s*%s\s*[,)\]]' % motif, tout):
+                trace = True
+            if trace:
+                break
+        if not trace:
+            muets.append(ident)
+
+    print("— boutons du HTML que rien ne relie a du code")
+    for b in muets:
+        print("    #%s" % b)
+    if not muets:
+        print("    rien")
+    return len(muets)
+
+
+def sans_commentaires_ni_chaines_sauf_ids(txt):
+    """Comme sans_commentaires_ni_chaines, mais les chaines restent.
+
+    getElementById('x') a besoin de son argument : le vider rendrait la
+    liaison introuvable.
+    """
+    return txt
+
+
 def identifiants(html, fichiers, tout):
     """Les getElementById qui visent un identifiant absent, et l'inverse."""
     ids = set(re.findall(r'\bid="([^"]+)"', html))
     fautes = ids_absents(html, fichiers)
+    fautes += boutons_muets(html, fichiers)
 
     print("— identifiants du HTML que le JS ne cite jamais")
     orphelins = [i for i in sorted(ids)
